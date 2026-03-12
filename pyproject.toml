@@ -1,0 +1,39 @@
+[project]
+name = "bearing-prediction"
+version = "0.1.0"
+description = "Industrial bearing fault prediction system for software engineering coursework."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "lifelines>=0.30.0",
+    "matplotlib>=3.10.1",
+    "numpy>=2.2.4",
+    "pandas>=2.2.3",
+    "pyyaml>=6.0.2",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
+    "tensorboard>=2.19.0",
+    "torch>=2.6.0",
+]
+
+[project.optional-dependencies]
+advanced = [
+    "tsfresh>=0.21.0",
+    "xgboost>=2.1.4",
+]
+dev = [
+    "pytest>=8.4.0",
+]
+
+[project.scripts]
+bearing-prediction = "USTC.SSE.BearingPrediction.main:main"
+
+[build-system]
+requires = ["setuptools>=75.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

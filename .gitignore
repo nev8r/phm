@@ -1,0 +1,71 @@
+# Local project instructions
+AGENTS.md
+
+# Python environments
+.venv/
+.python-version
+.env
+.env.*
+!.env.example
+
+# Python cache and tooling
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging artifacts
+build/
+dist/
+pip-wheel-metadata/
+*.egg-info/
+site/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.tmp
+*.temp
+*~
+
+# Generated data and downloaded datasets
+data/generated/**
+data/external/**
+data/raw/**
+!data/raw/.gitkeep
+
+# Experiment outputs and runtime artifacts
+outputs/**
+!outputs/.gitkeep
+runs/
+tensorboard/
+checkpoints/
+artifacts/
+events.out.tfevents*
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.log
+
+# Coverage and analysis reports
+coverage.xml
+
+# Office temporary files
+~$*.docx
