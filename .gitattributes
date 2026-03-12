@@ -1,0 +1,2 @@
+data/external/phm2012/FEMTO_Bearing.zip filter=lfs diff=lfs merge=lfs -text
+data/external/xjtu/*.rar filter=lfs diff=lfs merge=lfs -text
