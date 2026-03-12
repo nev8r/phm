@@ -3,7 +3,7 @@ Labeling package
 
 this file is for exposing dataset construction labelers
 
-created by cyy
+created by cyj
 
 copyright USTC
 

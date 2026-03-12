@@ -3,7 +3,7 @@ PHM2012 dataset loader module
 
 this file is for loading IEEE PHM 2012 bearing dataset entities
 
-created by cyy
+created by cyj
 
 copyright USTC
 

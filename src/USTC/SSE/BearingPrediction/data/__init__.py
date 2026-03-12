@@ -3,7 +3,7 @@ Data package
 
 this file is for exposing bearing entity and dataset abstractions
 
-created by cyy
+created by cyj
 
 copyright USTC
 

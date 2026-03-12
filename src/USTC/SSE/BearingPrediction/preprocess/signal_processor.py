@@ -3,7 +3,7 @@ Signal preprocessor module
 
 this file is for preprocessing vibration signal data
 
-created by cyy
+created by cyj
 
 copyright USTC
 

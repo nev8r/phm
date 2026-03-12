@@ -3,7 +3,7 @@ Data entity module
 
 this file is for defining bearing entity and window dataset abstractions
 
-created by cyy
+created by cyj
 
 copyright USTC
 

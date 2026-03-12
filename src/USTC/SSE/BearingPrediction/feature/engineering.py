@@ -3,7 +3,7 @@ Feature engineering module
 
 this file is for extracting configurable bearing signal features
 
-created by cyy
+created by cyj
 
 copyright USTC
 

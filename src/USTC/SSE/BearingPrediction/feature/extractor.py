@@ -3,7 +3,7 @@ Feature extractor module
 
 this file is for extracting time and frequency domain features
 
-created by cyy
+created by cyj
 
 copyright USTC
 

@@ -3,7 +3,7 @@ Dataset labeler module
 
 this file is for constructing regression, classification and forecasting datasets
 
-created by cyy
+created by cyj
 
 copyright USTC
 

@@ -3,7 +3,7 @@ Degradation stage module
 
 this file is for implementing multiple degradation stage partition strategies
 
-created by cyy
+created by cyj
 
 copyright USTC
 

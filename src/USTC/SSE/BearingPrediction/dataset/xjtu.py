@@ -3,7 +3,7 @@ XJTU dataset loader module
 
 this file is for loading XJTU-SY bearing dataset entities
 
-created by cyy
+created by cyj
 
 copyright USTC
 

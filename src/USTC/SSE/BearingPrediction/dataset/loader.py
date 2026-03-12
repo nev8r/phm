@@ -3,7 +3,7 @@ BearingDatasetLoader class
 
 this class is for loading bearing dataset
 
-created by cyy
+created by cyj
 
 copyright USTC
 
