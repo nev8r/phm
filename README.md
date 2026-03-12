@@ -1,7 +1,7 @@
 # 工业轴承故障预测系统
 
-- [开题材料 PDF 文件夹](/Users/nev8r/Desktop/phm/docx/proposal)
-- [中期材料 PDF 文件夹](/Users/nev8r/Desktop/phm/docx/mid-term)
+- [开题材料 PDF 文件夹](docx/proposal)
+- [中期材料 PDF 文件夹](docx/mid-term)
 
 - 支持 `XJTU-SY` 与 `PHM2012` 轴承寿命退化数据集接入
 - 支持信号预处理、特征工程、退化阶段划分、RUL 预测、生存分析与结果可视化
@@ -291,16 +291,16 @@ uv run pytest -q
 - [实验与日志说明](docs/EXPERIMENTS.md)
 - [测试说明](docs/TESTING.md)
 - `proposal` 文档：
-- [开题报告 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/01_开题报告.md)
-- [技术预研报告 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/03_技术预研报告.md)
-- [需求定义文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/04_需求定义文档.md)
-- [SRS 规格说明文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/05_SRS规格说明文档.md)
-- [确认测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/09_确认测试计划文档.md)
-- [项目管理计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/10_项目管理计划文档.md)
+- [开题报告 Markdown](docx/proposal/md/01_开题报告.md)
+- [技术预研报告 Markdown](docx/proposal/md/03_技术预研报告.md)
+- [需求定义文档 Markdown](docx/proposal/md/04_需求定义文档.md)
+- [SRS 规格说明文档 Markdown](docx/proposal/md/05_SRS规格说明文档.md)
+- [确认测试计划文档 Markdown](docx/proposal/md/09_确认测试计划文档.md)
+- [项目管理计划文档 Markdown](docx/proposal/md/10_项目管理计划文档.md)
 - `mid-term` 文档：
-- [中期检查报告 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/02_中期检查报告.md)
-- [设计文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/06_设计文档.md)
-- [单元测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/07_单元测试计划文档.md)
-- [集成测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/08_集成测试计划文档.md)
-- [编码规范文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/11_编码规范文档.md)
+- [中期检查报告 Markdown](docx/mid-term/md/02_中期检查报告.md)
+- [设计文档 Markdown](docx/mid-term/md/06_设计文档.md)
+- [单元测试计划文档 Markdown](docx/mid-term/md/07_单元测试计划文档.md)
+- [集成测试计划文档 Markdown](docx/mid-term/md/08_集成测试计划文档.md)
+- [编码规范文档 Markdown](docx/mid-term/md/11_编码规范文档.md)
 - PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
