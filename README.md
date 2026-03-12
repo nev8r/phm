@@ -73,14 +73,27 @@ phm
 │   ├── TESTING.md
 │   └── USER_GUIDE.md
 ├── docx
-│   ├── OPENING_REPORT.md
-│   ├── SDD.md
-│   ├── SRS.md
-│   └── UML.md
+│   ├── proposal
+│   │   ├── 01_开题报告.pdf
+│   │   ├── 03_技术预研报告.pdf
+│   │   ├── 04_需求定义文档.pdf
+│   │   ├── 05_SRS规格说明文档.pdf
+│   │   ├── 09_确认测试计划文档.pdf
+│   │   ├── 10_项目管理计划文档.pdf
+│   │   ├── 工业轴承故障预测系统的实现-开题ppt-周逸进.pptx
+│   │   └── md
+│   └── mid-term
+│       ├── 02_中期检查报告.pdf
+│       ├── 06_设计文档.pdf
+│       ├── 07_单元测试计划文档.pdf
+│       ├── 08_集成测试计划文档.pdf
+│       ├── 11_编码规范文档.pdf
+│       └── md
 ├── data
 │   ├── raw
 │   └── generated
 ├── outputs
+├── scripts
 ├── tests
 └── src
     └── USTC
@@ -274,7 +287,17 @@ uv run pytest -q
 - [数据集说明](docs/DATASETS.md)
 - [实验与日志说明](docs/EXPERIMENTS.md)
 - [测试说明](docs/TESTING.md)
-- [开题报告](docx/OPENING_REPORT.md)
-- [需求规格说明](docx/SRS.md)
-- [详细设计说明](docx/SDD.md)
-- [UML 设计](docx/UML.md)
+- `proposal` 文档：
+- [开题报告 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/01_开题报告.md)
+- [技术预研报告 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/03_技术预研报告.md)
+- [需求定义文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/04_需求定义文档.md)
+- [SRS 规格说明文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/05_SRS规格说明文档.md)
+- [确认测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/09_确认测试计划文档.md)
+- [项目管理计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/proposal/md/10_项目管理计划文档.md)
+- `mid-term` 文档：
+- [中期检查报告 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/02_中期检查报告.md)
+- [设计文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/06_设计文档.md)
+- [单元测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/07_单元测试计划文档.md)
+- [集成测试计划文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/08_集成测试计划文档.md)
+- [编码规范文档 Markdown](/Users/nev8r/Desktop/phm/docx/mid-term/md/11_编码规范文档.md)
+- PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
