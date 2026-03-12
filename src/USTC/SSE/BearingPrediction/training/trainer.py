@@ -62,6 +62,7 @@ class BaseTrainer:
         weight_decay: float = 1e-4,
         num_workers: int = 0,
         gradient_clip_norm: float = 5.0,
+        shuffle_train: bool = True,
     ) -> None:
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         self.callbacks = callbacks or []
@@ -71,6 +72,7 @@ class BaseTrainer:
         self.weight_decay = weight_decay
         self.num_workers = num_workers
         self.gradient_clip_norm = gradient_clip_norm
+        self.shuffle_train = shuffle_train
         self.experiment_tracker = experiment_tracker
         self.model: nn.Module | None = None
         self.should_stop = False
@@ -115,7 +117,7 @@ class BaseTrainer:
                 weight_decay=self.weight_decay,
                 max_epochs=self.max_epochs,
                 batch_size=self.batch_size,
-                sampling_strategy="chronological",
+                sampling_strategy="random_shuffle" if self.shuffle_train else "chronological",
                 prediction_mode="direct",
                 model_hyperparameters=model.get_monitor_state(),
             )
@@ -123,7 +125,7 @@ class BaseTrainer:
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         criterion = self._build_criterion(train_set.task_type)
-        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        train_loader = DataLoader(train_set, batch_size=self.batch_size, shuffle=self.shuffle_train, num_workers=self.num_workers)
         valid_loader = DataLoader(valid_set, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers) if valid_set is not None else None
 
         for callback in self.callbacks:
@@ -136,7 +138,11 @@ class BaseTrainer:
             else:
                 val_logs = {"val_loss": train_logs["train_loss"]}
 
-            epoch_logs = {**train_logs, **val_logs}
+            epoch_logs = {
+                "learning_rate": float(optimizer.param_groups[0]["lr"]),
+                **train_logs,
+                **val_logs,
+            }
             self.history.append(epoch_logs)
             monitored_metric = float(epoch_logs["val_loss"])
             if monitored_metric < self.best_metric:

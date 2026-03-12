@@ -12,12 +12,16 @@ copyright USTC
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except ModuleNotFoundError:
+    SummaryWriter = None
 
 
 class Callback:
@@ -80,9 +84,24 @@ class TensorBoardCallback(Callback):
 
     def __init__(self, log_dir: str | Path) -> None:
         self.log_dir = Path(log_dir)
-        self.writer: SummaryWriter | None = None
+        self.writer: Any | None = None
+
+    @staticmethod
+    def is_available() -> bool:
+        """
+        report whether tensorboard support is installed
+
+        Returns
+        -------
+        bool
+            True when SummaryWriter can be imported
+        """
+
+        return SummaryWriter is not None
 
     def on_train_start(self, trainer: Any) -> None:
+        if SummaryWriter is None:
+            raise RuntimeError("TensorBoardCallback requires the optional dependency tensorboard")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.writer = SummaryWriter(log_dir=str(self.log_dir))
         self.writer.add_text("model", trainer.model.get_monitor_state()["model_structure"])
@@ -152,6 +171,9 @@ class ExperimentLoggerCallback(Callback):
     def on_train_start(self, trainer: Any) -> None:
         callback_summary = [callback.__class__.__name__ for callback in trainer.callbacks]
         tracker_config = trainer.experiment_tracker.config
-        tracker_config.callback_config = {"callbacks": callback_summary}
+        tracker_config.callback_config = {
+            **tracker_config.callback_config,
+            "callbacks": callback_summary,
+        }
         trainer.experiment_tracker.save_config()
 
