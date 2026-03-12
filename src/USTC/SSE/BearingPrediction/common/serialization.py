@@ -19,13 +19,30 @@ from typing import Any
 
 import pandas as pd
 import torch
-import yaml
+
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
 
 class ArtifactSerializer:
     """
     Serialize tabular or generic artifacts to multiple file formats.
     """
+
+    @staticmethod
+    def supports_yaml() -> bool:
+        """
+        report whether yaml serialization is available
+
+        Returns
+        -------
+        bool
+            True when PyYAML is installed
+        """
+
+        return yaml is not None
 
     @staticmethod
     def save_dataframe(data_frame: pd.DataFrame, output_path: Path) -> None:
@@ -91,6 +108,8 @@ class ArtifactSerializer:
                 json.dump(data_object, output_file, indent=2, ensure_ascii=False)
             return
         if suffix in {".yaml", ".yml"}:
+            if yaml is None:
+                raise RuntimeError("yaml serialization requires the optional dependency PyYAML")
             with output_path.open("w", encoding="utf-8") as output_file:
                 yaml.safe_dump(data_object, output_file, sort_keys=False, allow_unicode=True)
             return
@@ -121,6 +140,8 @@ class ArtifactSerializer:
             with input_path.open("r", encoding="utf-8") as input_file:
                 return json.load(input_file)
         if suffix in {".yaml", ".yml"}:
+            if yaml is None:
+                raise RuntimeError("yaml deserialization requires the optional dependency PyYAML")
             with input_path.open("r", encoding="utf-8") as input_file:
                 return yaml.safe_load(input_file)
         if suffix in {".pkl", ".pickle"}:
