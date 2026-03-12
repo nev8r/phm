@@ -93,8 +93,9 @@ class ExperimentTracker:
         """
 
         config_object = asdict(self.config)
-        ArtifactSerializer.save_object(config_object, self.run_dir / "config.yaml")
         ArtifactSerializer.save_object(config_object, self.run_dir / "config.json")
+        if ArtifactSerializer.supports_yaml():
+            ArtifactSerializer.save_object(config_object, self.run_dir / "config.yaml")
 
     def log_epoch(self, epoch_record: dict[str, Any]) -> None:
         """
@@ -135,7 +136,8 @@ class ExperimentTracker:
         """
 
         ArtifactSerializer.save_object(metrics, self.run_dir / "metrics.json")
-        ArtifactSerializer.save_object(metrics, self.run_dir / "metrics.yaml")
+        if ArtifactSerializer.supports_yaml():
+            ArtifactSerializer.save_object(metrics, self.run_dir / "metrics.yaml")
 
     def save_predictions(self, prediction_frame: pd.DataFrame) -> None:
         """

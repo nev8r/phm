@@ -16,9 +16,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from USTC.SSE.BearingPrediction.api import BearingRulLabeler, PHM2012Loader, SyntheticBearingFactory, XJTULoader
+from USTC.SSE.BearingPrediction.common import serialization as serialization_module
 from USTC.SSE.BearingPrediction.common.serialization import ArtifactSerializer
+from USTC.SSE.BearingPrediction.training import ExperimentConfig, ExperimentTracker
 
 
 def test_dataset_export_and_loader_parse(tmp_path: Path) -> None:
@@ -94,3 +97,33 @@ def test_phm2012_loader_preserves_temperature_channel(tmp_path: Path) -> None:
     assert "Temperature" in loaded_entity.channel_names()
     assert loaded_entity.samples.iloc[0]["temperature_file"] == "temp_00001.csv"
     assert np.allclose(loaded_entity.samples.iloc[0]["Temperature"], [70.378, 70.397])
+
+
+def test_yaml_outputs_become_optional_when_pyyaml_is_unavailable(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(serialization_module, "yaml", None)
+
+    tracker = ExperimentTracker(
+        tmp_path / "experiments",
+        ExperimentConfig(
+            run_name="yaml-optional",
+            dataset_name="Synthetic",
+            model_name="CNN",
+            optimizer_name="Adam",
+            learning_rate=1e-3,
+            weight_decay=1e-4,
+            max_epochs=1,
+            batch_size=4,
+            sampling_strategy="chronological",
+            prediction_mode="direct",
+        ),
+    )
+    tracker.save_metrics({"rmse": 0.1})
+
+    assert ArtifactSerializer.supports_yaml() is False
+    assert (tracker.run_dir / "config.json").exists()
+    assert not (tracker.run_dir / "config.yaml").exists()
+    assert (tracker.run_dir / "metrics.json").exists()
+    assert not (tracker.run_dir / "metrics.yaml").exists()
+
+    with pytest.raises(RuntimeError, match="PyYAML"):
+        ArtifactSerializer.save_object({"rmse": 0.1}, tmp_path / "metrics.yaml")
