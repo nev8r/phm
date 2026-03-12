@@ -175,5 +175,24 @@ class ExperimentLoggerCallback(Callback):
             **tracker_config.callback_config,
             "callbacks": callback_summary,
         }
+        for callback in trainer.callbacks:
+            if isinstance(callback, EarlyStopping):
+                tracker_config.callback_config.update(
+                    {
+                        "early_stopping_monitor": callback.monitor,
+                        "early_stopping_patience": callback.patience,
+                        "early_stopping_min_delta": callback.min_delta,
+                        "early_stopping_mode": callback.mode,
+                    }
+                )
+            elif isinstance(callback, GradientAlertCallback):
+                tracker_config.callback_config.update(
+                    {
+                        "gradient_vanish_threshold": callback.vanish_threshold,
+                        "gradient_explode_threshold": callback.explode_threshold,
+                        "gradient_warmup_steps": callback.warmup_steps,
+                    }
+                )
+            elif isinstance(callback, TensorBoardCallback):
+                tracker_config.callback_config["tensorboard_log_dir"] = str(callback.log_dir)
         trainer.experiment_tracker.save_config()
-
