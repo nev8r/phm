@@ -1,5 +1,8 @@
 # 工业轴承故障预测系统
 
+- [开题材料 PDF 文件夹](/Users/nev8r/Desktop/phm/docx/proposal)
+- [中期材料 PDF 文件夹](/Users/nev8r/Desktop/phm/docx/mid-term)
+
 - 支持 `XJTU-SY` 与 `PHM2012` 轴承寿命退化数据集接入
 - 支持信号预处理、特征工程、退化阶段划分、RUL 预测、生存分析与结果可视化
 - 支持 `CNN`、`RNN`、`Transformer`、`MLP` 等多种建模方式
