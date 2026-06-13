@@ -29,3 +29,11 @@ for markdown_file in docx/mid-term/md/*.md; do
   base_name="$(basename "${markdown_file%.md}")"
   pandoc "$markdown_file" -o "docx/mid-term/${base_name}.pdf" "${COMMON_ARGS[@]}"
 done
+
+if compgen -G "docx/final/md/*.md" > /dev/null; then
+  mkdir -p docx/final
+  for markdown_file in docx/final/md/*.md; do
+    base_name="$(basename "${markdown_file%.md}")"
+    pandoc "$markdown_file" -o "docx/final/${base_name}.pdf" "${COMMON_ARGS[@]}"
+  done
+fi

@@ -290,6 +290,8 @@ uv run pytest -q
 - [数据集说明](docs/DATASETS.md)
 - [实验与日志说明](docs/EXPERIMENTS.md)
 - [测试说明](docs/TESTING.md)
+- [RUL 论文复现说明](docs/PAPER_REPRODUCTION.md)
+- [结项交付清单](docs/FINAL_DELIVERABLE_CHECKLIST.md)
 - `proposal` 文档：
 - [开题报告 Markdown](docx/proposal/md/01_开题报告.md)
 - [技术预研报告 Markdown](docx/proposal/md/03_技术预研报告.md)
@@ -303,4 +305,15 @@ uv run pytest -q
 - [单元测试计划文档 Markdown](docx/mid-term/md/07_单元测试计划文档.md)
 - [集成测试计划文档 Markdown](docx/mid-term/md/08_集成测试计划文档.md)
 - [编码规范文档 Markdown](docx/mid-term/md/11_编码规范文档.md)
+- `final` 文档：
+- [结题报告 Markdown](docx/final/md/12_结题报告.md)
+- [单元测试报告 Markdown](docx/final/md/13_单元测试报告.md)
+- [集成测试报告 Markdown](docx/final/md/14_集成测试报告.md)
+- [确认测试报告 Markdown](docx/final/md/15_确认测试报告.md)
+- [用户使用手册 Markdown](docx/final/md/16_用户使用手册.md)
+- [安装配置手册 Markdown](docx/final/md/17_安装配置手册.md)
+- [项目技术论文 Markdown](docx/final/md/18_项目技术论文.md)
+- [成员贡献比说明 Markdown](docx/final/md/19_成员贡献比说明.md)
+- [结题答辩提纲 Markdown](docx/final/md/20_结题答辩提纲.md)
 - PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
+- 结题 PPT 可通过 `uv run python scripts/generate_final_ppt.py` 重新生成
