@@ -94,6 +94,22 @@ def test_xjtu_loader_exposes_real_sampling_metadata(tmp_path: Path) -> None:
     assert loaded_entity.metadata["rul_unit"] == "seconds"
 
 
+def test_loader_can_sample_files_before_reading_large_entities(tmp_path: Path) -> None:
+    dataset_root = tmp_path / "XJTU-SY_Bearing_Datasets" / "35Hz12kN" / "Bearing1_1"
+    dataset_root.mkdir(parents=True)
+    sample_frame = pd.DataFrame({0: np.arange(4, dtype=float), 1: np.arange(4, dtype=float) * 2.0})
+    for sample_index in range(1, 11):
+        sample_frame.to_csv(dataset_root / f"{sample_index}.csv", index=False, header=False)
+
+    loader = XJTULoader(tmp_path / "XJTU-SY_Bearing_Datasets")
+    loaded_entity = loader.load_entity("Bearing1_1", max_samples=4)
+
+    assert loaded_entity.samples.shape[0] == 4
+    assert loaded_entity.samples["source_file"].tolist() == ["1.csv", "4.csv", "7.csv", "10.csv"]
+    assert loaded_entity.metadata["source_sample_count"] == 10
+    assert loaded_entity.metadata["used_sample_count"] == 4
+
+
 def test_phm2012_loader_preserves_temperature_channel(tmp_path: Path) -> None:
     dataset_root = tmp_path / "Training_set" / "Learning_set" / "Bearing1_1"
     dataset_root.mkdir(parents=True)

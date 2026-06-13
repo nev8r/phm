@@ -32,16 +32,20 @@ from USTC.SSE.BearingPrediction.api import (
     ExperimentLoggerCallback,
     ExperimentTracker,
     FeatureSequenceRulLabeler,
+    FeatureSequenceTransformer,
     HuangRulScore,
+    LSTMTransformer,
     MAE,
     MLP,
     NormalizedRMSE,
     OverPredictionRate,
     PHM2012Loader,
     PHM2012Score,
+    R2Score,
     RMSE,
     SMAPE,
     WithinToleranceRate,
+    XLSTMTransformer,
     XJTULoader,
 )
 
@@ -93,9 +97,21 @@ def create_demo_xjtu_dataset(base_dir: Path | None = None, *, sample_count: int 
 
     root = (base_dir or demo_data_root()) / "XJTU-SY_Bearing_Datasets"
     bearing_specs = [
-        ("35Hz12kN", "Bearing1_1", 1.0),
-        ("35Hz12kN", "Bearing1_2", 1.3),
-        ("37.5Hz11kN", "Bearing2_1", 1.6),
+        ("35Hz12kN", "Bearing1_1", 1.00),
+        ("35Hz12kN", "Bearing1_2", 1.08),
+        ("35Hz12kN", "Bearing1_3", 1.16),
+        ("35Hz12kN", "Bearing1_4", 1.24),
+        ("35Hz12kN", "Bearing1_5", 1.32),
+        ("37.5Hz11kN", "Bearing2_1", 1.40),
+        ("37.5Hz11kN", "Bearing2_2", 1.48),
+        ("37.5Hz11kN", "Bearing2_3", 1.56),
+        ("37.5Hz11kN", "Bearing2_4", 1.64),
+        ("37.5Hz11kN", "Bearing2_5", 1.72),
+        ("40Hz10kN", "Bearing3_1", 1.80),
+        ("40Hz10kN", "Bearing3_2", 1.88),
+        ("40Hz10kN", "Bearing3_3", 1.96),
+        ("40Hz10kN", "Bearing3_4", 2.04),
+        ("40Hz10kN", "Bearing3_5", 2.12),
     ]
     for condition_name, bearing_id, scale in bearing_specs:
         bearing_dir = root / condition_name / bearing_id
@@ -130,9 +146,15 @@ def create_demo_phm2012_dataset(base_dir: Path | None = None, *, sample_count: i
 
     root = (base_dir or demo_data_root()) / "FEMTO"
     bearing_specs = [
-        ("Bearing1_1", 9, 39, 10, 1.0),
-        ("Bearing1_2", 9, 41, 0, 1.2),
-        ("Bearing2_1", 10, 12, 20, 1.5),
+        ("Bearing1_1", 9, 39, 10, 1.00),
+        ("Bearing1_2", 9, 41, 0, 1.08),
+        ("Bearing1_3", 9, 42, 20, 1.16),
+        ("Bearing2_1", 10, 12, 20, 1.30),
+        ("Bearing2_2", 10, 14, 0, 1.38),
+        ("Bearing2_3", 10, 15, 40, 1.46),
+        ("Bearing3_1", 11, 2, 10, 1.60),
+        ("Bearing3_2", 11, 4, 0, 1.68),
+        ("Bearing3_3", 11, 5, 40, 1.76),
     ]
     for bearing_id, hour_value, minute_value, second_value, scale in bearing_specs:
         bearing_dir = root / "Training_set" / "Learning_set" / bearing_id
@@ -461,6 +483,138 @@ def run_paper_cnn_lstm_attention_reproduction(
     }
 
 
+def run_paper_xlstm_transformer_reproduction(
+    *,
+    xjtu_root: str | Path | None = None,
+    phm2012_root: str | Path | None = None,
+    max_samples_per_entity: int | None = None,
+    prefer_real_data: bool = True,
+) -> dict[str, object]:
+    """
+    run a Jiang et al. xLSTM-Transformer paper-style RUL reproduction
+
+    Returns
+    -------
+    dict[str, object]
+        output summary
+    """
+
+    output_root = example_output_root() / "paper_xlstm_transformer"
+    sample_limit = max_samples_per_entity or int(os.getenv("BEARING_EXAMPLE_MAX_SAMPLES", "36"))
+    split_specs = _load_xlstm_paper_split_specs(
+        xjtu_root=xjtu_root,
+        phm2012_root=phm2012_root,
+        max_samples_per_entity=sample_limit,
+        prefer_real_data=prefer_real_data,
+    )
+
+    run_summaries: list[dict[str, object]] = []
+    comparison_records: list[dict[str, object]] = []
+    primary_run: dict[str, object] | None = None
+
+    for split_spec in split_specs:
+        train_set = split_spec["train_set"]
+        test_set = split_spec["test_set"]
+        feature_size = int(train_set.inputs.shape[-1])
+        for model_name, model in _build_xlstm_reproduction_models(feature_size):
+            run_slug = "-".join(
+                [
+                    _slugify(str(split_spec["dataset_name"])),
+                    _slugify(str(split_spec["condition_name"])),
+                    _slugify(model_name),
+                ]
+            )
+            run_output_root = output_root / run_slug
+            trainer = _build_trainer(
+                run_output_root,
+                str(split_spec["dataset_name"]),
+                model_name,
+                run_name=f"paper-{run_slug}",
+            )
+            training_result = trainer.train(model, train_set, test_set)
+            test_result = BaseTester(device="cpu", batch_size=4).test(model, test_set)
+            metrics = Evaluator().add(
+                MAE(),
+                RMSE(),
+                NormalizedRMSE(),
+                R2Score(),
+                HuangRulScore(),
+            ).evaluate(test_result.targets, test_result.predictions)
+            metrics["r2_score"] = metrics["r2"]
+            metrics["phm2012_score"] = _scaled_phm2012_score(test_result.targets, test_result.predictions)
+
+            run_output_root.mkdir(parents=True, exist_ok=True)
+            prediction_path = run_output_root / "predictions.csv"
+            metrics_path = run_output_root / "metrics.json"
+            attention_path = run_output_root / "attention_weights.csv"
+            test_result.as_frame().to_csv(prediction_path, index=False)
+            _write_json(metrics_path, metrics)
+            _write_attention_csv(attention_path, test_result.attention_weights)
+
+            history_path = trainer.experiment_tracker.run_dir / "history.csv" if trainer.experiment_tracker is not None else run_output_root / "history.csv"
+            run_summary = {
+                "dataset_name": split_spec["dataset_name"],
+                "condition_name": split_spec["condition_name"],
+                "train_entities": split_spec["train_entities"],
+                "test_entities": split_spec["test_entities"],
+                "data_source": split_spec["data_source"],
+                "model_name": model_name,
+                "metrics": metrics,
+                "prediction_count": int(len(test_result.predictions)),
+                "prediction_path": str(prediction_path),
+                "metrics_path": str(metrics_path),
+                "attention_path": str(attention_path),
+                "history_path": str(history_path),
+                "feature_sequence_shape": list(train_set.inputs.shape),
+                "epoch_count": int(len(training_result.history)),
+            }
+            run_summaries.append(run_summary)
+            comparison_records.append(
+                {
+                    "dataset_name": split_spec["dataset_name"],
+                    "condition_name": split_spec["condition_name"],
+                    "train_entities": ",".join(split_spec["train_entities"]),
+                    "test_entities": ",".join(split_spec["test_entities"]),
+                    "data_source": split_spec["data_source"],
+                    "model_name": model_name,
+                    "mae": metrics["mae"],
+                    "rmse": metrics["rmse"],
+                    "normalized_rmse": metrics["normalized_rmse"],
+                    "r2": metrics["r2"],
+                    "r2_score": metrics["r2_score"],
+                    "phm2012_score": metrics["phm2012_score"],
+                    "huang_rul_score": metrics["huang_rul_score"],
+                    "prediction_count": int(len(test_result.predictions)),
+                    "epoch_count": int(len(training_result.history)),
+                    "history_path": str(history_path),
+                }
+            )
+            if model_name == "XLSTM-Transformer" and primary_run is None:
+                primary_run = run_summary
+
+    if not comparison_records:
+        raise ValueError("no xLSTM-Transformer reproduction splits could be built")
+
+    comparison_path = output_root / "comparison_metrics.csv"
+    comparison_frame = _add_xlstm_baseline_comparison_columns(pd.DataFrame.from_records(comparison_records))
+    comparison_frame.to_csv(comparison_path, index=False)
+    primary_run = primary_run or run_summaries[0]
+
+    return {
+        "status": "OK",
+        "paper": "RUL Prediction Based on xLSTM-Transformer Neural Network for Rolling Element Bearings Under Different Working Conditions",
+        "source": "https://www.mdpi.com/1424-8220/26/5/1578",
+        "used_condition_count": len(split_specs),
+        "trained_model_count": len(run_summaries),
+        "runs": run_summaries,
+        "comparison_path": str(comparison_path),
+        "metrics": primary_run["metrics"],
+        "prediction_path": primary_run["prediction_path"],
+        "attention_path": primary_run["attention_path"],
+        "feature_sequence_shape": primary_run["feature_sequence_shape"],
+    }
+
+
 def _build_trainer(output_root: Path, dataset_name: str, model_name: str, *, run_name: str) -> BaseTrainer:
     max_epochs = int(os.getenv("BEARING_EXAMPLE_EPOCHS", "2"))
     tracker = ExperimentTracker(
@@ -490,6 +644,113 @@ def _build_trainer(output_root: Path, dataset_name: str, model_name: str, *, run
     )
 
 
+def _build_xlstm_reproduction_models(feature_size: int) -> list[tuple[str, object]]:
+    common_parameters = {
+        "feature_size": feature_size,
+        "output_size": 1,
+        "sequence_length": 10,
+        "hidden_size": 16,
+        "num_heads": 2,
+        "num_layers": 1,
+        "dropout": 0.1,
+    }
+    return [
+        ("XLSTM-Transformer", XLSTMTransformer(**common_parameters)),
+        ("Feature-Transformer", FeatureSequenceTransformer(**common_parameters)),
+        ("LSTM-Transformer", LSTMTransformer(**common_parameters)),
+    ]
+
+
+def _load_xlstm_paper_split_specs(
+    *,
+    xjtu_root: str | Path | None,
+    phm2012_root: str | Path | None,
+    max_samples_per_entity: int,
+    prefer_real_data: bool,
+) -> list[dict[str, object]]:
+    xjtu_data_root = _resolve_xjtu_root(xjtu_root, prefer_real_data)
+    phm_data_root = _resolve_phm2012_root(phm2012_root, prefer_real_data)
+    data_source = "real_or_provided_files" if prefer_real_data and xjtu_data_root.exists() and phm_data_root.exists() else "generated_demo_files"
+
+    split_specs: list[dict[str, object]] = []
+    xjtu_loader = XJTULoader(xjtu_data_root)
+    phm_loader = PHM2012Loader(phm_data_root)
+    for condition_name, train_entities, test_entities in _xjtu_xlstm_split_definitions():
+        split_spec = _build_split_spec(
+            loader=xjtu_loader,
+            condition_name=condition_name,
+            train_entities=train_entities,
+            test_entities=test_entities,
+            data_source=data_source,
+            max_samples_per_entity=max_samples_per_entity,
+        )
+        if split_spec is not None:
+            split_specs.append(split_spec)
+    for condition_name, train_entities, test_entities in _phm2012_xlstm_split_definitions():
+        split_spec = _build_split_spec(
+            loader=phm_loader,
+            condition_name=condition_name,
+            train_entities=train_entities,
+            test_entities=test_entities,
+            data_source=data_source,
+            max_samples_per_entity=max_samples_per_entity,
+        )
+        if split_spec is not None:
+            split_specs.append(split_spec)
+    return split_specs
+
+
+def _xjtu_xlstm_split_definitions() -> list[tuple[str, list[str], list[str]]]:
+    return [
+        ("condition_1_35Hz12kN", ["Bearing1_1", "Bearing1_2", "Bearing1_4", "Bearing1_5"], ["Bearing1_3"]),
+        ("condition_2_37_5Hz11kN", ["Bearing2_1", "Bearing2_2", "Bearing2_4", "Bearing2_5"], ["Bearing2_3"]),
+        ("condition_3_40Hz10kN", ["Bearing3_1", "Bearing3_2", "Bearing3_4", "Bearing3_5"], ["Bearing3_3"]),
+    ]
+
+
+def _phm2012_xlstm_split_definitions() -> list[tuple[str, list[str], list[str]]]:
+    return [
+        ("condition_1", ["Bearing1_1", "Bearing1_2"], ["Bearing1_3"]),
+        ("condition_2", ["Bearing2_1", "Bearing2_2"], ["Bearing2_3"]),
+        ("condition_3", ["Bearing3_1", "Bearing3_2"], ["Bearing3_3"]),
+    ]
+
+
+def _build_split_spec(
+    *,
+    loader: XJTULoader | PHM2012Loader,
+    condition_name: str,
+    train_entities: list[str],
+    test_entities: list[str],
+    data_source: str,
+    max_samples_per_entity: int,
+) -> dict[str, object] | None:
+    available_entities = set(loader.list_entities())
+    if not set(train_entities + test_entities).issubset(available_entities):
+        return None
+    train_sets = [
+        _build_xlstm_feature_sequence_dataset(
+            loader.load_entity(entity_id, max_samples=max_samples_per_entity)
+        )
+        for entity_id in train_entities
+    ]
+    test_sets = [
+        _build_xlstm_feature_sequence_dataset(
+            loader.load_entity(entity_id, max_samples=max_samples_per_entity)
+        )
+        for entity_id in test_entities
+    ]
+    return {
+        "dataset_name": loader.dataset_name,
+        "condition_name": condition_name,
+        "train_entities": train_entities,
+        "test_entities": test_entities,
+        "data_source": data_source,
+        "train_set": _concat_window_datasets(train_sets),
+        "test_set": _concat_window_datasets(test_sets),
+    }
+
+
 def _load_paper_reproduction_entities(
     *,
     xjtu_root: str | Path | None,
@@ -503,11 +764,17 @@ def _load_paper_reproduction_entities(
 
     xjtu_loader = XJTULoader(xjtu_data_root)
     phm_loader = PHM2012Loader(phm_data_root)
-    xjtu_entity = xjtu_loader.load_entity(_select_entity_id(xjtu_loader, ["Bearing1_5", "Bearing2_4", "Bearing1_1", "Bearing2_1"]))
-    phm_entity = phm_loader.load_entity(_select_entity_id(phm_loader, ["Bearing3_1", "Bearing1_2", "Bearing2_1", "Bearing1_1"]))
+    xjtu_entity = xjtu_loader.load_entity(
+        _select_entity_id(xjtu_loader, ["Bearing1_5", "Bearing2_4", "Bearing1_1", "Bearing2_1"]),
+        max_samples=max_samples_per_entity,
+    )
+    phm_entity = phm_loader.load_entity(
+        _select_entity_id(phm_loader, ["Bearing3_1", "Bearing1_2", "Bearing2_1", "Bearing1_1"]),
+        max_samples=max_samples_per_entity,
+    )
     return [
-        (_sample_entity_snapshots(xjtu_entity, max_samples_per_entity), data_source),
-        (_sample_entity_snapshots(phm_entity, max_samples_per_entity), data_source),
+        (xjtu_entity, data_source),
+        (phm_entity, data_source),
     ]
 
 
@@ -520,6 +787,33 @@ def _build_paper_feature_sequence_dataset(entity: BearingEntity) -> BearingWindo
     return FeatureSequenceRulLabeler(sequence_length=5, window_size=window_size, stride=window_size).label(
         entity,
         channel_name,
+    )
+
+
+def _build_xlstm_feature_sequence_dataset(entity: BearingEntity) -> BearingWindowDataset:
+    channel_name = "Horizontal Vibration"
+    signal_lengths = [len(signal_values) for signal_values in entity.get_channel(channel_name)]
+    window_size = min(1024, min(signal_lengths))
+    if window_size < 16:
+        raise ValueError(f"{entity.entity_id} has snapshots shorter than 16 points")
+    return FeatureSequenceRulLabeler(sequence_length=10, window_size=window_size, stride=window_size).label(
+        entity,
+        channel_name,
+    )
+
+
+def _concat_window_datasets(datasets: list[BearingWindowDataset]) -> BearingWindowDataset:
+    if not datasets:
+        raise ValueError("at least one dataset is required")
+    first_dataset = datasets[0]
+    return BearingWindowDataset(
+        inputs=np.concatenate([dataset.inputs for dataset in datasets], axis=0).astype(np.float32),
+        targets=np.concatenate([dataset.targets for dataset in datasets], axis=0).astype(np.float32),
+        metadata_frame=pd.concat([dataset.metadata_frame for dataset in datasets], ignore_index=True),
+        task_type=first_dataset.task_type,
+        target_name=first_dataset.target_name,
+        input_name=first_dataset.input_name,
+        feature_frame=pd.concat([dataset.feature_frame for dataset in datasets], ignore_index=True),
     )
 
 
@@ -591,6 +885,28 @@ def _add_attention_baseline_comparison_columns(comparison_frame: pd.DataFrame) -
     return comparison_frame
 
 
+def _add_xlstm_baseline_comparison_columns(comparison_frame: pd.DataFrame) -> pd.DataFrame:
+    comparison_frame = comparison_frame.copy()
+    comparison_frame["rmse_change_pct_vs_transformer"] = np.nan
+    comparison_frame["score_change_pct_vs_transformer"] = np.nan
+    for _, dataset_frame in comparison_frame.groupby(["dataset_name", "condition_name"]):
+        model_rows = dataset_frame.set_index("model_name")
+        if "Feature-Transformer" not in model_rows.index:
+            continue
+        baseline_row = model_rows.loc["Feature-Transformer"]
+        dataset_mask = (
+            (comparison_frame["dataset_name"] == baseline_row["dataset_name"])
+            & (comparison_frame["condition_name"] == baseline_row["condition_name"])
+        )
+        for row_index in comparison_frame[dataset_mask].index:
+            row = comparison_frame.loc[row_index]
+            rmse_change = _safe_percent_change(baseline_row["rmse"] - row["rmse"], baseline_row["rmse"])
+            score_change = _safe_percent_change(baseline_row["phm2012_score"] - row["phm2012_score"], baseline_row["phm2012_score"])
+            comparison_frame.loc[row_index, "rmse_change_pct_vs_transformer"] = rmse_change
+            comparison_frame.loc[row_index, "score_change_pct_vs_transformer"] = score_change
+    return comparison_frame
+
+
 def _safe_percent_change(numerator: float, denominator: float) -> float:
     if abs(float(denominator)) < 1e-8:
         return 0.0
@@ -602,8 +918,12 @@ def _write_attention_csv(output_path: Path, attention_weights: np.ndarray | None
     if attention_weights is None:
         pd.DataFrame(columns=["attention_disabled"]).to_csv(output_path, index=False)
         return
-    column_names = [f"attention_t{index}" for index in range(attention_weights.shape[1])]
-    pd.DataFrame(attention_weights, columns=column_names).to_csv(output_path, index=False)
+    if attention_weights.ndim > 2:
+        flattened_weights = attention_weights.reshape(attention_weights.shape[0], -1)
+    else:
+        flattened_weights = attention_weights
+    column_names = [f"attention_{index}" for index in range(flattened_weights.shape[1])]
+    pd.DataFrame(flattened_weights, columns=column_names).to_csv(output_path, index=False)
 
 
 def _slugify(value: str) -> str:

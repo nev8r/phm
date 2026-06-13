@@ -89,7 +89,7 @@ class PHM2012Loader(BaseBearingLoader):
 
         return [file_path for file_path in super()._iter_signal_files(entity_path) if file_path.name.startswith("acc_")]
 
-    def _load_entity_frame(self, entity_path: Path) -> pd.DataFrame:
+    def _load_entity_frame(self, entity_path: Path, *, max_samples: int | None = None) -> pd.DataFrame:
         """
         load acceleration snapshots and align temperature files by snapshot id
 
@@ -111,7 +111,9 @@ class PHM2012Loader(BaseBearingLoader):
             if file_path.is_file()
         }
 
-        for sample_index, file_path in enumerate(self._iter_signal_files(entity_path)):
+        signal_files = list(self._iter_signal_files(entity_path))
+        selected_files = self._select_signal_files(signal_files, max_samples)
+        for sample_index, file_path in selected_files:
             signal_frame = self._read_signal_file(file_path)
             horizontal_signal, vertical_signal = self._extract_channels(signal_frame)
 
@@ -138,6 +140,8 @@ class PHM2012Loader(BaseBearingLoader):
         sample_frame = pd.DataFrame.from_records(records)
         if sample_frame.empty:
             raise ValueError(f"no acceleration files were found under {entity_path}")
+        sample_frame.attrs["source_sample_count"] = len(signal_files)
+        sample_frame.attrs["used_sample_count"] = len(selected_files)
         sample_frame = self._finalize_sample_frame(sample_frame, entity_path)
         terminal_rul_seconds = self._terminal_rul_seconds(entity_path)
         if terminal_rul_seconds is not None:

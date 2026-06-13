@@ -81,7 +81,7 @@ class BaseBearingLoader:
         entity_paths = [path for path in self.data_root.rglob("*") if path.is_dir() and self._is_entity_path(path)]
         return sorted({path.name for path in entity_paths})
 
-    def load_entity(self, entity_id: str) -> BearingEntity:
+    def load_entity(self, entity_id: str, *, max_samples: int | None = None) -> BearingEntity:
         """
         load one bearing entity
 
@@ -89,6 +89,8 @@ class BaseBearingLoader:
         ----------
         entity_id : str
             entity id
+        max_samples : int | None
+            optional number of signal files to sample before reading
 
         Returns
         -------
@@ -97,13 +99,17 @@ class BaseBearingLoader:
         """
 
         entity_path = self._resolve_entity_path(entity_id)
-        sample_frame = self._load_entity_frame(entity_path)
+        sample_frame = self._load_entity_frame(entity_path, max_samples=max_samples)
+        metadata = self._build_entity_metadata(entity_path)
+        if "source_sample_count" in sample_frame.attrs:
+            metadata["source_sample_count"] = int(sample_frame.attrs["source_sample_count"])
+            metadata["used_sample_count"] = int(sample_frame.attrs["used_sample_count"])
         return BearingEntity(
             entity_id=entity_id,
             dataset_name=self.dataset_name,
             samples=sample_frame,
             sample_rate=self._infer_sample_rate(entity_path),
-            metadata=self._build_entity_metadata(entity_path),
+            metadata=metadata,
         )
 
     @classmethod
@@ -161,9 +167,11 @@ class BaseBearingLoader:
             raise FileNotFoundError(f"{entity_id} was not found under {self.data_root}")
         return sorted(candidate_paths)[0]
 
-    def _load_entity_frame(self, entity_path: Path) -> pd.DataFrame:
+    def _load_entity_frame(self, entity_path: Path, *, max_samples: int | None = None) -> pd.DataFrame:
         records: list[dict[str, object]] = []
-        for sample_index, file_path in enumerate(self._iter_signal_files(entity_path)):
+        signal_files = list(self._iter_signal_files(entity_path))
+        selected_files = self._select_signal_files(signal_files, max_samples)
+        for sample_index, file_path in selected_files:
             signal_frame = self._read_signal_file(file_path)
             horizontal_signal, vertical_signal = self._extract_channels(signal_frame)
             records.append(
@@ -179,6 +187,8 @@ class BaseBearingLoader:
         sample_frame = pd.DataFrame.from_records(records)
         if sample_frame.empty:
             raise ValueError(f"no signal files were found under {entity_path}")
+        sample_frame.attrs["source_sample_count"] = len(signal_files)
+        sample_frame.attrs["used_sample_count"] = len(selected_files)
         return self._finalize_sample_frame(sample_frame, entity_path)
 
     def _iter_signal_files(self, entity_path: Path) -> Iterable[Path]:
@@ -193,6 +203,29 @@ class BaseBearingLoader:
         digits = re.findall(r"\d+", file_path.stem)
         numeric_order = int(digits[-1]) if digits else 0
         return numeric_order, file_path.name
+
+    def _select_signal_files(self, signal_files: list[Path], max_samples: int | None) -> list[tuple[int, Path]]:
+        """
+        select signal files before reading large run-to-failure entities
+
+        Parameters
+        ----------
+        signal_files : list[Path]
+            sorted signal files
+        max_samples : int | None
+            optional maximum sample count
+
+        Returns
+        -------
+        list[tuple[int, Path]]
+            original chronological index and file path
+        """
+
+        indexed_files = list(enumerate(signal_files))
+        if max_samples is None or max_samples <= 0 or len(indexed_files) <= max_samples:
+            return indexed_files
+        sample_indices = np.linspace(0, len(indexed_files) - 1, max_samples, dtype=int)
+        return [indexed_files[index] for index in np.unique(sample_indices)]
 
     def _read_signal_file(self, file_path: Path) -> pd.DataFrame:
         for separator in [",", ";", r"\s+"]:
@@ -278,7 +311,8 @@ class BaseBearingLoader:
 
         sample_frame["timestamp"] = np.round(timestamps, 6)
         sample_frame["elapsed_seconds"] = np.round(elapsed_seconds, 6)
-        sample_frame["rul"] = np.arange(sample_frame.shape[0] - 1, -1, -1, dtype=float) * sample_period_seconds
+        del sample_period_seconds
+        sample_frame["rul"] = np.round(float(np.max(elapsed_seconds)) - elapsed_seconds, 6)
         return sample_frame
 
     def _sample_period_seconds(self, entity_path: Path) -> float:

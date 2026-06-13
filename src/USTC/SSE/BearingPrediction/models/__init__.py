@@ -16,5 +16,17 @@ from USTC.SSE.BearingPrediction.models.cnn_lstm_attention import CNNLSTMAttentio
 from USTC.SSE.BearingPrediction.models.mlp import MLP
 from USTC.SSE.BearingPrediction.models.rnn import RNN
 from USTC.SSE.BearingPrediction.models.transformer import Transformer
+from USTC.SSE.BearingPrediction.models.xlstm_transformer import FeatureSequenceTransformer, LSTMTransformer, XLSTMTransformer
 
-__all__ = ["BaseBearingModel", "CNN", "CNNLSTMAttention", "MLP", "MODEL_REGISTRY", "RNN", "Transformer"]
+__all__ = [
+    "BaseBearingModel",
+    "CNN",
+    "CNNLSTMAttention",
+    "FeatureSequenceTransformer",
+    "LSTMTransformer",
+    "MLP",
+    "MODEL_REGISTRY",
+    "RNN",
+    "Transformer",
+    "XLSTMTransformer",
+]

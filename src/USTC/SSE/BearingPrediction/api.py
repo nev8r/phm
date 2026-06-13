@@ -36,7 +36,16 @@ from USTC.SSE.BearingPrediction.evaluation import (
     WithinToleranceRate,
 )
 from USTC.SSE.BearingPrediction.labeling import BearingRulLabeler, BearingStageLabeler, FeatureSequenceRulLabeler, HealthIndicatorLabeler
-from USTC.SSE.BearingPrediction.models import CNN, CNNLSTMAttention, MLP, RNN, Transformer
+from USTC.SSE.BearingPrediction.models import (
+    CNN,
+    CNNLSTMAttention,
+    FeatureSequenceTransformer,
+    LSTMTransformer,
+    MLP,
+    RNN,
+    Transformer,
+    XLSTMTransformer,
+)
 from USTC.SSE.BearingPrediction.prediction import DirectPredictor, MonteCarloDropoutPredictor, RollingPredictor
 from USTC.SSE.BearingPrediction.preprocess import FPTStageStrategy, ThreeSigmaStageStrategy
 from USTC.SSE.BearingPrediction.training import (
@@ -70,9 +79,11 @@ __all__ = [
     "ExperimentTracker",
     "FPTStageStrategy",
     "FeatureSequenceRulLabeler",
+    "FeatureSequenceTransformer",
     "GradientAlertCallback",
     "HealthIndicatorLabeler",
     "HuangRulScore",
+    "LSTMTransformer",
     "MAE",
     "MAPE",
     "MaxAbsoluteError",
@@ -100,5 +111,6 @@ __all__ = [
     "Transformer",
     "UnderPredictionRate",
     "WithinToleranceRate",
+    "XLSTMTransformer",
     "XJTULoader",
 ]

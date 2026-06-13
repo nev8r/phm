@@ -18,6 +18,7 @@ from USTC.SSE.BearingPrediction.examples.demo_workflows import (
     run_phm2012_loader_overview,
     run_phm2012_mlp_feature_training,
     run_paper_cnn_lstm_attention_reproduction,
+    run_paper_xlstm_transformer_reproduction,
     run_xjtu_cnn_rul_training,
     run_xjtu_loader_overview,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "run_phm2012_loader_overview",
     "run_phm2012_mlp_feature_training",
     "run_paper_cnn_lstm_attention_reproduction",
+    "run_paper_xlstm_transformer_reproduction",
     "run_xjtu_cnn_rul_training",
     "run_xjtu_loader_overview",
 ]
