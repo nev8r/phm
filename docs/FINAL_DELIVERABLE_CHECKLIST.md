@@ -23,6 +23,7 @@
 | 安装配置手册 | `docx/final/17_安装配置手册.pdf` | 已完成 |
 | 项目技术论文 | `docx/final/18_项目技术论文.pdf` | 已完成 |
 | 成员贡献比说明 | `docx/final/19_成员贡献比说明.pdf` | 已完成 |
+| 结题答辩提纲 | `docx/final/20_结题答辩提纲.pdf` | 已完成 |
 | 结题答辩 PPT | `docx/final/工业轴承故障预测系统的实现-结题答辩.pptx` | 已完成 |
 | 用户示例 | `examples/*.ipynb` | 已完成 |
 | 测试报告依据 | `tests`、pytest 输出、`docs/PAPER_REPRODUCTION.md` | 已完成 |
