@@ -315,5 +315,6 @@ uv run pytest -q
 - [项目技术论文 Markdown](docx/final/md/18_项目技术论文.md)
 - [成员贡献比说明 Markdown](docx/final/md/19_成员贡献比说明.md)
 - [结题答辩提纲 Markdown](docx/final/md/20_结题答辩提纲.md)
+- [结题答辩演讲稿 Markdown](docx/final/md/21_结题答辩演讲稿.md)
 - PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
 - 结题 PPT 可通过 `uv run python scripts/generate_final_ppt.py` 重新生成

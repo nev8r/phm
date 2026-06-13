@@ -96,10 +96,10 @@ PY
 
 | 数据集 | 轴承 | 模型 | RMSE | Normalized RMSE | Huang RUL Score | Epoch |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| XJTU-SY | Bearing1_5 | CNN-LSTM-AM | 405.387986 | 0.614224 | 28.641876 | 8 |
-| XJTU-SY | Bearing1_5 | CNN-LSTM | 406.729044 | 0.616256 | 29.362164 | 8 |
-| PHM2012 | Bearing3_1 | CNN-LSTM-AM | 650.581394 | 0.591438 | 29.035852 | 8 |
-| PHM2012 | Bearing3_1 | CNN-LSTM | 650.609751 | 0.591463 | 29.048223 | 8 |
+| XJTU-SY | Bearing1_5 | CNN-LSTM-AM | 406.302219 | 0.615609 | 29.001612 | 8 |
+| XJTU-SY | Bearing1_5 | CNN-LSTM | 406.502698 | 0.615913 | 29.127879 | 8 |
+| PHM2012 | Bearing3_1 | CNN-LSTM-AM | 651.035522 | 0.591850 | 29.447255 | 8 |
+| PHM2012 | Bearing3_1 | CNN-LSTM | 650.699666 | 0.591545 | 29.098391 | 8 |
 
 验收结论：workflow 已在 `data/external` 的真实数据上完成训练，`comparison_metrics.csv` 包含论文 Score、归一化 RMSE、方向性偏差和 attention 相对基线变化列。当前小样本训练用于课程项目和 notebook 可运行性验证，不代表论文完整样本、完整 epoch 和多次重复实验的最终数值。
 
