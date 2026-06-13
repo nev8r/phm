@@ -51,6 +51,8 @@ data/raw/**
 !data/raw/.gitkeep
 
 # Experiment outputs and runtime artifacts
+tmp/
+examples/outputs/
 outputs/**
 !outputs/.gitkeep
 runs/
@@ -69,3 +71,4 @@ coverage.xml
 
 # Office temporary files
 ~$*.docx
+~$*.pptx

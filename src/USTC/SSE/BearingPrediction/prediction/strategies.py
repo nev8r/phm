@@ -29,12 +29,16 @@ class DirectPredictor:
         model.eval()
         predictions: list[float] = []
         targets: list[float] = []
+        attention_batches: list[np.ndarray] = []
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         with torch.no_grad():
             for batch in loader:
                 inputs = batch["features"].to(device) if getattr(model, "input_kind", "sequence") == "feature" and "features" in batch else batch["inputs"].to(device)
                 outputs = model(inputs)["prediction"]
+                attention_weights = model.maybe_get_attention() if hasattr(model, "maybe_get_attention") else None
+                if attention_weights is not None:
+                    attention_batches.append(attention_weights.detach().cpu().numpy())
                 if dataset.task_type == "classification":
                     batch_predictions = torch.argmax(outputs, dim=1).cpu().numpy()
                 else:
@@ -42,10 +46,13 @@ class DirectPredictor:
                 predictions.extend(batch_predictions.tolist())
                 targets.extend(batch["targets"].cpu().numpy().reshape(-1).tolist())
 
-        return {
+        result = {
             "predictions": np.asarray(predictions),
             "targets": np.asarray(targets),
         }
+        if attention_batches:
+            result["attention_weights"] = np.concatenate(attention_batches, axis=0)
+        return result
 
 
 class MonteCarloDropoutPredictor(DirectPredictor):
@@ -127,4 +134,3 @@ class RollingPredictor:
                 forecasts.append(next_value)
                 current_window = np.concatenate([current_window[1:], np.asarray([next_value], dtype=np.float32)])
         return np.asarray(forecasts, dtype=np.float32)
-

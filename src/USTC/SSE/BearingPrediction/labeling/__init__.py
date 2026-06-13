@@ -10,7 +10,11 @@ copyright USTC
 2026
 """
 
-from USTC.SSE.BearingPrediction.labeling.labelers import BearingRulLabeler, BearingStageLabeler, HealthIndicatorLabeler
+from USTC.SSE.BearingPrediction.labeling.labelers import (
+    BearingRulLabeler,
+    BearingStageLabeler,
+    FeatureSequenceRulLabeler,
+    HealthIndicatorLabeler,
+)
 
-__all__ = ["BearingRulLabeler", "BearingStageLabeler", "HealthIndicatorLabeler"]
-
+__all__ = ["BearingRulLabeler", "BearingStageLabeler", "FeatureSequenceRulLabeler", "HealthIndicatorLabeler"]

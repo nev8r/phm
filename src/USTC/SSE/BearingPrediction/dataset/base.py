@@ -169,8 +169,8 @@ class BaseBearingLoader:
             records.append(
                 {
                     "sample_index": sample_index,
-                    "timestamp": sample_index,
-                    "rul": max(len(records), 0),
+                    "timestamp": self._build_sample_timestamp(sample_index, file_path, signal_frame),
+                    "rul": 0.0,
                     "Horizontal Vibration": horizontal_signal,
                     "Vertical Vibration": vertical_signal,
                     "source_file": file_path.name,
@@ -179,8 +179,7 @@ class BaseBearingLoader:
         sample_frame = pd.DataFrame.from_records(records)
         if sample_frame.empty:
             raise ValueError(f"no signal files were found under {entity_path}")
-        sample_frame["rul"] = np.arange(sample_frame.shape[0] - 1, -1, -1)
-        return sample_frame
+        return self._finalize_sample_frame(sample_frame, entity_path)
 
     def _iter_signal_files(self, entity_path: Path) -> Iterable[Path]:
         candidate_files = [
@@ -216,7 +215,122 @@ class BaseBearingLoader:
         return 25600.0
 
     def _build_entity_metadata(self, entity_path: Path) -> dict[str, object]:
-        return {"entity_path": str(entity_path)}
+        return {
+            "entity_path": str(entity_path),
+            "sample_rate_hz": self._infer_sample_rate(entity_path),
+            "sampling_period_seconds": self._sample_period_seconds(entity_path),
+            "snapshot_duration_seconds": self._snapshot_duration_seconds(entity_path),
+            "rul_unit": self._rul_unit(entity_path),
+        }
 
     def _is_entity_path(self, path: Path) -> bool:
         return path.name.lower().startswith("bearing")
+
+    def _build_sample_timestamp(
+        self,
+        sample_index: int,
+        file_path: Path,
+        signal_frame: pd.DataFrame,
+    ) -> float:
+        """
+        build sample timestamp for one signal snapshot
+
+        Parameters
+        ----------
+        sample_index : int
+            chronological sample index
+        file_path : Path
+            source file path
+        signal_frame : pd.DataFrame
+            parsed signal frame
+
+        Returns
+        -------
+        float
+            timestamp in seconds
+        """
+
+        del signal_frame
+        return float(sample_index) * self._sample_period_seconds(file_path.parent)
+
+    def _finalize_sample_frame(self, sample_frame: pd.DataFrame, entity_path: Path) -> pd.DataFrame:
+        """
+        assign elapsed time and RUL columns after all snapshots are parsed
+
+        Parameters
+        ----------
+        sample_frame : pd.DataFrame
+            raw snapshot records
+        entity_path : Path
+            bearing directory
+
+        Returns
+        -------
+        pd.DataFrame
+            finalized snapshot records
+        """
+
+        sample_period_seconds = self._sample_period_seconds(entity_path)
+        timestamps = sample_frame["timestamp"].astype(float).to_numpy()
+        elapsed_seconds = timestamps - timestamps[0]
+        if np.any(np.diff(elapsed_seconds) < 0):
+            elapsed_seconds = np.arange(sample_frame.shape[0], dtype=float) * sample_period_seconds
+
+        sample_frame["timestamp"] = np.round(timestamps, 6)
+        sample_frame["elapsed_seconds"] = np.round(elapsed_seconds, 6)
+        sample_frame["rul"] = np.arange(sample_frame.shape[0] - 1, -1, -1, dtype=float) * sample_period_seconds
+        return sample_frame
+
+    def _sample_period_seconds(self, entity_path: Path) -> float:
+        """
+        infer interval between two consecutive signal snapshots
+
+        Parameters
+        ----------
+        entity_path : Path
+            bearing directory
+
+        Returns
+        -------
+        float
+            sampling period in seconds
+        """
+
+        del entity_path
+        return 1.0
+
+    def _snapshot_duration_seconds(self, entity_path: Path) -> float:
+        """
+        infer duration covered by one signal snapshot
+
+        Parameters
+        ----------
+        entity_path : Path
+            bearing directory
+
+        Returns
+        -------
+        float
+            snapshot duration in seconds
+        """
+
+        del entity_path
+        return 1.0
+
+    def _rul_unit(self, entity_path: Path) -> str:
+        """
+        return unit used by RUL labels
+
+        Parameters
+        ----------
+        entity_path : Path
+            bearing directory
+
+        Returns
+        -------
+        str
+            RUL unit name
+        """
+
+        del entity_path
+        return "seconds"

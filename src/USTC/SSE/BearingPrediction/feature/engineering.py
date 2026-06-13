@@ -36,13 +36,22 @@ class FeatureConfig:
     enabled_features: tuple[str, ...] = (
         "mean",
         "variance",
+        "standard_deviation",
         "rms",
         "peak",
+        "peak_to_peak",
+        "absolute_mean",
+        "shape_factor",
+        "crest_factor",
+        "impulse_factor",
+        "margin_factor",
+        "clearance_factor",
         "kurtosis",
         "skewness",
-        "crest_factor",
         "dominant_frequency",
         "spectrum_energy",
+        "spectral_centroid",
+        "spectral_rms_frequency",
         "spectral_entropy",
     )
 
@@ -88,15 +97,27 @@ class SignalFeatureExtractor:
             feature values
         """
 
+        absolute_values = np.abs(signal_values)
+        absolute_mean = float(np.mean(absolute_values))
+        rms_value = float(np.sqrt(np.mean(np.square(signal_values))))
+        peak_value = float(np.max(absolute_values))
+        square_root_amplitude_mean = float(np.mean(np.sqrt(absolute_values)))
         feature_values = {
             "mean": float(np.mean(signal_values)),
             "variance": float(np.var(signal_values)),
-            "rms": float(np.sqrt(np.mean(np.square(signal_values)))),
-            "peak": float(np.max(np.abs(signal_values))),
+            "standard_deviation": float(np.std(signal_values)),
+            "rms": rms_value,
+            "peak": peak_value,
+            "peak_to_peak": float(np.ptp(signal_values)),
+            "absolute_mean": absolute_mean,
             "kurtosis": self._kurtosis(signal_values),
             "skewness": self._skewness(signal_values),
         }
-        feature_values["crest_factor"] = feature_values["peak"] / max(feature_values["rms"], 1e-8)
+        feature_values["shape_factor"] = self._safe_divide(rms_value, absolute_mean)
+        feature_values["crest_factor"] = self._safe_divide(peak_value, rms_value)
+        feature_values["impulse_factor"] = self._safe_divide(peak_value, absolute_mean)
+        feature_values["margin_factor"] = self._safe_divide(peak_value, square_root_amplitude_mean**2)
+        feature_values["clearance_factor"] = feature_values["margin_factor"]
         feature_values.update(self._frequency_features(signal_values))
         return {name: feature_values[name] for name in self.config.enabled_features if name in feature_values}
 
@@ -129,14 +150,26 @@ class SignalFeatureExtractor:
         spectrum = np.fft.rfft(signal_values)
         magnitudes = np.abs(spectrum)
         power = np.square(magnitudes)
+        power_sum = float(power.sum())
         frequencies = np.fft.rfftfreq(signal_values.size, d=1.0 / self.config.sample_rate)
         dominant_index = int(np.argmax(magnitudes[1:]) + 1) if magnitudes.size > 1 else 0
-        spectral_entropy = float(-np.sum((power / (power.sum() + 1e-8)) * np.log2((power / (power.sum() + 1e-8)) + 1e-8)))
+        normalized_power = power / (power_sum + 1e-8)
+        spectral_centroid = self._safe_divide(float(np.sum(frequencies * power)), power_sum)
+        spectral_rms_frequency = float(np.sqrt(self._safe_divide(float(np.sum(np.square(frequencies) * power)), power_sum)))
+        spectral_entropy = float(-np.sum(normalized_power * np.log2(normalized_power + 1e-8)))
         return {
             "dominant_frequency": float(frequencies[dominant_index]) if frequencies.size else 0.0,
-            "spectrum_energy": float(power.sum()),
+            "spectrum_energy": power_sum,
+            "spectral_centroid": spectral_centroid,
+            "spectral_rms_frequency": spectral_rms_frequency,
             "spectral_entropy": spectral_entropy,
         }
+
+    @staticmethod
+    def _safe_divide(numerator: float, denominator: float) -> float:
+        if abs(denominator) < 1e-8:
+            return 0.0
+        return float(numerator / denominator)
 
     def _kurtosis(self, signal_values: np.ndarray) -> float:
         centered_values = signal_values - np.mean(signal_values)
@@ -151,4 +184,3 @@ class SignalFeatureExtractor:
         if std_value == 0.0:
             return 0.0
         return float(np.mean(np.power(centered_values / std_value, 3)))
-

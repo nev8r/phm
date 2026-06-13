@@ -71,6 +71,29 @@ def test_xjtu_loader_skips_header_rows(tmp_path: Path) -> None:
     assert np.allclose(loaded_entity.samples.iloc[0]["Horizontal Vibration"][:3], [0.0, 1.0, 2.0])
 
 
+def test_xjtu_loader_exposes_real_sampling_metadata(tmp_path: Path) -> None:
+    dataset_root = tmp_path / "XJTU-SY_Bearing_Datasets" / "37.5Hz11kN" / "Bearing2_1"
+    dataset_root.mkdir(parents=True)
+    sample_frame = pd.DataFrame({0: np.arange(4, dtype=float), 1: np.arange(4, dtype=float) * 2.0})
+    sample_frame.to_csv(dataset_root / "1.csv", index=False, header=False)
+    sample_frame.to_csv(dataset_root / "2.csv", index=False, header=False)
+    sample_frame.to_csv(dataset_root / "10.csv", index=False, header=False)
+
+    loader = XJTULoader(tmp_path / "XJTU-SY_Bearing_Datasets")
+    loaded_entity = loader.load_entity("Bearing2_1")
+
+    assert loaded_entity.samples["source_file"].tolist() == ["1.csv", "2.csv", "10.csv"]
+    assert loaded_entity.samples["timestamp"].tolist() == [0.0, 60.0, 120.0]
+    assert loaded_entity.samples["rul"].tolist() == [120.0, 60.0, 0.0]
+    assert loaded_entity.metadata["sample_rate_hz"] == 25600.0
+    assert loaded_entity.metadata["sampling_period_seconds"] == 60.0
+    assert loaded_entity.metadata["snapshot_duration_seconds"] == 1.28
+    assert loaded_entity.metadata["rotating_speed_hz"] == 37.5
+    assert loaded_entity.metadata["rotating_speed_rpm"] == 2250.0
+    assert loaded_entity.metadata["radial_load_kn"] == 11.0
+    assert loaded_entity.metadata["rul_unit"] == "seconds"
+
+
 def test_phm2012_loader_preserves_temperature_channel(tmp_path: Path) -> None:
     dataset_root = tmp_path / "Training_set" / "Learning_set" / "Bearing1_1"
     dataset_root.mkdir(parents=True)
@@ -97,6 +120,42 @@ def test_phm2012_loader_preserves_temperature_channel(tmp_path: Path) -> None:
     assert "Temperature" in loaded_entity.channel_names()
     assert loaded_entity.samples.iloc[0]["temperature_file"] == "temp_00001.csv"
     assert np.allclose(loaded_entity.samples.iloc[0]["Temperature"], [70.378, 70.397])
+
+
+def test_phm2012_loader_uses_challenge_time_and_metadata(tmp_path: Path) -> None:
+    dataset_root = tmp_path / "Training_set" / "Learning_set" / "Bearing3_1"
+    dataset_root.mkdir(parents=True)
+    first_acceleration = pd.DataFrame(
+        {
+            0: [1, 1, 1],
+            1: [2, 2, 2],
+            2: [3, 3, 3],
+            3: [4000, 4039, 4078],
+            4: [0.1, 0.2, 0.3],
+            5: [0.4, 0.5, 0.6],
+        }
+    )
+    second_acceleration = first_acceleration.copy()
+    second_acceleration[2] = [13, 13, 13]
+    first_acceleration.to_csv(dataset_root / "acc_00001.csv", index=False, header=False, sep=";")
+    second_acceleration.to_csv(dataset_root / "acc_00002.csv", index=False, header=False, sep=";")
+
+    loader = PHM2012Loader(tmp_path)
+    loaded_entity = loader.load_entity("Bearing3_1")
+
+    assert loaded_entity.samples["timestamp"].tolist() == [3723.004, 3733.004]
+    assert loaded_entity.samples["elapsed_seconds"].tolist() == [0.0, 10.0]
+    assert loaded_entity.samples["rul"].tolist() == [10.0, 0.0]
+    assert np.allclose(loaded_entity.samples.iloc[0]["Horizontal Vibration"], [0.1, 0.2, 0.3])
+    assert np.allclose(loaded_entity.samples.iloc[0]["Vertical Vibration"], [0.4, 0.5, 0.6])
+    assert loaded_entity.metadata["split_name"] == "Learning_set"
+    assert loaded_entity.metadata["operating_condition"] == "Condition 3"
+    assert loaded_entity.metadata["rotating_speed_rpm"] == 1500
+    assert loaded_entity.metadata["radial_load_n"] == 5000
+    assert loaded_entity.metadata["sampling_period_seconds"] == 10.0
+    assert loaded_entity.metadata["snapshot_duration_seconds"] == 0.1
+    assert loaded_entity.metadata["temperature_sample_rate_hz"] == 10.0
+    assert loaded_entity.metadata["rul_unit"] == "seconds"
 
 
 def test_yaml_outputs_become_optional_when_pyyaml_is_unavailable(tmp_path: Path, monkeypatch) -> None:

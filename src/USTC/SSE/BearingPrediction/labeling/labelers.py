@@ -215,6 +215,104 @@ class BearingStageLabeler:
         return dataset, stage_result
 
 
+class FeatureSequenceRulLabeler:
+    """
+    Build feature-sequence RUL datasets for CNN-LSTM-AM style models.
+    """
+
+    def __init__(
+        self,
+        sequence_length: int,
+        *,
+        window_size: int,
+        stride: int = 256,
+        normalization: str = "zscore",
+    ) -> None:
+        if sequence_length <= 0:
+            raise ValueError("sequence_length must be positive")
+        self.sequence_length = sequence_length
+        self.config = LabelerConfig(window_size=window_size, stride=stride, normalization=normalization)
+
+    def _build_pipeline(self) -> PreprocessingPipeline:
+        normalization_transform = PREPROCESSOR_REGISTRY.create(self.config.normalization)
+        return PreprocessingPipeline([RobustClip(), normalization_transform])
+
+    def label(self, entity: BearingEntity, channel_name: str) -> BearingWindowDataset:
+        """
+        construct a feature-sequence RUL dataset from one bearing entity
+
+        Parameters
+        ----------
+        entity : BearingEntity
+            source bearing entity
+        channel_name : str
+            signal channel name
+
+        Returns
+        -------
+        BearingWindowDataset
+            feature-sequence regression dataset
+        """
+
+        segmenter = SlidingWindowSegmenter(SlidingWindowConfig(self.config.window_size, self.config.stride))
+        pipeline = self._build_pipeline()
+        feature_extractor = SignalFeatureExtractor(FeatureConfig(sample_rate=entity.sample_rate))
+
+        snapshot_features: list[np.ndarray] = []
+        sample_rows = entity.samples.to_dict("records")
+        for sample_row in sample_rows:
+            processed_signal = pipeline.apply(np.asarray(sample_row[channel_name], dtype=float))
+            signal_windows = segmenter.segment(processed_signal)
+            feature_table = feature_extractor.extract(signal_windows)
+            snapshot_features.append(feature_table.mean(axis=0).to_numpy(dtype=np.float32))
+
+        if len(snapshot_features) < self.sequence_length:
+            raise ValueError("entity does not contain enough samples for the requested sequence_length")
+
+        feature_array = np.stack(snapshot_features).astype(np.float32)
+        feature_mean = feature_array.mean(axis=0, keepdims=True)
+        feature_std = feature_array.std(axis=0, keepdims=True)
+        normalized_features = (feature_array - feature_mean) / (feature_std + 1e-8)
+
+        input_sequences: list[np.ndarray] = []
+        target_values: list[float] = []
+        metadata_records: list[dict[str, object]] = []
+        feature_records: list[dict[str, float]] = []
+        feature_columns = feature_table.columns.tolist()
+
+        last_start = len(sample_rows) - self.sequence_length
+        for start_index in range(last_start + 1):
+            end_index = start_index + self.sequence_length - 1
+            input_sequences.append(normalized_features[start_index : end_index + 1])
+            target_values.append(float(sample_rows[end_index]["rul"]))
+            metadata_records.append(
+                {
+                    "entity_id": entity.entity_id,
+                    "dataset_name": entity.dataset_name,
+                    "start_sample_index": int(sample_rows[start_index]["sample_index"]),
+                    "end_sample_index": int(sample_rows[end_index]["sample_index"]),
+                    "sequence_length": self.sequence_length,
+                    "channel_name": channel_name,
+                }
+            )
+            feature_records.append(
+                {
+                    f"end_{feature_name}": float(feature_value)
+                    for feature_name, feature_value in zip(feature_columns, feature_array[end_index], strict=True)
+                }
+            )
+
+        return BearingWindowDataset(
+            inputs=np.stack(input_sequences).astype(np.float32),
+            targets=np.asarray(target_values, dtype=np.float32),
+            metadata_frame=pd.DataFrame.from_records(metadata_records),
+            task_type="regression",
+            target_name="rul",
+            input_name="feature_sequence",
+            feature_frame=pd.DataFrame.from_records(feature_records),
+        )
+
+
 class HealthIndicatorLabeler:
     """
     Build scalar-sequence forecasting datasets for rolling prediction experiments.

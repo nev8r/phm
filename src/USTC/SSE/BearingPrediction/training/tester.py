@@ -96,12 +96,10 @@ class BaseTester:
 
         predictor = predictor or DirectPredictor()
         prediction_bundle = predictor.predict(model, dataset, device=self.device, batch_size=self.batch_size)
-        attention_weights = model.maybe_get_attention() if hasattr(model, "maybe_get_attention") else None
         return TestResult(
             predictions=prediction_bundle["predictions"],
             targets=prediction_bundle["targets"],
             metadata_frame=dataset.metadata_frame.copy(),
             uncertainties=prediction_bundle.get("uncertainties"),
-            attention_weights=attention_weights.detach().cpu().numpy() if attention_weights is not None else None,
+            attention_weights=prediction_bundle.get("attention_weights"),
         )
-

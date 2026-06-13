@@ -14,18 +14,29 @@ from USTC.SSE.BearingPrediction.data import BearingEntity, BearingWindowDataset,
 from USTC.SSE.BearingPrediction.dataset import PHM2012Loader, XJTULoader
 from USTC.SSE.BearingPrediction.evaluation import (
     Accuracy,
+    AsymmetricRulPenalty,
     Evaluator,
+    HuangRulScore,
     MAE,
     MAPE,
+    MaxAbsoluteError,
+    MeanError,
+    MedianAbsoluteError,
     MSE,
     NASAScore,
+    NormalizedRMSE,
+    OverPredictionRate,
     PercentError,
     PHM2008Score,
     PHM2012Score,
+    R2Score,
     RMSE,
+    SMAPE,
+    UnderPredictionRate,
+    WithinToleranceRate,
 )
-from USTC.SSE.BearingPrediction.labeling import BearingRulLabeler, BearingStageLabeler, HealthIndicatorLabeler
-from USTC.SSE.BearingPrediction.models import CNN, MLP, RNN, Transformer
+from USTC.SSE.BearingPrediction.labeling import BearingRulLabeler, BearingStageLabeler, FeatureSequenceRulLabeler, HealthIndicatorLabeler
+from USTC.SSE.BearingPrediction.models import CNN, CNNLSTMAttention, MLP, RNN, Transformer
 from USTC.SSE.BearingPrediction.prediction import DirectPredictor, MonteCarloDropoutPredictor, RollingPredictor
 from USTC.SSE.BearingPrediction.preprocess import FPTStageStrategy, ThreeSigmaStageStrategy
 from USTC.SSE.BearingPrediction.training import (
@@ -42,6 +53,7 @@ from USTC.SSE.BearingPrediction.visualization import ResultVisualizer
 
 __all__ = [
     "Accuracy",
+    "AsymmetricRulPenalty",
     "BaseTester",
     "BaseTrainer",
     "BearingEntity",
@@ -49,6 +61,7 @@ __all__ = [
     "BearingStageLabeler",
     "BearingWindowDataset",
     "CNN",
+    "CNNLSTMAttention",
     "DirectPredictor",
     "EarlyStopping",
     "Evaluator",
@@ -56,26 +69,36 @@ __all__ = [
     "ExperimentLoggerCallback",
     "ExperimentTracker",
     "FPTStageStrategy",
+    "FeatureSequenceRulLabeler",
     "GradientAlertCallback",
     "HealthIndicatorLabeler",
+    "HuangRulScore",
     "MAE",
     "MAPE",
+    "MaxAbsoluteError",
+    "MeanError",
+    "MedianAbsoluteError",
     "MLP",
     "MSE",
     "MonteCarloDropoutPredictor",
     "NASAScore",
+    "NormalizedRMSE",
+    "OverPredictionRate",
     "PercentError",
     "PHM2008Score",
     "PHM2012Loader",
     "PHM2012Score",
+    "R2Score",
     "RMSE",
     "RNN",
     "ResultVisualizer",
     "RollingPredictor",
+    "SMAPE",
     "SyntheticBearingFactory",
     "TensorBoardCallback",
     "ThreeSigmaStageStrategy",
     "Transformer",
+    "UnderPredictionRate",
+    "WithinToleranceRate",
     "XJTULoader",
 ]
-

@@ -118,7 +118,18 @@ future_values = rolling_predictor.predict_sequence(model, history, steps=5, devi
 
 ```python
 evaluator = Evaluator()
-evaluator.add(MAE(), MSE(), RMSE(), MAPE(), PercentError(), PHM2012Score(), NASAScore())
+evaluator.add(
+    MAE(),
+    MSE(),
+    RMSE(),
+    NormalizedRMSE(),
+    HuangRulScore(),
+    SMAPE(),
+    OverPredictionRate(),
+    WithinToleranceRate(tolerance=0.10),
+    PHM2012Score(),
+    NASAScore(),
+)
 metrics = evaluator.evaluate(result.targets, result.predictions)
 ```
 
@@ -131,4 +142,3 @@ visualizer.plot_confusion_matrix(targets, predictions, Path("cm.png"), labels=["
 visualizer.plot_degradation_stages(stage_result.as_frame(), Path("stages.png"))
 visualizer.plot_attention_heatmap(result.attention_weights, Path("attention.png"))
 ```
-

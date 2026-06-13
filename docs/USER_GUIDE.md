@@ -50,7 +50,7 @@
 
 1. 使用 `BearingRulLabeler`
 2. 选用 `CNN` 或 `RNN`
-3. 使用 `MAE`、`RMSE`、`PHM2012Score`
+3. 使用 `MAE`、`RMSE`、`NormalizedRMSE`、`HuangRulScore`、`PHM2012Score`
 4. 绘制预测曲线
 
 ### 退化阶段分类实验
@@ -97,4 +97,3 @@ uv run tensorboard --logdir outputs/experiments
 - 新阶段策略：注册到 `STAGE_STRATEGY_REGISTRY`
 - 新评价指标：继承 `Metric`
 - 新预测器：实现新的 predictor 类
-
