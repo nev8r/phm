@@ -1281,7 +1281,7 @@
     document.body.classList.add('is-win');
   }
   (function(){
-    const KEY = 'guizang-ppt-low-power';
+    const KEY = 'bearing-rul-ppt-low-power';
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const stored = localStorage.getItem(KEY);
     window.__lowPowerMode = stored === '1' || (stored === null && reduced);
@@ -1588,7 +1588,7 @@
     </div>
     <div data-anim="foot" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;margin-top:3.2vh">
       <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释。</p></div>
-      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/NASA 惩罚 Score 分开输出。</p></div>
+      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/RUL 惩罚 Score 分开输出。</p></div>
       <div class="difficulty-card"><h3>方向倾向</h3><p>over / under prediction rate 用于判断偏早或偏晚预测。</p></div>
     </div>
   </div>
@@ -1931,7 +1931,7 @@ go(Number.isFinite(initialSlide) ? initialSlide : 0);
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>lucide.createIcons();</script>
 
-<!-- Motion One 动效引擎 (与原模板一致) -->
+<!-- Motion One animation runtime -->
 <script type="module">
 let motion;
 try {

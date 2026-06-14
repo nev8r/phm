@@ -519,7 +519,7 @@ SLIDES = f"""
     </div>
     <div data-anim="foot" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;margin-top:3.2vh">
       <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释。</p></div>
-      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/NASA 惩罚 Score 分开输出。</p></div>
+      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/RUL 惩罚 Score 分开输出。</p></div>
       <div class="difficulty-card"><h3>方向倾向</h3><p>over / under prediction rate 用于判断偏早或偏晚预测。</p></div>
     </div>
   </div>
@@ -612,6 +612,8 @@ def build_deck() -> str:
     template_title = "<title>" + "[\u5fc5\u586b] 替换为 PPT 标题 · Deck Title</title>"
     html = html.replace(template_title, f"<title>{PROJECT_TITLE} · 结题答辩</title>")
     html = html.replace("</style>", CUSTOM_CSS.rstrip() + "\n</style>", 1)
+    html = html.replace("guizang-ppt-low-power", "bearing-rul-ppt-low-power")
+    html = html.replace("<!-- Motion One 动效引擎 (与原模板一致) -->", "<!-- Motion One animation runtime -->")
     return html
 
 

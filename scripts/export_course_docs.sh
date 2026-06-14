@@ -17,23 +17,35 @@ COMMON_ARGS=(
   -V "fontsize:11pt"
   -V "toc-title=目录"
   --toc
-  --number-sections
 )
 
-for markdown_file in docx/proposal/md/*.md; do
-  base_name="$(basename "${markdown_file%.md}")"
-  pandoc "$markdown_file" -o "docx/proposal/${base_name}.pdf" "${COMMON_ARGS[@]}"
-done
+DOCX_ARGS=(
+  --toc
+  -V "toc-title=目录"
+)
 
-for markdown_file in docx/mid-term/md/*.md; do
-  base_name="$(basename "${markdown_file%.md}")"
-  pandoc "$markdown_file" -o "docx/mid-term/${base_name}.pdf" "${COMMON_ARGS[@]}"
-done
+export_stage() {
+  local source_glob="$1"
+  local output_dir="$2"
+  local generated_docx=()
+
+  mkdir -p "$output_dir"
+  for markdown_file in $source_glob; do
+    [[ -f "$markdown_file" ]] || continue
+    base_name="$(basename "${markdown_file%.md}")"
+    pandoc "$markdown_file" -o "${output_dir}/${base_name}.pdf" "${COMMON_ARGS[@]}"
+    pandoc "$markdown_file" -o "${output_dir}/${base_name}.docx" "${DOCX_ARGS[@]}"
+    generated_docx+=("${output_dir}/${base_name}.docx")
+  done
+
+  if ((${#generated_docx[@]} > 0)); then
+    uv run --extra dev python scripts/apply_course_docx_style.py "${generated_docx[@]}"
+  fi
+}
+
+export_stage "docx/proposal/md/*.md" "docx/proposal"
+export_stage "docx/mid-term/md/*.md" "docx/mid-term"
 
 if compgen -G "docx/final/md/*.md" > /dev/null; then
-  mkdir -p docx/final
-  for markdown_file in docx/final/md/*.md; do
-    base_name="$(basename "${markdown_file%.md}")"
-    pandoc "$markdown_file" -o "docx/final/${base_name}.pdf" "${COMMON_ARGS[@]}"
-  done
+  export_stage "docx/final/md/*.md" "docx/final"
 fi
