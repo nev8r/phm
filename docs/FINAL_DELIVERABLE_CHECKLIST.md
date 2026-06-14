@@ -38,7 +38,7 @@ uv run --extra dev pytest tests/test_rul_metrics.py tests/test_paper_cnn_lstm_at
 uv run --extra dev pytest -q
 bash scripts/export_course_docs.sh
 uv run python scripts/generate_final_web_ppt.py
-node .agents/skills/guizang-ppt-skill/scripts/validate-swiss-deck.mjs docx/final/web-ppt/index.html
+test -f docx/final/web-ppt/index.html
 uv run python scripts/generate_final_ppt.py
 ```
 

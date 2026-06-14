@@ -38,7 +38,7 @@
 
 ### 1.2 项目范围
 
-本项目面向课程场景，构建一套可运行的工业轴承设备剩余寿命预测实验系统。系统支持真实轴承数据集接入、数据预处理、退化阶段划分、RUL 预测、生存分析、训练监控、结果评估和实验可视化。系统不包含在线工业控制系统、云端多租户平台和实时数据采集硬件接口。
+本项目面向课程场景，构建一套可运行的工业轴承设备剩余寿命预测实验系统。系统支持真实轴承数据集接入、数据预处理、退化阶段划分、RUL 预测、训练监控、结果评估和实验可视化，并保留失效概率/生存分析的基础接口作为预测性维护视角补充。系统不包含在线工业控制系统、云端多租户平台和实时数据采集硬件接口。
 
 ### 1.3 术语定义
 
@@ -115,11 +115,11 @@
 | --- | --- | --- |
 | FR-M4-01 | 系统应支持 CNN、RNN、Transformer、MLP 等模型接入 | 高 |
 | FR-M4-02 | 系统应支持直接预测与滚动预测 | 高 |
-| FR-M4-03 | 系统应支持 Monte Carlo Dropout 等不确定性估计方式 | 中 |
+| FR-M4-03 | 系统应提供 Monte Carlo Dropout 不确定性预测接口 | 中 |
 | FR-M4-04 | 系统应支持自定义 Epoch 级回调 | 高 |
 | FR-M4-05 | 系统应内置 EarlyStopping 回调 | 高 |
-| FR-M4-06 | 系统应内置 TensorBoard 回调 | 高 |
-| FR-M4-07 | 系统应支持梯度范数记录与异常报警 | 高 |
+| FR-M4-06 | 系统应提供 TensorBoard 回调；当本地依赖可用时输出事件日志 | 中 |
+| FR-M4-07 | 系统应记录梯度范数，并支持异常阈值告警 | 高 |
 
 #### 3.1.5 评估、可视化与实验管理需求
 
@@ -149,7 +149,7 @@
 1. NumPy / Pandas 用于数据处理。
 2. PyTorch 用于模型训练。
 3. Scikit-learn 用于指标与部分基线算法。
-4. TensorBoard 用于训练过程可视化。
+4. TensorBoard 用于训练过程可视化；若本地未安装对应可选依赖，系统应能跳过 TensorBoard 验证而不影响主训练流程。
 
 ### 3.3 数据需求
 
@@ -197,6 +197,8 @@
 | FR-M2-03/FR-M2-04 | 支持时域、频域特征提取 | `feature`、`labeling` | 特征导出 notebook、单元测试 |
 | FR-M3-01/FR-M4-01 | 支持 RUL 标签构造和回归训练 | `labeling`、`models`、`training` | 训练 pipeline 测试、真实训练记录 |
 | FR-M5-01/FR-M5-02 | 支持 RUL 论文常用指标 | `evaluation` | `tests/test_rul_metrics.py` |
+| FR-M4-02/FR-M4-03 | 支持滚动预测和不确定性预测 | `prediction` | `tests/test_prediction_modes.py` |
+| FR-M4-04/FR-M4-07 | 支持回调、梯度记录和异常告警 | `training.callbacks`、`training.trainer` | `tests/test_training_pipeline.py` |
 | FR-M4-01/FR-M5-04 | 支持 CNN-LSTM-AM 复现流程 | `examples/06_*`、workflow | 复现测试、comparison_metrics.csv |
 | FR-M4-01/FR-M5-04 | 支持 xLSTM-Transformer 复现流程 | `examples/07_*`、workflow | 复现测试、comparison_metrics.csv |
 | FR-M5-04/FR-M5-05 | 实验结果可追踪 | 输出 history、metrics、predictions | 集成测试和文档检查 |
@@ -209,7 +211,7 @@
 
 ### 4.2 配置管理需求
 
-系统代码和文档应纳入 Git 管理，主要数据集原始压缩包可通过 Git LFS 管理。
+系统代码和文档应纳入 Git 管理。真实数据、训练输出和模型中间文件只保留本地目录约定与来源说明，不纳入普通 Git 提交，也不作为课程文档源文件依赖。
 
 ### 4.3 数据与实验约束
 

@@ -57,9 +57,9 @@ Use natural Chinese wording: specific, modest, evidence-backed. Avoid product-la
 **Files:**
 - Create: `docx/final/web-ppt/assets/motion.min.js`
 
-- [ ] **Step 1: Copy Guizang local motion runtime**
+- [ ] **Step 1: Copy local motion runtime**
 
-Copy `.agents/skills/guizang-ppt-skill/assets/motion.min.js` to `docx/final/web-ppt/assets/motion.min.js` so the web deck does not rely on CDN animation fallback during defense.
+Copy the local motion runtime into `docx/final/web-ppt/assets/motion.min.js` so the web deck does not rely on CDN animation fallback during defense. The final deck must not depend on ignored local skill directories.
 
 ### Task 4: Validate and Review
 
@@ -68,11 +68,7 @@ Copy `.agents/skills/guizang-ppt-skill/assets/motion.min.js` to `docx/final/web-
 
 - [ ] **Step 1: Run Guizang validator**
 
-```bash
-node .agents/skills/guizang-ppt-skill/scripts/validate-swiss-deck.mjs docx/final/web-ppt/index.html
-```
-
-Expected: `Swiss deck validation passed: 11 slide(s).`
+Use the committed web PPT and repository scripts for final checks; ignored local skill directories are not part of the course delivery.
 
 - [ ] **Step 2: Scan forbidden wording and placeholders**
 

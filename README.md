@@ -4,7 +4,7 @@
 - [中期材料 PDF 文件夹](docx/mid-term)
 
 - 支持 `XJTU-SY` 与 `PHM2012` 轴承寿命退化数据集接入
-- 支持信号预处理、特征工程、退化阶段划分、RUL 预测、生存分析与结果可视化
+- 支持信号预处理、特征工程、退化阶段标注、RUL 预测、预测性维护扩展接口与结果可视化
 - 支持 `CNN`、`RNN`、`Transformer`、`MLP` 等多种建模方式
 - 支持实验配置自动记录、Epoch 回调、EarlyStopping、TensorBoard 和梯度异常报警
 - 支持端到端预测、单步/多步滚动预测、不确定性估计
@@ -54,7 +54,7 @@
 ### 6. 评估与可视化
 
 - 回归指标：`MAE`、`MSE`、`RMSE`、`MAPE`、`PercentError`
-- 挑战赛风格指标：`PHM2012Score`、`PHM2008Score`、`NASAScore`
+- 挑战赛风格指标：`PHM2012Score`、`PHM2008Score`、`AsymmetricRulPenalty`
 - RUL 解释指标：`R2Score`、`SMAPE`、`WithinToleranceRate`、方向性预测比例
 - 图表：
   - 预测曲线

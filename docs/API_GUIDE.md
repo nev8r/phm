@@ -128,7 +128,7 @@ evaluator.add(
     OverPredictionRate(),
     WithinToleranceRate(tolerance=0.10),
     PHM2012Score(),
-    NASAScore(),
+    PHM2008Score(),
 )
 metrics = evaluator.evaluate(result.targets, result.predictions)
 ```

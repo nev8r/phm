@@ -19,7 +19,7 @@
 支持三类数据集构造：
 
 - `BearingRulLabeler`：RUL 回归
-- `BearingStageLabeler`：退化阶段分类
+- `BearingStageLabeler`：退化阶段标注与辅助分析
 - `HealthIndicatorLabeler`：健康指标时间序列预测
 
 ### 2.3 训练模型
@@ -39,7 +39,7 @@
 
 `ResultVisualizer` 支持：
 
-- 混淆矩阵
+- 退化阶段辅助可视化
 - 退化阶段图
 - 预测曲线
 - 注意力热图
@@ -53,12 +53,14 @@
 3. 使用 `MAE`、`RMSE`、`NormalizedRMSE`、`HuangRulScore`、`PHM2012Score`
 4. 绘制预测曲线
 
-### 退化阶段分类实验
+### 退化阶段辅助分析
 
 1. 使用 `BearingStageLabeler`
 2. 选用 `Transformer`
-3. 使用 `Accuracy`
-4. 绘制混淆矩阵与阶段曲线
+3. 使用阶段标签一致率（`Accuracy`）检查标注预测是否一致
+4. 绘制阶段曲线和标注结果图
+
+该流程仅用于辅助观察退化阶段，不作为结题主任务；结题主线仍是 RUL 回归预测。
 
 ### 多步滚动预测实验
 

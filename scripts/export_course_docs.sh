@@ -33,8 +33,10 @@ export_stage() {
   for markdown_file in $source_glob; do
     [[ -f "$markdown_file" ]] || continue
     base_name="$(basename "${markdown_file%.md}")"
-    pandoc "$markdown_file" -o "${output_dir}/${base_name}.pdf" "${COMMON_ARGS[@]}"
-    pandoc "$markdown_file" -o "${output_dir}/${base_name}.docx" "${DOCX_ARGS[@]}"
+    markdown_dir="$(dirname "$markdown_file")"
+    resource_path=".:${markdown_dir}"
+    pandoc "$markdown_file" --resource-path="$resource_path" -o "${output_dir}/${base_name}.pdf" "${COMMON_ARGS[@]}"
+    pandoc "$markdown_file" --resource-path="$resource_path" -o "${output_dir}/${base_name}.docx" "${DOCX_ARGS[@]}"
     generated_docx+=("${output_dir}/${base_name}.docx")
   done
 

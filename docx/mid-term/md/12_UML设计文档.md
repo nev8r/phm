@@ -47,32 +47,7 @@
 
 ## 3. 用例图
 
-```mermaid
-flowchart LR
-    actor1["实验使用者"]
-    actor2["课程评审人员"]
-    actor3["项目维护者"]
-
-    uc1["导入 XJTU-SY / PHM2012 数据"]
-    uc2["查看数据质量与特征趋势"]
-    uc3["构造 RUL 标签与特征序列"]
-    uc4["训练 RUL 预测模型"]
-    uc5["执行论文复现实验"]
-    uc6["查看指标、曲线和输出文件"]
-    uc7["运行自动化测试"]
-    uc8["导出课程文档"]
-
-    actor1 --> uc1
-    actor1 --> uc2
-    actor1 --> uc3
-    actor1 --> uc4
-    actor1 --> uc5
-    actor1 --> uc6
-    actor2 --> uc6
-    actor2 --> uc8
-    actor3 --> uc7
-    actor3 --> uc8
-```
+![UML 用例图](../assets/uml/use-case.png)
 
 用例说明：
 
@@ -82,82 +57,7 @@ flowchart LR
 
 ## 4. 核心类图
 
-```mermaid
-classDiagram
-    class BearingEntity {
-        +dataset_name
-        +bearing_id
-        +sampling_rate
-        +channels
-        +metadata
-    }
-
-    class XJTULoader {
-        +load(path) BearingEntity
-        +list_bearings(path)
-    }
-
-    class PHM2012Loader {
-        +load(path) BearingEntity
-        +list_bearings(path)
-    }
-
-    class FeatureExtractor {
-        +extract_time_features(signal)
-        +extract_frequency_features(signal)
-    }
-
-    class FeatureSequenceRulLabeler {
-        +sequence_length
-        +build(entity)
-    }
-
-    class BearingWindowDataset {
-        +features
-        +targets
-        +metadata
-    }
-
-    class BaseRulModel {
-        +forward(x)
-        +predict(x)
-    }
-
-    class CNNLSTMAttention {
-        +forward(x)
-        +attention_weights
-    }
-
-    class XLSTMTransformer {
-        +forward(x)
-    }
-
-    class BaseTrainer {
-        +fit(dataset)
-        +save_history()
-    }
-
-    class BaseTester {
-        +predict(dataset)
-        +save_predictions()
-    }
-
-    class Evaluator {
-        +evaluate(targets, predictions)
-    }
-
-    XJTULoader --> BearingEntity
-    PHM2012Loader --> BearingEntity
-    BearingEntity --> FeatureExtractor
-    FeatureExtractor --> FeatureSequenceRulLabeler
-    FeatureSequenceRulLabeler --> BearingWindowDataset
-    BearingWindowDataset --> BaseTrainer
-    BaseRulModel <|-- CNNLSTMAttention
-    BaseRulModel <|-- XLSTMTransformer
-    BaseTrainer --> BaseRulModel
-    BaseTrainer --> BaseTester
-    BaseTester --> Evaluator
-```
+![UML 核心类图](../assets/uml/class-diagram.png)
 
 类图说明：
 
@@ -168,30 +68,7 @@ classDiagram
 
 ## 5. RUL 训练顺序图
 
-```mermaid
-sequenceDiagram
-    participant User as 实验使用者
-    participant NB as Notebook/API
-    participant Loader as Dataset Loader
-    participant Labeler as RUL Labeler
-    participant Trainer as Trainer
-    participant Tester as Tester
-    participant Eval as Evaluator
-    participant Out as Output Files
-
-    User->>NB: 选择数据集、模型和 epoch
-    NB->>Loader: load(data_path)
-    Loader-->>NB: BearingEntity
-    NB->>Labeler: build(entity)
-    Labeler-->>NB: BearingWindowDataset
-    NB->>Trainer: fit(dataset)
-    Trainer-->>Out: history.csv
-    NB->>Tester: predict(test_dataset)
-    Tester-->>Out: predictions.csv
-    Tester->>Eval: evaluate(target, prediction)
-    Eval-->>Out: metrics.json / comparison_metrics.csv
-    Out-->>User: 指标表、RUL 曲线和实验记录
-```
+![UML 顺序图](../assets/uml/sequence-diagram.png)
 
 顺序图说明：
 
@@ -201,30 +78,7 @@ sequenceDiagram
 
 ## 6. 组件图
 
-```mermaid
-flowchart TB
-    subgraph Source["源代码包 src/USTC/SSE/BearingPrediction"]
-        Data["dataset / data"]
-        Feature["feature / preprocess / labeling"]
-        Model["models / training / prediction"]
-        Eval["evaluation / visualization"]
-    end
-
-    Examples["examples/notebooks"]
-    Tests["tests"]
-    Docs["docx / docs"]
-    DataDir["data/external 或 data/generated"]
-    OutputDir["tmp / outputs"]
-
-    DataDir --> Data
-    Data --> Feature
-    Feature --> Model
-    Model --> Eval
-    Eval --> OutputDir
-    Examples --> Source
-    Tests --> Source
-    Docs --> Examples
-```
+![UML 组件图](../assets/uml/component-diagram.png)
 
 组件图说明：
 
@@ -235,23 +89,7 @@ flowchart TB
 
 ## 7. 部署图
 
-```mermaid
-flowchart LR
-    Dev["开发者本地机器"]
-    UV["uv 虚拟环境 / Python 3.11+"]
-    Repo["项目仓库"]
-    External["data/external 真实数据"]
-    Generated["data/generated 示例数据"]
-    Tmp["tmp 训练与复现输出"]
-    DocsOut["docx PDF/DOCX 交付物"]
-
-    Dev --> UV
-    UV --> Repo
-    Repo --> External
-    Repo --> Generated
-    Repo --> Tmp
-    Repo --> DocsOut
-```
+![UML 部署图](../assets/uml/deployment-diagram.png)
 
 部署说明：
 
