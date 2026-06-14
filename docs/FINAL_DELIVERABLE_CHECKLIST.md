@@ -25,7 +25,8 @@
 | 成员贡献比说明 | `docx/final/19_成员贡献比说明.pdf` | 已完成 |
 | 结题答辩提纲 | `docx/final/20_结题答辩提纲.pdf` | 已完成 |
 | 结题答辩演讲稿 | `docx/final/21_结题答辩演讲稿.pdf` | 已完成 |
-| 结题答辩 PPT | `docx/final/工业轴承设备剩余寿命预测系统的实现-结题答辩.pptx` | 已完成 |
+| 结题答辩 PPT（推荐） | `docx/final/web-ppt/index.html` | 已完成 |
+| 结题答辩 PPT（备用） | `docx/final/工业轴承设备剩余寿命预测系统的实现-结题答辩.pptx` | 已完成 |
 | 用户示例 | `examples/*.ipynb` | 已完成 |
 | 测试报告依据 | `tests`、pytest 输出、`docs/PAPER_REPRODUCTION.md` | 已完成 |
 | 论文复现说明 | `docs/PAPER_REPRODUCTION.md` | 已完成 |
@@ -36,6 +37,8 @@
 uv run --extra dev pytest tests/test_rul_metrics.py tests/test_paper_cnn_lstm_attention.py tests/test_paper_xlstm_transformer.py tests/test_examples_notebooks.py -q
 uv run --extra dev pytest -q
 bash scripts/export_course_docs.sh
+uv run python scripts/generate_final_web_ppt.py
+node .agents/skills/guizang-ppt-skill/scripts/validate-swiss-deck.mjs docx/final/web-ppt/index.html
 uv run python scripts/generate_final_ppt.py
 ```
 

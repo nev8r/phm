@@ -55,11 +55,11 @@
 
 - 回归指标：`MAE`、`MSE`、`RMSE`、`MAPE`、`PercentError`
 - 挑战赛风格指标：`PHM2012Score`、`PHM2008Score`、`NASAScore`
-- 分类指标：`Accuracy`
+- RUL 解释指标：`R2Score`、`SMAPE`、`WithinToleranceRate`、方向性预测比例
 - 图表：
   - 预测曲线
   - 退化阶段图
-  - 混淆矩阵
+  - 误差分布图
   - 注意力热图
 
 ## 项目结构
@@ -317,4 +317,6 @@ uv run pytest -q
 - [结题答辩提纲 Markdown](docx/final/md/20_结题答辩提纲.md)
 - [结题答辩演讲稿 Markdown](docx/final/md/21_结题答辩演讲稿.md)
 - PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
-- 结题 PPT 可通过 `uv run python scripts/generate_final_ppt.py` 重新生成
+- 推荐结题答辩网页 PPT：[docx/final/web-ppt/index.html](docx/final/web-ppt/index.html)
+- 网页 PPT 可通过 `uv run python scripts/generate_final_web_ppt.py` 重新生成
+- 传统 `.pptx` 备用版可通过 `uv run python scripts/generate_final_ppt.py` 重新生成
