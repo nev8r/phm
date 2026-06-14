@@ -1,0 +1,6 @@
+dataset_name,entity_id,data_source,model_name,rmse,normalized_rmse,huang_rul_score,prediction_count,epoch_count
+XJTU-SY,Bearing1_5,real_or_provided_files,CNN-LSTM-AM,406.302219,0.615609,29.001612,11,8
+XJTU-SY,Bearing1_5,real_or_provided_files,CNN-LSTM,406.502698,0.615913,29.127879,11,8
+PHM2012,Bearing3_1,real_or_provided_files,CNN-LSTM-AM,651.035522,0.591850,29.447255,11,8
+PHM2012,Bearing3_1,real_or_provided_files,CNN-LSTM,650.699666,0.591545,29.098391,11,8
+

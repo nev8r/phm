@@ -36,6 +36,7 @@
 | 用户示例 | `examples/*.ipynb` | 已完成 |
 | 测试报告依据 | `tests`、pytest 输出、`docs/PAPER_REPRODUCTION.md` | 已完成 |
 | 论文复现说明 | `docs/PAPER_REPRODUCTION.md` | 已完成 |
+| 真实训练证据摘要 | `docs/reproduction-evidence/*.csv`、`docs/reproduction-evidence/README.md` | 已完成 |
 | 项目 owner 工程阅读版 | `docs/project-owner/*.md` | 已完成 |
 
 ## 验收命令
@@ -49,6 +50,16 @@ test -f docx/final/web-ppt/index.html
 uv run python scripts/generate_final_ppt.py
 ```
 
+## 验收结果摘要
+
+| 验收项 | 最近结果 |
+| --- | --- |
+| Focused 测试 | `20 passed in 6.95s` |
+| 全量测试 | `31 passed in 8.53s` |
+| 网页 PPT 校验 | `Swiss deck validation passed: 16 slide(s)` |
+| 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 16 份 PDF + 16 份 DOCX |
+| 论文复现证据 | 真实训练输出位于本机 `tmp/`，提交包保留 `docs/reproduction-evidence` 摘要 |
+
 ## 归档建议
 
-最终提交或压缩归档时应包含源码、测试、notebook、`docs`、`docx/proposal`、`docx/mid-term`、`docx/final` 和脚本；不包含 `tmp/`、`outputs/`、`data/external/`、`runs/`、`checkpoints/` 等运行产物。
+最终提交或压缩归档时应包含源码、测试、notebook、正式 `docs` 文档、`docx/proposal`、`docx/mid-term`、`docx/final` 和脚本；不包含 `tmp/`、`outputs/`、`data/external/`、`runs/`、`checkpoints/` 等运行产物。若本地存在内部工作计划目录，不纳入课程交付包。

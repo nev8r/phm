@@ -92,7 +92,7 @@ PY
 
 ### 真实训练验收结果
 
-2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据各抽样 48 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_real_metrics/paper_cnn_lstm_attention/`。该目录不提交到仓库，仅作为本地验收证据。
+2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据各抽样 48 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_real_metrics/paper_cnn_lstm_attention/`。该目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/cnn_lstm_attention_comparison_summary.csv`。
 
 | 数据集 | 轴承 | 模型 | RMSE | Normalized RMSE | Huang RUL Score | Epoch |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
@@ -107,7 +107,7 @@ PY
 
 本复现区分三类指标：
 
-- 论文原版指标：`huang_rul_score` 按 Huang 等论文 Eq. 11-13 实现，其中 `Er_i = 100 * (R_i - Rhat_i) / R_i`，`Er_i <= 0` 和 `Er_i > 0` 分别使用不同指数系数，最终取平均值；`normalized_rmse` 用目标 RUL 范围归一化 RMSE，便于和论文表格中的 0.x RMSE 口径对照。
+- 论文原版指标：`huang_rul_score` 按 Huang 等论文 Eq. 11-13 实现，其中 `Er_i = 100 * (R_i - Rhat_i) / R_i`，`Er_i <= 0` 和 `Er_i > 0` 分别使用不同指数系数，最终取平均值；完美预测时该 score 为 0，因此在同一口径下越小越好。`normalized_rmse` 用目标 RUL 范围归一化 RMSE，便于和论文表格中的 0.x RMSE 口径对照。
 - 普通回归误差：`mae`、`rmse`、`smape` 用于查看实际秒级误差和相对误差。
 - 解释性偏差指标：`over_prediction_rate` 表示预测 RUL 大于真实 RUL 的比例，`within_10_percent_rate` 表示预测误差落入真实 RUL 10% 范围内的比例。
 
@@ -194,27 +194,27 @@ PY
 
 ### 真实训练验收结果
 
-2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据，每个轴承读前抽样 16 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_xlstm_transformer/paper_xlstm_transformer/`。该目录不提交到仓库，仅作为本地验收证据。
+2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据，每个轴承读前抽样 16 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_xlstm_transformer/paper_xlstm_transformer/`。该目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/xlstm_transformer_comparison_summary.csv`。
 
 | 数据集 | 工况 | 模型 | RMSE | Normalized RMSE | R2 | PHM2012 Score | Huang RUL Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| XJTU-SY | condition_1_35Hz12kN | XLSTM-Transformer | 2280.511556 | 0.603310 | -2.275391 | 3053.993 | 27.303331 |
-| XJTU-SY | condition_1_35Hz12kN | Feature-Transformer | 2280.666285 | 0.603351 | -2.275836 | 3054.961 | 27.318814 |
-| XJTU-SY | condition_1_35Hz12kN | LSTM-Transformer | 2281.304720 | 0.603520 | -2.277670 | 3059.735 | 27.365854 |
-| XJTU-SY | condition_2_37_5Hz11kN | XLSTM-Transformer | 7688.562766 | 0.601609 | -2.257361 | 3033.235 | 27.385834 |
-| XJTU-SY | condition_2_37_5Hz11kN | Feature-Transformer | 7688.523060 | 0.601606 | -2.257327 | 3032.720 | 27.388820 |
-| XJTU-SY | condition_2_37_5Hz11kN | LSTM-Transformer | 7688.845789 | 0.601631 | -2.257601 | 3033.820 | 27.392590 |
-| XJTU-SY | condition_3_40Hz10kN | XLSTM-Transformer | 5348.922387 | 0.602356 | -2.262244 | 3042.942 | 27.354392 |
-| XJTU-SY | condition_3_40Hz10kN | Feature-Transformer | 5349.956410 | 0.602473 | -2.263505 | 3046.203 | 27.388377 |
-| XJTU-SY | condition_3_40Hz10kN | LSTM-Transformer | 5349.380229 | 0.602408 | -2.262802 | 3044.392 | 27.368754 |
-| PHM2012 | condition_1 | XLSTM-Transformer | 9641.802765 | 1.337282 | -15.110842 | 1369975.000 | 31.989850 |
-| PHM2012 | condition_1 | Feature-Transformer | 9641.869141 | 1.337291 | -15.111064 | 1369833.000 | 31.992063 |
-| PHM2012 | condition_1 | LSTM-Transformer | 9641.402073 | 1.337226 | -15.109503 | 1369286.000 | 31.985210 |
-| PHM2012 | condition_2 | XLSTM-Transformer | 10065.536566 | 2.092627 | -38.470269 | 514266800.000 | 31.984371 |
-| PHM2012 | condition_2 | Feature-Transformer | 10065.945812 | 2.092712 | -38.473479 | 514817400.000 | 31.988229 |
-| PHM2012 | condition_2 | LSTM-Transformer | 10065.979007 | 2.092719 | -38.473739 | 514699200.000 | 31.989388 |
-| PHM2012 | condition_3 | XLSTM-Transformer | 1594.675123 | 1.130975 | -10.581817 | 262471.400 | 31.883923 |
-| PHM2012 | condition_3 | Feature-Transformer | 1595.585431 | 1.131621 | -10.595043 | 263837.000 | 31.961580 |
-| PHM2012 | condition_3 | LSTM-Transformer | 1594.546024 | 1.130884 | -10.579941 | 262248.200 | 31.875500 |
+| XJTU-SY | condition_1_35Hz12kN | XLSTM-Transformer | 2280.631113 | 0.603342 | -2.275735 | 3054.891 | 27.311963 |
+| XJTU-SY | condition_1_35Hz12kN | Feature-Transformer | 2280.669667 | 0.603352 | -2.275845 | 3054.277 | 27.338252 |
+| XJTU-SY | condition_1_35Hz12kN | LSTM-Transformer | 2280.671602 | 0.603352 | -2.275851 | 3055.004 | 27.319225 |
+| XJTU-SY | condition_2_37_5Hz11kN | XLSTM-Transformer | 7688.510312 | 0.601605 | -2.257316 | 3033.124 | 27.384609 |
+| XJTU-SY | condition_2_37_5Hz11kN | Feature-Transformer | 7689.152786 | 0.601655 | -2.257861 | 3034.172 | 27.401750 |
+| XJTU-SY | condition_2_37_5Hz11kN | LSTM-Transformer | 7689.253513 | 0.601663 | -2.257946 | 3034.601 | 27.403575 |
+| XJTU-SY | condition_3_40Hz10kN | XLSTM-Transformer | 5349.793253 | 0.602454 | -2.263306 | 3045.704 | 27.381524 |
+| XJTU-SY | condition_3_40Hz10kN | Feature-Transformer | 5348.664911 | 0.602327 | -2.261930 | 3042.060 | 27.349946 |
+| XJTU-SY | condition_3_40Hz10kN | LSTM-Transformer | 5348.141186 | 0.602268 | -2.261291 | 3040.446 | 27.330935 |
+| PHM2012 | condition_1 | XLSTM-Transformer | 9641.293852 | 1.337211 | -15.109142 | 1369198.940 | 31.983197 |
+| PHM2012 | condition_1 | Feature-Transformer | 9642.236304 | 1.337342 | -15.112291 | 1370623.623 | 31.995542 |
+| PHM2012 | condition_1 | LSTM-Transformer | 9641.633774 | 1.337258 | -15.110278 | 1369700.894 | 31.987825 |
+| PHM2012 | condition_2 | XLSTM-Transformer | 10066.012908 | 2.092726 | -38.474005 | 514657455.688 | 31.989926 |
+| PHM2012 | condition_2 | Feature-Transformer | 10066.350290 | 2.092796 | -38.476651 | 514997781.965 | 31.993635 |
+| PHM2012 | condition_2 | LSTM-Transformer | 10065.411644 | 2.092601 | -38.469290 | 514271505.244 | 31.982577 |
+| PHM2012 | condition_3 | XLSTM-Transformer | 1594.736034 | 1.131018 | -10.582701 | 262557.238 | 31.889389 |
+| PHM2012 | condition_3 | Feature-Transformer | 1595.077895 | 1.131261 | -10.587668 | 262987.865 | 31.922526 |
+| PHM2012 | condition_3 | LSTM-Transformer | 1595.654755 | 1.131670 | -10.596051 | 263952.644 | 31.966799 |
 
 验收结论：workflow 已按论文的两个数据集和六个工况完成真实训练，并输出 `comparison_metrics.csv`、`predictions.csv`、`metrics.json`、`history.csv` 与 attention 权重文件。由于本地复现使用小样本和 8 epoch，数值用于证明工程流程和指标体系可复现，不作为论文 50 epoch 完整数值对齐结论。

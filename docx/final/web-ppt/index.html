@@ -1389,7 +1389,7 @@
           <div class="mini-ledger">
             <div><b>输入</b><span>轴承运行过程中的水平、垂直振动快照。</span></div>
             <div><b>输出</b><span>连续 RUL 数值、健康趋势曲线和误差指标。</span></div>
-            <div><b>边界</b><span>本次答辩主线是 RUL 回归预测，不展开离散状态分类。</span></div>
+            <div><b>边界</b><span>本次答辩主线是 RUL 回归预测；生存分析和失效概率保留为扩展接口。</span></div>
           </div>
         </div>
       </div>
@@ -1449,7 +1449,7 @@
       <div class="image-hero-stats course">
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Bearing</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">1_1</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">35Hz12kN 工况</p></div>
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Snapshots</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">80</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">从 123 个快照均匀抽样</p></div>
-        <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">RMS</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em;color:var(--accent)">0.56→7.27</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">水平通道，归一化曲线用于展示趋势</p></div>
+        <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">RMS</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em;color:var(--accent)">0.617→4.080</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">水平通道，80 个抽样快照首末值</p></div>
       </div>
     </div>
   </div>
@@ -1469,7 +1469,7 @@
       <div class="image-hero-stats course">
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Bearing</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">1_1</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">Condition 1，Learning_set</p></div>
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Snapshots</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">80</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">从 2803 个快照均匀抽样</p></div>
-        <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">RMS</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em;color:var(--accent)">0.56→5.61</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">后期强度和冲击变化更明显</p></div>
+        <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">RMS</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em;color:var(--accent)">0.428→2.068</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">水平通道，80 个抽样快照首末值</p></div>
       </div>
     </div>
   </div>
@@ -1646,15 +1646,15 @@
       <div class="r">14 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">先区分普通误差、论文 Score、提前 / 滞后倾向，再解释结果边界</div>
+      <div class="t-meta">8 epoch；CNN-LSTM-AM 每数据集抽样 48 快照，xLSTM-Transformer 每轴承抽样 16 快照</div>
       <h2 class="page-title small">指标已复现输出；单次短训练不当作最终性能结论。</h2>
     </div>
     <div class="result-table" data-anim="up">
       <div class="head">实验</div><div class="head">数据集</div><div class="head">模型</div><div class="head">RMSE</div><div class="head">Huang Score</div>
       <div>CNN-LSTM-AM</div><div>XJTU-SY</div><div class="accent">Attention</div><div>406.30</div><div>29.00</div>
       <div>CNN-LSTM-AM</div><div>PHM2012</div><div class="accent">Attention</div><div>651.04</div><div>29.45</div>
-      <div>xLSTM-Transformer</div><div>XJTU-SY condition 1</div><div>XLSTM</div><div>2280.51</div><div>27.30</div>
-      <div>xLSTM-Transformer</div><div>PHM2012 condition 3</div><div>XLSTM</div><div>1594.68</div><div>31.88</div>
+      <div>xLSTM-Transformer</div><div>XJTU-SY condition 1</div><div>XLSTM</div><div>2280.63</div><div>27.31</div>
+      <div>xLSTM-Transformer</div><div>PHM2012 condition 3</div><div>XLSTM</div><div>1594.74</div><div>31.89</div>
     </div>
     <div data-anim="foot" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;margin-top:3.2vh">
       <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释；PHM2012 上负 R2 已作为限制保留。</p></div>

@@ -1,5 +1,7 @@
 # Local project instructions
 AGENTS.md
+.agents/
+docs/superpowers/
 
 # Python environments
 .venv/
