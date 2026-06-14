@@ -16,7 +16,7 @@ from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Pt
+from docx.shared import Cm, Pt, RGBColor
 
 
 PROJECT_NAME = "工业轴承设备剩余寿命预测系统的实现"
@@ -25,6 +25,8 @@ AUTHOR = "zyj、cyy、zdh、zy"
 BODY_FONT = "宋体"
 TITLE_FONT = "宋体"
 TABLE_BORDER_COLOR = "000000"
+TEXT_COLOR = "000000"
+BLACK = RGBColor(0, 0, 0)
 
 
 def find_style(styles, *names: str):
@@ -37,6 +39,21 @@ def find_style(styles, *names: str):
 def set_east_asia_font(run, font_name: str) -> None:
     run.font.name = font_name
     run._element.rPr.rFonts.set(qn("w:eastAsia"), font_name)
+
+
+def set_black_color(rpr) -> None:
+    color = rpr.find(qn("w:color"))
+    if color is None:
+        color = OxmlElement("w:color")
+        rpr.append(color)
+    color.set(qn("w:val"), TEXT_COLOR)
+    for attribute in ("themeColor", "themeTint", "themeShade"):
+        color.attrib.pop(qn(f"w:{attribute}"), None)
+
+
+def set_font_black(style_or_run) -> None:
+    style_or_run.font.color.rgb = BLACK
+    set_black_color(style_or_run._element.get_or_add_rPr())
 
 
 def set_cell_shading(cell, fill: str) -> None:
@@ -122,12 +139,18 @@ def style_document(path: Path) -> None:
             style.font.name = BODY_FONT
             style._element.rPr.rFonts.set(qn("w:eastAsia"), BODY_FONT)
             style.font.size = Pt(10.5)
+            set_font_black(style)
 
     for style_name, size in (
         ("Heading 1", 24),
         ("Heading 2", 18),
         ("Heading 3", 13.5),
         ("Heading 4", 12),
+        ("Heading 5", 10.5),
+        ("Heading 6", 10.5),
+        ("Heading 7", 10.5),
+        ("Heading 8", 10.5),
+        ("Heading 9", 10.5),
     ):
         style = find_style(styles, style_name, style_name.replace(" ", ""))
         if style is not None:
@@ -135,6 +158,7 @@ def style_document(path: Path) -> None:
             style._element.rPr.rFonts.set(qn("w:eastAsia"), TITLE_FONT)
             style.font.size = Pt(size)
             style.font.bold = True
+            set_font_black(style)
 
     title = find_style(styles, "Title")
     if title is not None:
@@ -142,6 +166,14 @@ def style_document(path: Path) -> None:
         title._element.rPr.rFonts.set(qn("w:eastAsia"), "黑体")
         title.font.size = Pt(18)
         title.font.bold = True
+        set_font_black(title)
+
+    for style in styles:
+        if (
+            style.name in {"Subtitle", "Hyperlink", "FollowedHyperlink", "TOC Heading"}
+            or style.name.startswith("TOC ")
+        ):
+            set_font_black(style)
 
     for paragraph in document.paragraphs:
         if paragraph.text.strip() == "Table of Contents":
@@ -149,6 +181,7 @@ def style_document(path: Path) -> None:
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in paragraph.runs:
                 set_east_asia_font(run, TITLE_FONT)
+                set_font_black(run)
                 run.font.bold = True
                 run.font.size = Pt(18)
 
@@ -157,6 +190,7 @@ def style_document(path: Path) -> None:
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in paragraph.runs:
                 set_east_asia_font(run, TITLE_FONT)
+                set_font_black(run)
                 run.font.bold = True
                 run.font.size = Pt(24)
         else:
@@ -169,6 +203,7 @@ def style_document(path: Path) -> None:
                     set_east_asia_font(run, TITLE_FONT)
                 else:
                     set_east_asia_font(run, BODY_FONT)
+                set_font_black(run)
 
     for table in document.tables:
         set_table_borders(table)
@@ -180,6 +215,7 @@ def style_document(path: Path) -> None:
                     paragraph.paragraph_format.first_line_indent = Pt(0)
                     for run in paragraph.runs:
                         set_east_asia_font(run, BODY_FONT)
+                        set_font_black(run)
                         run.font.size = Pt(10.5)
                         if row_index == 0:
                             run.font.bold = True

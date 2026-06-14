@@ -6,6 +6,17 @@
 \usepackage{array}
 \usepackage{caption}
 \usepackage{etoolbox}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=false,
+  linkcolor=black,
+  urlcolor=black,
+  citecolor=black,
+  filecolor=black,
+  pdfborder={0 0 0},
+  allbordercolors={1 1 1}
+}
 
 \setstretch{1.15}
 \setlength{\parindent}{2em}
@@ -23,13 +34,13 @@
 }
 
 \titleformat{\section}
-  {\normalfont\bfseries\fontsize{24pt}{30pt}\selectfont}
+  {\normalfont\bfseries\color{black}\fontsize{24pt}{30pt}\selectfont}
   {\thesection}{1em}{}
 \titleformat{\subsection}
-  {\normalfont\bfseries\fontsize{18pt}{24pt}\selectfont}
+  {\normalfont\bfseries\color{black}\fontsize{18pt}{24pt}\selectfont}
   {\thesubsection}{1em}{}
 \titleformat{\subsubsection}
-  {\normalfont\bfseries\fontsize{13.5pt}{18pt}\selectfont}
+  {\normalfont\bfseries\color{black}\fontsize{13.5pt}{18pt}\selectfont}
   {\thesubsubsection}{1em}{}
 
 \titlespacing*{\section}{0pt}{1.2em}{0.8em}
