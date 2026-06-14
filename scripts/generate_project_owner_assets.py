@@ -47,9 +47,29 @@ def _sample_features(entity, channel_name: str) -> pd.DataFrame:
             "rms": features["rms"].to_numpy(dtype=float),
             "peak": features["peak"].to_numpy(dtype=float),
             "kurtosis": features["kurtosis"].to_numpy(dtype=float),
+            "crest_factor": features["crest_factor"].to_numpy(dtype=float),
+            "spectrum_energy": features["spectrum_energy"].to_numpy(dtype=float),
+            "spectral_entropy": features["spectral_entropy"].to_numpy(dtype=float),
             "health": extractor.build_health_indicator(features),
         }
     )
+
+
+def _safe_ratio(numerator: float, denominator: float) -> float:
+    if abs(denominator) < 1e-8:
+        return 0.0
+    return float(numerator / denominator)
+
+
+def _early_late_summary(frame: pd.DataFrame, column_name: str) -> dict[str, float]:
+    window = max(3, max(1, len(frame) // 5))
+    early_mean = float(frame[column_name].head(window).mean())
+    late_mean = float(frame[column_name].tail(window).mean())
+    return {
+        f"{column_name}_early_mean": early_mean,
+        f"{column_name}_late_mean": late_mean,
+        f"{column_name}_late_early_ratio": _safe_ratio(late_mean, early_mean),
+    }
 
 
 def _load_summary_rows() -> pd.DataFrame:
@@ -67,29 +87,78 @@ def _load_summary_rows() -> pd.DataFrame:
                     continue
                 entity = loader.load_entity(entity_id, max_samples=80)
                 summary = _sample_features(entity, channel)
-                first = summary.head(max(3, len(summary) // 10))
-                last = summary.tail(max(3, len(summary) // 10))
-                rows.append(
-                    {
-                        "dataset": dataset_name,
-                        "entity": entity_id,
-                        "samples": len(summary),
-                        "duration_minutes": float(summary["elapsed_seconds"].max() / 60.0),
-                        "rms_start": float(first["rms"].mean()),
-                        "rms_end": float(last["rms"].mean()),
-                        "rms_ratio": float(last["rms"].mean() / (first["rms"].mean() + 1e-8)),
-                        "peak_end": float(last["peak"].mean()),
-                        "health_end": float(last["health"].mean()),
-                    }
-                )
+                row = {
+                    "dataset": dataset_name,
+                    "entity": entity_id,
+                    "samples": len(summary),
+                    "summary_rule": "first_20_percent_vs_last_20_percent",
+                    "duration_minutes": float(summary["elapsed_seconds"].max() / 60.0),
+                }
+                for column_name in ["rms", "peak", "kurtosis", "crest_factor", "spectrum_energy", "spectral_entropy", "health"]:
+                    row.update(_early_late_summary(summary, column_name))
+                rows.append(row)
         except Exception:
             continue
     if rows:
         return pd.DataFrame(rows)
     return pd.DataFrame(
         [
-            {"dataset": "XJTU-SY", "entity": "Bearing1_1", "samples": 80, "duration_minutes": 122, "rms_start": 0.56, "rms_end": 7.27, "rms_ratio": 13.0, "peak_end": 38.0, "health_end": 0.93},
-            {"dataset": "PHM2012", "entity": "Bearing1_1", "samples": 80, "duration_minutes": 467, "rms_start": 0.56, "rms_end": 5.61, "rms_ratio": 10.0, "peak_end": 28.0, "health_end": 0.91},
+            {
+                "dataset": "XJTU-SY",
+                "entity": "Bearing1_1",
+                "samples": 80,
+                "summary_rule": "first_20_percent_vs_last_20_percent",
+                "duration_minutes": 122,
+                "rms_early_mean": 0.56,
+                "rms_late_mean": 7.27,
+                "rms_late_early_ratio": 13.0,
+                "peak_early_mean": 3.2,
+                "peak_late_mean": 38.0,
+                "peak_late_early_ratio": 11.88,
+                "kurtosis_early_mean": 3.1,
+                "kurtosis_late_mean": 6.2,
+                "kurtosis_late_early_ratio": 2.0,
+                "crest_factor_early_mean": 4.0,
+                "crest_factor_late_mean": 5.2,
+                "crest_factor_late_early_ratio": 1.3,
+                "spectrum_energy_early_mean": 1.0,
+                "spectrum_energy_late_mean": 18.0,
+                "spectrum_energy_late_early_ratio": 18.0,
+                "spectral_entropy_early_mean": 4.1,
+                "spectral_entropy_late_mean": 4.5,
+                "spectral_entropy_late_early_ratio": 1.1,
+                "health_early_mean": 0.08,
+                "health_late_mean": 0.93,
+                "health_late_early_ratio": 11.62,
+            },
+            {
+                "dataset": "PHM2012",
+                "entity": "Bearing1_1",
+                "samples": 80,
+                "summary_rule": "first_20_percent_vs_last_20_percent",
+                "duration_minutes": 467,
+                "rms_early_mean": 0.56,
+                "rms_late_mean": 5.61,
+                "rms_late_early_ratio": 10.0,
+                "peak_early_mean": 2.8,
+                "peak_late_mean": 28.0,
+                "peak_late_early_ratio": 10.0,
+                "kurtosis_early_mean": 2.9,
+                "kurtosis_late_mean": 5.4,
+                "kurtosis_late_early_ratio": 1.86,
+                "crest_factor_early_mean": 4.1,
+                "crest_factor_late_mean": 5.0,
+                "crest_factor_late_early_ratio": 1.22,
+                "spectrum_energy_early_mean": 1.0,
+                "spectrum_energy_late_mean": 13.0,
+                "spectrum_energy_late_early_ratio": 13.0,
+                "spectral_entropy_early_mean": 4.2,
+                "spectral_entropy_late_mean": 4.6,
+                "spectral_entropy_late_early_ratio": 1.1,
+                "health_early_mean": 0.09,
+                "health_late_mean": 0.91,
+                "health_late_early_ratio": 10.11,
+            },
         ]
     )
 
@@ -108,16 +177,16 @@ def plot_multi_bearing_summary() -> None:
     fig.patch.set_facecolor("white")
 
     colors = ["#002FA7" if dataset == "XJTU-SY" else "#111111" for dataset in summary["dataset"]]
-    axes[0].bar(x, summary["rms_ratio"], color=colors, width=0.72)
+    axes[0].bar(x, summary["rms_late_early_ratio"], color=colors, width=0.72)
     axes[0].axhline(1.0, color="#777777", linewidth=1.0, linestyle="--")
-    axes[0].set_title("寿命后期 RMS 相对早期的放大倍数")
+    axes[0].set_title("后 20% RMS 相对前 20% 的放大倍数")
     axes[0].set_ylabel("late RMS / early RMS")
     axes[0].set_xticks(x, labels, rotation=0)
     axes[0].grid(axis="y", color="#DDDDDD", linewidth=0.8)
 
-    axes[1].scatter(summary["duration_minutes"], summary["rms_ratio"], s=120, c=colors)
+    axes[1].scatter(summary["duration_minutes"], summary["rms_late_early_ratio"], s=120, c=colors)
     for row in summary.itertuples():
-        axes[1].text(row.duration_minutes, row.rms_ratio, f" {row.dataset} {row.entity}", fontsize=8, va="center")
+        axes[1].text(row.duration_minutes, row.rms_late_early_ratio, f" {row.dataset} {row.entity}", fontsize=8, va="center")
     axes[1].set_title("抽样寿命跨度与后期强度变化")
     axes[1].set_xlabel("sampled duration (min)")
     axes[1].set_ylabel("late RMS / early RMS")
@@ -126,7 +195,7 @@ def plot_multi_bearing_summary() -> None:
     for ax in axes:
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-    fig.suptitle("真实数据多轴承特征摘要：强度特征在寿命后期普遍抬升", fontsize=15, y=1.02)
+    fig.suptitle("真实数据多轴承特征摘要：前 20% 与后 20% 对比", fontsize=15, y=1.02)
     fig.tight_layout()
     output = DOCS_ASSET_DIR / "multi-bearing-feature-summary.png"
     fig.savefig(output, bbox_inches="tight", facecolor="white")

@@ -2,6 +2,9 @@
 
 - [开题材料 PDF 文件夹](docx/proposal)
 - [中期材料 PDF 文件夹](docx/mid-term)
+- [结题材料 PDF/DOCX 文件夹](docx/final)
+- [项目从 0 到 1 分册](docs/project-owner)
+- [RUL 论文复现说明](docs/PAPER_REPRODUCTION.md)
 
 - 支持 `XJTU-SY` 与 `PHM2012` 轴承寿命退化数据集接入
 - 支持信号预处理、特征工程、退化阶段标注、RUL 预测、预测性维护扩展接口与结果可视化
@@ -9,7 +12,7 @@
 - 支持实验配置自动记录、Epoch 回调、EarlyStopping、TensorBoard 和梯度异常报警
 - 支持端到端预测、单步/多步滚动预测、不确定性估计
 - 支持结果、模型、缓存、数据的 `CSV`、`PKL`、`JSON`、`YAML`、`PT` 等格式导入导出
-- 支持完整测试、论文复现说明、项目 owner 分册和课程归档文档，便于答辩、报告撰写和后续扩展
+- 支持完整测试、两篇 RUL 论文复现说明、项目 owner 分册和课程归档文档，便于答辩、报告撰写和后续扩展
 
 ## 主要功能
 
@@ -24,7 +27,9 @@
 - 鲁棒裁剪：`RobustClip`
 - 归一化：`ZScoreNormalize`、`MinMaxNormalize`
 - 滑动窗口：`SlidingWindowSegmenter`
-- 特征提取：均值、方差、RMS、峰值、峭度、偏度、谱能量、谱熵、主频等
+- 特征提取：14 个时域特征 + 5 个频域特征，共 19 维，包括均值、方差、RMS、峰值、峰峰值、峭度、偏度、峰值因子、脉冲因子、主频、谱能量、谱质心、谱均方根频率、谱熵等
+
+特征由 `SignalFeatureExtractor` 使用 NumPy/FFT 计算，不依赖自动特征提取工具生成；`tsfresh` 和 `xgboost` 仅作为可选扩展依赖。
 
 ### 3. 退化阶段划分
 
@@ -115,6 +120,15 @@ phm
                 ├── training
                 └── visualization
 ```
+
+## 实现边界
+
+| 类型 | 开源库作用 | 项目实现 |
+| --- | --- | --- |
+| 数值与表格 | NumPy、Pandas | 数据集 loader、统一实体、RUL 时间语义 |
+| 深度学习 | PyTorch | CNN-LSTM-AM、XLSTM-Transformer、训练与测试 workflow |
+| 可视化 | Matplotlib、Seaborn | 特征趋势图、复现证据图、课程答辩图表 |
+| 文档与测试 | pytest、Jupyter、Pandoc/LaTeX | notebook smoke、测试报告、DOCX/PDF/PPT 交付 |
 
 ## 安装与运行
 

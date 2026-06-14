@@ -43,6 +43,8 @@
 | 预测与 attention 落盘 | `predictions.csv`、`attention_weights.csv` |
 | 论文评价指标 | `HuangRulScore`、`NormalizedRMSE`、`RMSE` |
 
+特征口径说明：Huang 论文使用 14 个时域特征和 5 个频域特征。本项目的 `SignalFeatureExtractor` 默认也输出 19 维特征，字段包括均值、方差、RMS、峰值、峰峰值、绝对均值、形状因子、峰值因子、脉冲因子、裕度因子、间隙因子、峭度、偏度、主频、谱能量、谱质心、谱均方根频率和谱熵。该集合由项目代码使用 NumPy/FFT 计算，不是由 `tsfresh` 自动生成。当前 `clearance_factor` 与 `margin_factor` 在实现中使用相同公式，作为论文特征名兼容字段保留，不单独作为独立物理结论解释。
+
 ### 使用的数据
 
 复现 notebook 默认优先使用仓库中的真实数据文件：
@@ -102,6 +104,12 @@ PY
 | PHM2012 | Bearing3_1 | CNN-LSTM | 650.699666 | 0.591545 | 29.098391 | 8 |
 
 验收结论：workflow 已在 `data/external` 的真实数据上完成训练，`comparison_metrics.csv` 包含论文 Score、归一化 RMSE、方向性偏差和 attention 相对基线变化列。当前小样本训练用于课程项目和 notebook 可运行性验证，不代表论文完整样本、完整 epoch 和多次重复实验的最终数值。
+
+补充说明：
+
+- `prediction_count` 记录测试序列数量，`history.csv` 记录 8 个 epoch 的训练历史，`predictions.csv` 保留逐样本 target/prediction，`attention_weights.csv` 保留 attention 权重；这些文件共同证明真实训练和预测发生。
+- XJTU-SY 上 CNN-LSTM-AM 的 RMSE 和 Huang Score 略低于 CNN-LSTM baseline；PHM2012 上 CNN-LSTM baseline 的 RMSE 与 Huang Score 反而略好。因此本项目只说明 attention 分支已实现并可比较，不宣称它在当前小样本设置下稳定优于 baseline。
+- `Huang RUL Score` 完美预测为 0，同一口径下越小越好；它不是 PHM challenge-style score。
 
 ### 指标说明
 
@@ -167,6 +175,8 @@ PHM2012 按论文三工况划分：
 | Condition 2 | Bearing2_1、Bearing2_2 | Bearing2_3 |
 | Condition 3 | Bearing3_1、Bearing3_2 | Bearing3_3 |
 
+基线设置：`Feature-Transformer` 用同样的特征序列输入和 Transformer encoder，去掉 xLSTM-inspired memory 分支；`LSTM-Transformer` 使用 LSTM 与 Transformer 组合。三类模型共享同一训练器、同一数据划分和同一指标集合，因此对比表中的差异来自模型结构和短训练随机性，而不是不同数据管线。
+
 ### 运行命令
 
 Notebook smoke test 默认使用 demo 小样本，确保普通机器可以快速跑通：
@@ -218,3 +228,10 @@ PY
 | PHM2012 | condition_3 | LSTM-Transformer | 1595.654755 | 1.131670 | -10.596051 | 263952.644 | 31.966799 |
 
 验收结论：workflow 已按论文的两个数据集和六个工况完成真实训练，并输出 `comparison_metrics.csv`、`predictions.csv`、`metrics.json`、`history.csv` 与 attention 权重文件。由于本地复现使用小样本和 8 epoch，数值用于证明工程流程和指标体系可复现，不作为论文 50 epoch 完整数值对齐结论。
+
+误差边界说明：
+
+- 负 R2 表示模型在当前短训练设置下弱于“预测均值”的简单基线，尤其 PHM2012 条件下更明显。
+- NormalizedRMSE 大于 1 表示 RMSE 已超过当前测试目标 RUL 的取值范围。
+- PHM2012 Score 使用指数惩罚，个别大误差会被显著放大，所以数值可能达到百万或更高；这说明当前训练规模不足，也验证了惩罚 score 对维护风险更敏感。
+- 完整 18 行结果保留 baseline 行，答辩中只展示代表行时，需要说明完整表在本文档和摘要 CSV 中。

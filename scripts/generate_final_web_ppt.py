@@ -432,9 +432,9 @@ SLIDES = f"""
         <img src="images/07-multi-bearing-feature-summary.png" data-image-slot="s22-hero-21x9" alt="Multi-bearing RMS summary" loading="eager">
       </div>
       <div class="figure-notes">
-        <div class="figure-note accent"><h3>XJTU-SY 趋势更明显</h3><p>四个代表轴承后期 RMS 均高于早期，放大倍数约 4.47 到 6.61。</p></div>
-        <div class="figure-note"><h3>PHM2012 差异更大</h3><p>同一数据集内部也存在不同寿命长度和不同退化速度，短序列不一定呈单调变化。</p></div>
-        <div class="figure-note"><h3>对实验设计的影响</h3><p>训练划分按轴承和工况组织，避免相邻片段泄漏；指标解释必须保留数据范围说明。</p></div>
+        <div class="figure-note accent"><h3>XJTU-SY 趋势更明显</h3><p>前 20% 与后 20% 对比，四个代表轴承 RMS 放大约 2.72 到 5.60，谱能量放大更明显。</p></div>
+        <div class="figure-note"><h3>PHM2012 差异更大</h3><p>RMS 放大约 1.07 到 4.03；短序列不一定单调，需要同时看峰值、峭度和谱熵。</p></div>
+        <div class="figure-note"><h3>对实验设计的影响</h3><p>80 个快照均匀抽样只用于特征分析；训练划分仍按轴承、工况和时间顺序组织。</p></div>
       </div>
     </div>
   </div>
@@ -452,15 +452,15 @@ SLIDES = f"""
     </div>
     <div class="feature-board" data-anim="up">
       <div class="feature-list">
-        <article class="feature-card accent"><div class="ttl">强度特征</div><p class="desc">RMS、峰值、谱能量，描述振动强度是否随寿命推进而增强。</p></article>
-        <article class="feature-card"><div class="ttl">冲击特征</div><p class="desc">峭度、峰值因子、脉冲因子，对后期尖峰和波动变化更敏感。</p></article>
-        <article class="feature-card"><div class="ttl">稳定性特征</div><p class="desc">均值、方差、标准差，用于观察总体偏移和波动强度。</p></article>
-        <article class="feature-card"><div class="ttl">频谱特征</div><p class="desc">主频、谱质心、谱熵，补充频率分布和能量重心变化。</p></article>
+        <article class="feature-card accent"><div class="ttl">强度特征</div><p class="desc">RMS、峰值、峰峰值、谱能量，描述振动强度是否随寿命推进而增强。</p></article>
+        <article class="feature-card"><div class="ttl">冲击特征</div><p class="desc">峭度、峰值因子、脉冲因子、裕度因子，对后期尖峰和波动变化更敏感。</p></article>
+        <article class="feature-card"><div class="ttl">稳定性特征</div><p class="desc">均值、方差、标准差、偏度，用于观察总体偏移和分布不对称。</p></article>
+        <article class="feature-card"><div class="ttl">频谱特征</div><p class="desc">主频、谱质心、谱均方根频率、谱熵，补充频率分布变化。</p></article>
       </div>
       <div class="feature-compact">
         <div class="t-meta" style="color:var(--accent);margin-bottom:2vh">Labeling</div>
-        <div class="mono">snapshot → 19-dim feature<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>PHM2012 Test_set terminal RUL → official entries only</div>
-        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">讲解时不逐个背特征名，重点说明它们分别对应强度、冲击和频谱变化。</p>
+        <div class="mono">snapshot → 14 time + 5 frequency features<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>Health indicator = RMS + kurtosis + crest + energy</div>
+        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">特征由项目代码使用 NumPy/FFT 计算；tsfresh 仅作为可选扩展依赖，不是本轮主输入。</p>
       </div>
     </div>
   </div>
@@ -483,7 +483,7 @@ SLIDES = f"""
       <div class="figure-notes">
         <div class="architecture-note accent"><h3>边界原则</h3><p>数据读取、特征构造、模型训练和评价输出分开实现，避免互相依赖。</p></div>
         <div class="architecture-note"><h3>复用方式</h3><p>两个数据集进入同一套特征序列接口，后续替换模型时不重写 loader。</p></div>
-        <div class="architecture-note"><h3>展示入口</h3><p>核心逻辑在 src 包内；notebook 主要用于示例运行和论文复现实验。</p></div>
+        <div class="architecture-note"><h3>开源边界</h3><p>NumPy、Pandas、PyTorch 是基础设施；loader、特征、标签、workflow 和指标由项目实现。</p></div>
       </div>
     </div>
   </div>
@@ -600,8 +600,8 @@ SLIDES = f"""
     </div>
     <div data-anim="foot" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;margin-top:3.2vh">
       <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释；PHM2012 上负 R2 已作为限制保留。</p></div>
-      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/RUL 惩罚 Score 分开输出，不混同解释。</p></div>
-      <div class="difficulty-card"><h3>方向倾向</h3><p>over / under prediction rate 用于判断偏早或偏晚预测，辅助解释维护风险。</p></div>
+      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang Score 完美预测为 0，越小越好；PHM Score 是指数惩罚，不能混同。</p></div>
+      <div class="difficulty-card"><h3>结果边界</h3><p>PHM2012 上 attention 未稳定优于 baseline；xLSTM 的大 PHM Score 反映短训练误差被放大。</p></div>
     </div>
   </div>
 </section>
@@ -614,24 +614,29 @@ SLIDES = f"""
     </div>
     <div data-anim="ledger" class="ledger-list">
       <div class="ledger-row course">
-        <div class="ledger-num">31</div>
-        <div class="ledger-label"><div class="t-meta">自动化测试</div><div class="lead" style="font-weight:300">全量 pytest 通过，覆盖 loader、特征、标签、指标、训练 workflow 和 notebook smoke。</div></div>
-        <div class="ledger-icon t-meta" style="text-align:right">pytest</div>
+        <div class="ledger-num">01</div>
+        <div class="ledger-label"><div class="t-meta">Demo 链路</div><div class="lead" style="font-weight:300">`main.py` 和基础 workflow 验证 API、训练器、评价器可以端到端串起来。</div></div>
+        <div class="ledger-icon t-meta" style="text-align:right">API</div>
       </div>
       <div class="ledger-row course">
-        <div class="ledger-num" style="color:var(--accent)">8</div>
-        <div class="ledger-label"><div class="t-meta">notebook 示例</div><div class="lead" style="font-weight:300">examples 下 notebook 统一执行，不只是检查文件存在。</div></div>
+        <div class="ledger-num" style="color:var(--accent)">08</div>
+        <div class="ledger-label"><div class="t-meta">notebook 示例</div><div class="lead" style="font-weight:300">examples 下 8 个 notebook 统一执行，不只是检查文件存在。</div></div>
         <div class="ledger-icon t-meta" style="text-align:right">ipynb</div>
       </div>
       <div class="ledger-row course">
-        <div class="ledger-num">2</div>
-        <div class="ledger-label"><div class="t-meta">论文复现 workflow</div><div class="lead" style="font-weight:300">两篇复现均读取 data/external 真实数据，并输出 history、metrics、predictions 与 comparison 表。</div></div>
+        <div class="ledger-num">31</div>
+        <div class="ledger-label"><div class="t-meta">自动化测试</div><div class="lead" style="font-weight:300">全量 pytest 覆盖 loader、特征、标签、指标、训练 workflow 和复现流程。</div></div>
+        <div class="ledger-icon t-meta" style="text-align:right">pytest</div>
+      </div>
+      <div class="ledger-row course">
+        <div class="ledger-num">02</div>
+        <div class="ledger-label"><div class="t-meta">真实复现</div><div class="lead" style="font-weight:300">两篇论文 workflow 读取 data/external，并输出 history、predictions、metrics 与 comparison 表。</div></div>
         <div class="ledger-icon t-meta" style="text-align:right">CSV</div>
       </div>
       <div class="ledger-row course">
-        <div class="ledger-num">3</div>
-        <div class="ledger-label"><div class="t-meta">测试层次</div><div class="lead" style="font-weight:300">单元测试、集成测试、确认测试报告均已补齐，结题材料可归档。</div></div>
-        <div class="ledger-icon t-meta" style="text-align:right">docs</div>
+        <div class="ledger-num">DOC</div>
+        <div class="ledger-label"><div class="t-meta">课程交付</div><div class="lead" style="font-weight:300">结题报告、测试报告、用户/安装手册、技术论文、PPT、讲稿和提纲均可导出归档。</div></div>
+        <div class="ledger-icon t-meta" style="text-align:right">PDF</div>
       </div>
     </div>
   </div>
@@ -648,8 +653,8 @@ SLIDES = f"""
         </div>
         <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.18em;margin-bottom:1.6vh">结题结论</div>
-          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.5vw,11.3vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">从数据到结果，流程实际跑通了。</h2>
-          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">真实数据读取、特征提取、RUL 建模、评价输出和课程文档均可追溯。</div>
+          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.5vw,11.3vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">三条证据链，支撑一个 RUL 系统。</h2>
+          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">真实文件到统一实体，快照信号到特征序列，真实训练到预测文件和测试报告。</div>
         </div>
         <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.62)">谢谢老师和同学</div>
@@ -666,9 +671,9 @@ SLIDES = f"""
           <div class="closing-item"><div class="n">25%</div><div><h3>cyy：数据处理与特征工程</h3><p>两个数据集 loader、时频域特征、样本组织和数据文档。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zdh：分析与评价支持</h3><p>概率分析基础能力、评价支持、测试报告和确认测试材料。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zy：可视化与文档</h3><p>可视化页面、用户手册、安装手册和答辩材料。</p></div></div>
-          <div class="closing-item accent"><div class="n">Next</div><div><h3>不足与后续</h3><p>扩大训练规模，补充多随机种子和更严格跨工况验证；温度信息后续可进一步融合。</p></div></div>
+          <div class="closing-item accent"><div class="n">Next</div><div><h3>边界与后续</h3><p>当前复现是小样本 8 epoch 验收；后续扩大训练规模，补充多随机种子和温度特征融合。</p></div></div>
         </div>
-        <div data-anim="foot" class="t-meta" style="color:var(--text-helper);text-align:right">主线：剩余寿命预测与预测性维护</div>
+        <div data-anim="foot" class="t-meta" style="color:var(--text-helper);text-align:right">成果：证据链已跑通；边界：小样本 8 epoch；后续：扩大训练与跨工况验证</div>
       </div>
     </div>
   </div>
@@ -695,6 +700,8 @@ def build_deck() -> str:
     html = html.replace("</style>", CUSTOM_CSS.rstrip() + "\n</style>", 1)
     html = html.replace("guizang-ppt-low-power", "bearing-rul-ppt-low-power")
     html = html.replace("<!-- Motion One 动效引擎 (与原模板一致) -->", "<!-- Motion One animation runtime -->")
+    html = html.replace("placeholder 占位", "fallback marker")
+    html = html.replace("占位标记", "fallback marker")
     html = html.replace("fat skills", "fat layer")
     html = html.replace("P15 skill 矩阵", "P15 matrix")
     return html

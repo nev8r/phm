@@ -344,6 +344,18 @@ entity.metadata.get("known_terminal_rul_seconds")
 
 如果只做课程展示，建议优先从 `Learning_set` 跑通完整流程，再在 `Test_set` 上做补充实验。
 
+论文复现和课程展示中采用的 PHM2012 划分需要和 challenge split 区分清楚：
+
+| 使用场景 | 训练轴承 | 测试轴承 | 说明 |
+| --- | --- | --- | --- |
+| 快速主线演示 | `Learning_set` 内单个轴承按时间顺序切分 | 同一轴承后段 | 用于验证端到端链路，不作为跨轴承泛化结论 |
+| xLSTM-Transformer 复现 Condition 1 | `Bearing1_1`, `Bearing1_2` | `Bearing1_3` | 对齐论文的同工况划分 |
+| xLSTM-Transformer 复现 Condition 2 | `Bearing2_1`, `Bearing2_2` | `Bearing2_3` | 对齐论文的同工况划分 |
+| xLSTM-Transformer 复现 Condition 3 | `Bearing3_1`, `Bearing3_2` | `Bearing3_3` | 对齐论文的同工况划分 |
+| challenge Test_set 补充实验 | Learning/Full_Test 中可用完整序列 | Test_set 截断轴承 | 需要使用官方终止 RUL 条目，不应只用本地文件数估计 |
+
+温度文件在本项目中由 loader 对齐保留，但当前 RUL 主线和两篇论文复现都优先使用水平或垂直振动信号提取 19 维特征。这样处理是为了保持与论文输入口径一致；温度特征融合属于后续扩展，不在本轮结题主验收中宣称完成。
+
 ### 3.8 适合的实验任务
 
 PHM2012 更适合以下任务：
@@ -401,6 +413,8 @@ examples/02_phm2012_loader_overview.ipynb
 examples/03_xjtu_cnn_rul_training.ipynb
 examples/04_phm2012_mlp_feature_training.ipynb
 examples/05_cross_dataset_feature_export.ipynb
+examples/06_paper_cnn_lstm_attention_rul.ipynb
+examples/07_paper_xlstm_transformer_rul.ipynb
 ```
 
 这些 notebook 默认使用自动生成的小型 demo 数据，因此克隆仓库后即可执行。若后续要改成真实数据实验，可以保留 notebook 主体流程，把数据根目录替换为 `data/raw/XJTU-SY_Bearing_Datasets` 或 `data/raw/FEMTO`。
