@@ -1,4 +1,4 @@
-# 工业轴承设备剩余寿命预测系统
+# 工业轴承设备剩余寿命预测系统的实现
 
 - [开题材料 PDF 文件夹](docx/proposal)
 - [中期材料 PDF 文件夹](docx/mid-term)
@@ -9,7 +9,7 @@
 - 支持实验配置自动记录、Epoch 回调、EarlyStopping、TensorBoard 和梯度异常报警
 - 支持端到端预测、单步/多步滚动预测、不确定性估计
 - 支持结果、模型、缓存、数据的 `CSV`、`PKL`、`JSON`、`YAML`、`PT` 等格式导入导出
-- 支持完整测试和详细文档，便于答辩、报告撰写和后续扩展
+- 支持完整测试、论文复现说明、项目 owner 分册和课程归档文档，便于答辩、报告撰写和后续扩展
 
 ## 主要功能
 
@@ -225,7 +225,7 @@ from USTC.SSE.BearingPrediction.api import CNN, RNN, Transformer, MLP
 
 cnn_model = CNN(input_size=2048, output_size=1)
 rnn_model = RNN(input_size=2048, output_size=1)
-transformer_model = Transformer(input_size=256, output_size=3, task_type="classification")
+transformer_model = Transformer(input_size=256, output_size=1, task_type="regression")
 mlp_model = MLP(input_size=10, output_size=1)
 ```
 
@@ -273,7 +273,7 @@ result = predictor.predict(model, test_set, device="cpu", batch_size=32)
 ## 测试
 
 ```bash
-uv run pytest -q
+uv run --extra dev pytest -q
 ```
 
 当前测试覆盖：
@@ -291,6 +291,10 @@ uv run pytest -q
 - [实验与日志说明](docs/EXPERIMENTS.md)
 - [测试说明](docs/TESTING.md)
 - [RUL 论文复现说明](docs/PAPER_REPRODUCTION.md)
+- [从 0 到 1 项目总览](docs/project-owner/00_系统从0到1总览说明.md)
+- [数据语义与样本构造说明](docs/project-owner/01_数据语义与样本构造说明.md)
+- [模型与实验设计说明](docs/project-owner/03_模型与实验设计说明.md)
+- [验证证据与追踪矩阵](docs/project-owner/04_验证证据与追踪矩阵.md)
 - [结项交付清单](docs/FINAL_DELIVERABLE_CHECKLIST.md)
 - `proposal` 文档：
 - [开题报告 Markdown](docx/proposal/md/01_开题报告.md)
@@ -316,6 +320,12 @@ uv run pytest -q
 - [成员贡献比说明 Markdown](docx/final/md/19_成员贡献比说明.md)
 - [结题答辩提纲 Markdown](docx/final/md/20_结题答辩提纲.md)
 - [结题答辩演讲稿 Markdown](docx/final/md/21_结题答辩演讲稿.md)
+- [系统从0到1总览说明 Markdown](docx/final/md/22_系统从0到1总览说明.md)
+- [数据语义与样本构造说明 Markdown](docx/final/md/23_数据语义与样本构造说明.md)
+- [端到端运行与输出解读手册 Markdown](docx/final/md/24_端到端运行与输出解读手册.md)
+- [模型与实验设计说明 Markdown](docx/final/md/25_模型与实验设计说明.md)
+- [验证证据与追踪矩阵 Markdown](docx/final/md/26_验证证据与追踪矩阵.md)
+- [生存分析与失效概率范围说明 Markdown](docx/final/md/27_生存分析与失效概率范围说明.md)
 - PDF 可通过 `bash scripts/export_course_docs.sh` 重新批量导出
 - 推荐结题答辩网页 PPT：[docx/final/web-ppt/index.html](docx/final/web-ppt/index.html)
 - 网页 PPT 可通过 `uv run python scripts/generate_final_web_ppt.py` 重新生成

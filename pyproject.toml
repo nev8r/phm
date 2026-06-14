@@ -1,7 +1,7 @@
 [project]
 name = "bearing-prediction"
 version = "0.1.0"
-description = "Industrial bearing fault prediction system for software engineering coursework."
+description = "Industrial bearing remaining useful life prediction system for software engineering coursework."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
