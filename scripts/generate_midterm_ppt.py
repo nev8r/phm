@@ -9,7 +9,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
 
-OUTPUT_PATH = Path("docx/mid-term/工业轴承故障预测系统的实现-中期汇报-周逸进.pptx")
+OUTPUT_PATH = Path("docx/mid-term/工业轴承设备剩余寿命预测系统的实现-中期.pptx")
 
 NAVY = RGBColor(15, 36, 74)
 BLUE = RGBColor(37, 99, 235)
@@ -219,7 +219,7 @@ def build_presentation() -> Presentation:
     frame = title_box.text_frame
     p = frame.paragraphs[0]
     r = p.add_run()
-    r.text = "工业轴承故障预测系统的实现"
+    r.text = "工业轴承设备剩余寿命预测系统的实现"
     r.font.name = "PingFang SC"
     r.font.size = Pt(27)
     r.font.bold = True
@@ -532,7 +532,7 @@ def build_presentation() -> Presentation:
     sub = slide.shapes.add_textbox(Inches(0.98), Inches(4.1), Inches(8.4), Inches(1.1))
     frame = sub.text_frame
     for idx, text in enumerate([
-        "项目名称：工业轴承故障预测系统的实现",
+        "项目名称：工业轴承设备剩余寿命预测系统的实现",
         "课程：软件工程 | 学院：中国科学技术大学 软件学院",
         "文档与代码已统一归档到 proposal / mid-term 目录",
     ]):

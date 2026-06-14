@@ -9,7 +9,7 @@ from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
 
-OUTPUT_PATH = Path("docx/final/工业轴承故障预测系统的实现-结题答辩.pptx")
+OUTPUT_PATH = Path("docx/final/工业轴承设备剩余寿命预测系统的实现-结题答辩.pptx")
 
 NAVY = RGBColor(15, 36, 74)
 BLUE = RGBColor(37, 99, 235)
@@ -62,7 +62,7 @@ def text_box(
     run.font.color.rgb = color
 
 
-def add_title(slide, title: str, subtitle: str = "工业轴承故障预测系统的实现 | 结题答辩") -> None:
+def add_title(slide, title: str, subtitle: str = "工业轴承设备剩余寿命预测系统的实现 | 结题答辩") -> None:
     band = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, 0, 0, Inches(13.333), Inches(0.78))
     band.fill.solid()
     band.fill.fore_color.rgb = NAVY
@@ -163,7 +163,7 @@ def build_presentation() -> Presentation:
     bar.fill.solid()
     bar.fill.fore_color.rgb = ORANGE
     bar.line.fill.background()
-    text_box(slide, 0.7, 1.0, 9.8, 0.72, "工业轴承故障预测系统的实现", size=38, color=RGBColor(255, 255, 255), bold=True)
+    text_box(slide, 0.7, 1.0, 9.8, 0.72, "工业轴承设备剩余寿命预测系统的实现", size=38, color=RGBColor(255, 255, 255), bold=True)
     text_box(slide, 0.76, 2.0, 9.7, 0.36, "从真实退化数据到 RUL 预测、论文复现与工程闭环", size=20, color=RGBColor(226, 232, 240))
     text_box(slide, 0.78, 5.55, 10.8, 0.32, "中国科学技术大学 软件学院《软件工程》 | 指导老师：zjf", size=14, color=RGBColor(226, 232, 240))
     text_box(slide, 0.78, 5.96, 10.8, 0.32, "小组成员：zyj、cyj、zdh、zy | 2026-06-14", size=14, color=RGBColor(226, 232, 240))
@@ -190,7 +190,7 @@ def build_presentation() -> Presentation:
     add_card(slide, 0.8, 1.25, 3.8, 2.0, "业务语义", "轴承不是只回答“是否失效”，而是要估计距离失效还有多久，服务维修窗口安排。", BLUE, fill=SOFT_BLUE)
     add_card(slide, 4.75, 1.25, 3.8, 2.0, "数据语义", "两个数据集都是 run-to-failure 退化过程，天然适合 RUL、健康指标和生存概率分析。", GREEN, fill=SOFT_GREEN)
     add_card(slide, 8.7, 1.25, 3.8, 2.0, "工程语义", "系统输出训练历史、预测表、指标表和图表，便于复现实验和答辩追溯。", ORANGE, fill=SOFT_ORANGE)
-    add_bullets(slide, 1.0, 4.05, 11.0, ["因此项目名称和文档统一为“故障预测/剩余寿命预测”，避免把任务误说成故障诊断分类。", "分类能力保留为阶段划分等基础接口，但结题主线是 RUL。"], size=16)
+    add_bullets(slide, 1.0, 4.05, 11.0, ["项目名称按开题报告统一为“工业轴承设备剩余寿命预测系统的实现”，核心任务是 RUL 预测。", "阶段划分和失效概率分析作为辅助能力，结题主线是剩余寿命预测和预测性维护。"], size=16)
 
     slide = add_slide(prs, "数据理解：采样组织和时间语义不同")
     add_rows(
