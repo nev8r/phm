@@ -22,6 +22,16 @@ from docx.shared import Cm, Pt
 PROJECT_NAME = "工业轴承设备剩余寿命预测系统的实现"
 COURSE_NAME = "中国科学技术大学软件学院《软件工程》"
 AUTHOR = "zyj、cyy、zdh、zy"
+BODY_FONT = "宋体"
+TITLE_FONT = "宋体"
+TABLE_BORDER_COLOR = "000000"
+
+
+def find_style(styles, *names: str):
+    for style in styles:
+        if style.name in names or style.style_id in names:
+            return style
+    return None
 
 
 def set_east_asia_font(run, font_name: str) -> None:
@@ -53,7 +63,7 @@ def set_table_borders(table) -> None:
         element.set(qn("w:val"), "single")
         element.set(qn("w:sz"), "4")
         element.set(qn("w:space"), "0")
-        element.set(qn("w:color"), "BFBFBF")
+        element.set(qn("w:color"), TABLE_BORDER_COLOR)
 
 
 def replace_paragraph_text(paragraph, text: str) -> None:
@@ -99,31 +109,38 @@ def style_document(path: Path) -> None:
     props.keywords = "RUL, 预测性维护, 工业轴承, 软件工程"
 
     for section in document.sections:
-        section.top_margin = Cm(2.4)
-        section.bottom_margin = Cm(2.2)
-        section.left_margin = Cm(2.5)
-        section.right_margin = Cm(2.5)
+        section.top_margin = Cm(2.54)
+        section.bottom_margin = Cm(2.54)
+        section.left_margin = Cm(3.17)
+        section.right_margin = Cm(3.17)
         section.start_type = WD_SECTION.NEW_PAGE
 
     styles = document.styles
-    normal = styles["Normal"]
-    normal.font.name = "宋体"
-    normal._element.rPr.rFonts.set(qn("w:eastAsia"), "宋体")
-    normal.font.size = Pt(10.5)
+    for style_name in ("Normal", "Body Text", "Normal (Web)", "First Paragraph", "Compact"):
+        style = find_style(styles, style_name)
+        if style is not None:
+            style.font.name = BODY_FONT
+            style._element.rPr.rFonts.set(qn("w:eastAsia"), BODY_FONT)
+            style.font.size = Pt(10.5)
 
-    for style_name, size in (("Heading 1", 16), ("Heading 2", 14), ("Heading 3", 12)):
-        if style_name in styles:
-            style = styles[style_name]
-            style.font.name = "黑体"
-            style._element.rPr.rFonts.set(qn("w:eastAsia"), "黑体")
+    for style_name, size in (
+        ("Heading 1", 24),
+        ("Heading 2", 18),
+        ("Heading 3", 13.5),
+        ("Heading 4", 12),
+    ):
+        style = find_style(styles, style_name, style_name.replace(" ", ""))
+        if style is not None:
+            style.font.name = TITLE_FONT
+            style._element.rPr.rFonts.set(qn("w:eastAsia"), TITLE_FONT)
             style.font.size = Pt(size)
             style.font.bold = True
 
-    if "Title" in styles:
-        title = styles["Title"]
+    title = find_style(styles, "Title")
+    if title is not None:
         title.font.name = "黑体"
         title._element.rPr.rFonts.set(qn("w:eastAsia"), "黑体")
-        title.font.size = Pt(20)
+        title.font.size = Pt(18)
         title.font.bold = True
 
     for paragraph in document.paragraphs:
@@ -131,39 +148,41 @@ def style_document(path: Path) -> None:
             replace_paragraph_text(paragraph, "目录")
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in paragraph.runs:
-                set_east_asia_font(run, "黑体")
+                set_east_asia_font(run, TITLE_FONT)
                 run.font.bold = True
-                run.font.size = Pt(16)
+                run.font.size = Pt(18)
 
     for index, paragraph in enumerate(document.paragraphs):
         if index == 0:
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in paragraph.runs:
-                set_east_asia_font(run, "黑体")
+                set_east_asia_font(run, TITLE_FONT)
                 run.font.bold = True
-                run.font.size = Pt(20)
+                run.font.size = Pt(24)
         else:
-            if paragraph.style.name == "Normal":
+            if paragraph.style.name in {"Normal", "Body Text", "Normal (Web)", "First Paragraph", "Compact"}:
                 paragraph.paragraph_format.first_line_indent = Pt(21)
-                paragraph.paragraph_format.line_spacing = 1.25
-                paragraph.paragraph_format.space_after = Pt(3)
+                paragraph.paragraph_format.line_spacing = 1.15
+                paragraph.paragraph_format.space_after = Pt(0)
             for run in paragraph.runs:
                 if paragraph.style.name.startswith("Heading"):
-                    set_east_asia_font(run, "黑体")
+                    set_east_asia_font(run, TITLE_FONT)
                 else:
-                    set_east_asia_font(run, "宋体")
+                    set_east_asia_font(run, BODY_FONT)
 
     for table in document.tables:
         set_table_borders(table)
         for row_index, row in enumerate(table.rows):
             for cell in row.cells:
                 if row_index == 0:
-                    set_cell_shading(cell, "EAEAEA")
+                    set_cell_shading(cell, "FFFFFF")
                 for paragraph in cell.paragraphs:
                     paragraph.paragraph_format.first_line_indent = Pt(0)
                     for run in paragraph.runs:
-                        set_east_asia_font(run, "宋体")
-                        run.font.size = Pt(9.5)
+                        set_east_asia_font(run, BODY_FONT)
+                        run.font.size = Pt(10.5)
+                        if row_index == 0:
+                            run.font.bold = True
 
     document.save(path)
     localize_toc_title(path)

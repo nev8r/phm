@@ -6,16 +6,15 @@ cd "$ROOT_DIR"
 
 COMMON_ARGS=(
   --pdf-engine=xelatex
-  -V "CJKmainfont=PingFang SC"
+  -V "CJKmainfont=Songti SC"
   -V "mainfont=Times New Roman"
   -V "monofont=Menlo"
-  -V "geometry:margin=2.2cm"
-  -V "colorlinks=true"
-  -V "linkcolor=blue"
-  -V "urlcolor=blue"
+  -V "geometry:top=2.54cm,bottom=2.54cm,left=2.54cm,right=2.54cm"
+  -V "colorlinks=false"
   -V "papersize:a4"
-  -V "fontsize:11pt"
+  -V "fontsize=10.5pt"
   -V "toc-title=目录"
+  -H "scripts/ustc_course_pdf_style.tex"
   --toc
 )
 
