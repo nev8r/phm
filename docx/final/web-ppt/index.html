@@ -1262,6 +1262,26 @@
   .result-table div{background:var(--paper);padding:1.35vh .9vw;font-family:var(--sans),var(--sans-zh);font-size:max(16px,.88vw);line-height:1.4}
   .result-table .head{font-family:var(--mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-helper);font-weight:600}
   .result-table .accent{background:var(--accent);color:var(--accent-on)}
+  .figure-board{display:grid;grid-template-columns:1.15fr .85fr;gap:2.4vw;align-items:stretch;flex:1;margin-top:4.2vh}
+  .figure-frame{background:var(--paper);border-top:2px solid var(--ink);padding:1.2vh 1vw;display:flex;align-items:center;justify-content:center;min-height:0}
+  .figure-frame img{width:100%;height:100%;max-height:52vh;object-fit:contain}
+  .figure-notes{display:grid;grid-template-rows:repeat(3,1fr);gap:1.2vh}
+  .figure-note{background:var(--grey-1);border-top:2px solid var(--ink);padding:2vh 1.3vw;display:flex;flex-direction:column;justify-content:space-between}
+  .figure-note.accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .figure-note h3{font-family:var(--sans),var(--sans-zh);font-size:max(20px,1.35vw);line-height:1.18;font-weight:400;letter-spacing:-.012em}
+  .figure-note p{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.9vw);line-height:1.45;opacity:.76}
+  .paper-choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.8vw;flex:1;margin-top:4.6vh}
+  .paper-card{background:var(--grey-1);border-top:2px solid var(--ink);padding:2.5vh 1.7vw;display:flex;flex-direction:column;justify-content:space-between}
+  .paper-card.accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .paper-card .year{font-family:var(--mono);font-size:14px;letter-spacing:.16em;text-transform:uppercase;opacity:.66;font-weight:600}
+  .paper-card h3{font-family:var(--sans),var(--sans-zh);font-size:max(26px,2vw);font-weight:300;line-height:1.1;letter-spacing:-.018em}
+  .paper-card p{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.96vw);line-height:1.5;opacity:.78}
+  .metric-board{display:grid;grid-template-columns:.9fr 1.1fr;gap:2.2vw;align-items:stretch;margin-top:3.6vh;flex:1}
+  .metric-cards{display:grid;grid-template-rows:repeat(4,1fr);gap:1vh}
+  .metric-card{background:var(--grey-1);border-top:2px solid var(--ink);padding:1.6vh 1.2vw}
+  .metric-card.accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .metric-card h3{font-family:var(--sans),var(--sans-zh);font-size:max(18px,1.22vw);font-weight:400;line-height:1.16;margin-bottom:.6vh}
+  .metric-card p{font-family:var(--sans),var(--sans-zh);font-size:max(15px,.86vw);line-height:1.42;opacity:.76}
   .ledger-list{display:flex;flex-direction:column;flex:1;justify-content:center}
   .ledger-row.course{display:grid;grid-template-columns:minmax(12vw,17vw) 1fr 8vw;gap:2vw;align-items:center;padding:2vh 0;border-bottom:1px solid var(--border-subtle)}
   .ledger-row.course .ledger-num{font-family:var(--sans);font-weight:200;font-size:min(7.4vw,11.6vh);line-height:.92;letter-spacing:-.04em}
@@ -1316,10 +1336,10 @@
     <canvas class="ascii-bg" aria-hidden="true"></canvas>
     <div class="chrome-min">
       <div class="l">中国科学技术大学软件学院 · 软件工程课程</div>
-      <div class="r">结题答辩 · 01 / 14</div>
+      <div class="r">结题答辩 · 01 / 16</div>
     </div>
     <div class="course-cover-copy" data-anim="up">
-      <div class="t-meta" style="color:rgba(255,255,255,.72);letter-spacing:.22em">RUL Prediction · Course Defense</div>
+      <div class="t-meta" style="color:rgba(255,255,255,.72);letter-spacing:.22em">剩余寿命预测 · 结题答辩</div>
       <h1 class="course-cover-title">工业轴承设备<br/>剩余寿命预测系统<br/>的<span>实现</span></h1>
       <div class="course-cover-meta">
         <div><b>课程</b>软件工程</div>
@@ -1335,7 +1355,7 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">项目目标与交付物</div>
-      <div class="r">02 / 14</div>
+      <div class="r">02 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">本次答辩重点放在数据理解、工程实现和验收证据</div>
@@ -1358,7 +1378,7 @@
       <div class="half b-accent" style="justify-content:space-between;position:relative;overflow:hidden">
         <div class="chrome-min" style="position:relative;z-index:1">
           <div class="l">任务定义</div>
-          <div class="r">03 / 14</div>
+          <div class="r">03 / 16</div>
         </div>
         <h2 data-anim="manifesto" style="position:relative;z-index:1;font-family:var(--sans),var(--sans-zh);font-size:min(7.2vw,13vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">为什么是 RUL？</h2>
         <div class="t-meta" style="position:relative;z-index:1;color:rgba(255,255,255,.72)">Remaining Useful Life</div>
@@ -1381,7 +1401,7 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">数据来源与时间语义</div>
-      <div class="r">04 / 14</div>
+      <div class="r">04 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">两个真实退化数据集；一个偏全寿命连续采样，一个带竞赛 Learning / Test 语义</div>
@@ -1421,7 +1441,7 @@
       <img src="images/05-xjtu-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="XJTU-SY Bearing1_1 RMS and health trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
       <div class="chrome-min" style="position:absolute;top:0;left:0;right:0;padding:5.6vh 5vw 0">
         <div class="l">XJTU-SY 数据特点与曲线分析</div>
-        <div class="r">05 / 14</div>
+        <div class="r">05 / 16</div>
       </div>
     </div>
     <div data-anim="kpi" class="image-hero-body course">
@@ -1441,7 +1461,7 @@
       <img src="images/06-phm2012-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="PHM2012 Bearing1_1 RMS and health trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
       <div class="chrome-min" style="position:absolute;top:0;left:0;right:0;padding:5.6vh 5vw 0">
         <div class="l">PHM2012 数据特点与差异</div>
-        <div class="r">06 / 14</div>
+        <div class="r">06 / 16</div>
       </div>
     </div>
     <div data-anim="kpi" class="image-hero-body course">
@@ -1455,11 +1475,34 @@
   </div>
 </section>
 
+<section class="slide" data-layout="S17" data-animate="system-diagram">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">多轴承特征摘要</div>
+      <div class="r">07 / 16</div>
+    </div>
+    <div class="head-stack" data-anim="line">
+      <div class="t-meta">同一指标在不同工况和不同轴承上的变化幅度并不相同</div>
+      <h2 class="page-title small">特征分析不能只依赖一条代表曲线。</h2>
+    </div>
+    <div class="figure-board" data-anim="up">
+      <div class="figure-frame">
+        <img src="images/07-multi-bearing-feature-summary.png" data-image-slot="s22-hero-21x9" alt="Multi-bearing RMS summary" loading="eager">
+      </div>
+      <div class="figure-notes">
+        <div class="figure-note accent"><h3>XJTU-SY 趋势更明显</h3><p>四个代表轴承后期 RMS 均高于早期，放大倍数约 4.47 到 6.61。</p></div>
+        <div class="figure-note"><h3>PHM2012 差异更大</h3><p>同一数据集内部也存在不同寿命长度和不同退化速度，短序列不一定呈单调变化。</p></div>
+        <div class="figure-note"><h3>对实验设计的影响</h3><p>训练划分按轴承和工况组织，避免相邻片段泄漏；指标解释必须保留数据范围说明。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" data-layout="S16" data-animate="field-notes">
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">特征工程与 RUL 标签构造</div>
-      <div class="r">07 / 14</div>
+      <div class="r">08 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">14 个时域特征 + 5 个频域特征</div>
@@ -1485,20 +1528,17 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">系统总体架构</div>
-      <div class="r">08 / 14</div>
+      <div class="r">09 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">从数据读取到结果输出，按数据流分成四层</div>
-      <h2 class="page-title small">系统结构围绕 RUL 预测流程展开。</h2>
+      <div class="t-meta">从数据读取到结果输出，按真实数据流组织模块</div>
+      <h2 class="page-title small">架构图对应源码模块，不只是概念分层。</h2>
     </div>
-    <div class="architecture-board" data-anim="up">
-      <div class="architecture-flow">
-        <div class="architecture-layer"><div class="num">01 / Data</div><div class="ttl">数据接入</div><p class="desc">读取 XJTU-SY 与 PHM2012，整理工况、采样率、通道和时间顺序。</p></div>
-        <div class="architecture-layer"><div class="num">02 / Feature</div><div class="ttl">特征与标签</div><p class="desc">提取 19 维时频域特征，构造特征序列和秒级 RUL 标签。</p></div>
-        <div class="architecture-layer accent"><div class="num">03 / Model</div><div class="ttl">模型训练</div><p class="desc">训练 baseline、CNN-LSTM-AM、xLSTM-Transformer，并保存训练记录。</p></div>
-        <div class="architecture-layer"><div class="num">04 / Output</div><div class="ttl">评价与展示</div><p class="desc">输出误差指标、RUL 曲线、预测文件和复现实验对比表。</p></div>
+    <div class="figure-board" data-anim="up">
+      <div class="figure-frame">
+        <img src="images/09-end-to-end-rul-architecture.png" data-image-slot="s22-hero-21x9" alt="End-to-end RUL architecture" loading="eager">
       </div>
-      <div class="architecture-side">
+      <div class="figure-notes">
         <div class="architecture-note accent"><h3>边界原则</h3><p>数据读取、特征构造、模型训练和评价输出分开实现，避免互相依赖。</p></div>
         <div class="architecture-note"><h3>复用方式</h3><p>两个数据集进入同一套特征序列接口，后续替换模型时不重写 loader。</p></div>
         <div class="architecture-note"><h3>展示入口</h3><p>核心逻辑在 src 包内；notebook 主要用于示例运行和论文复现实验。</p></div>
@@ -1511,7 +1551,7 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">难点一：异构数据集统一</div>
-      <div class="r">09 / 14</div>
+      <div class="r">10 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">同一个模型训练流程，不能依赖某个数据集的目录习惯</div>
@@ -1535,7 +1575,7 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">难点二：信号到序列特征</div>
-      <div class="r">10 / 14</div>
+      <div class="r">11 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">原始振动快照太长，直接输入不适合课程范围内的稳定复现</div>
@@ -1554,17 +1594,47 @@
 <section class="slide" data-layout="S21" data-animate="tech-spec">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">RUL 模型与复现实验设计</div>
-      <div class="r">11 / 14</div>
+      <div class="l">为什么选这两篇论文</div>
+      <div class="r">12 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">两篇论文结构 + 本项目特征管线适配</div>
-      <h2 class="page-title">复现重点是思路、结构和真实训练流程。</h2>
+      <div class="t-meta">选择标准：数据集匹配、结构可实现、指标可复查</div>
+      <h2 class="page-title small">两篇论文分别覆盖 attention 路线和跨工况 Transformer 路线。</h2>
     </div>
-    <div class="spec-grid" data-anim="up">
-      <article class="spec-card accent"><div class="label">Huang 2024</div><div class="big">CNN<br/>LSTM<br/>AM</div><p class="desc">CNN 提局部模式，LSTM 建模时间依赖，attention 聚合关键时间步。</p></article>
-      <article class="spec-card"><div class="label">Jiang 2026</div><div class="big">xLSTM<br/>Transformer</div><p class="desc">参考论文结构实现 xLSTM-Transformer，并适配本项目 19 维特征序列输入。</p></article>
-      <article class="spec-card"><div class="label">Boundary</div><div class="big">8<br/>epoch</div><p class="desc">真实数据小规模训练验收；不把课程范围内结果说成论文完整数值对齐。</p></article>
+    <div class="paper-choice-grid" data-anim="up">
+      <article class="paper-card accent">
+        <div class="year">Huang et al. · 2024</div>
+        <h3>CNN-LSTM-AM</h3>
+        <p>论文使用时域和频域特征，模型结构清晰，给出 Score 公式，适合验证本项目的 19 维特征、attention 模型和指标实现。</p>
+        <p>本项目对齐：CNN-LSTM-AM 主模型、CNN-LSTM baseline、XJTU-SY 与 PHM2012 两个数据集。</p>
+      </article>
+      <article class="paper-card">
+        <div class="year">Jiang et al. · 2026</div>
+        <h3>xLSTM-Transformer</h3>
+        <p>论文同时覆盖 XJTU-SY 和 PHM2012，公开工况划分、序列长度、训练参数和 RMSE/R2/Score，适合做第二篇同规格复现。</p>
+        <p>本项目对齐：XLSTM-Transformer、Feature-Transformer baseline、LSTM-Transformer baseline 和六个工况输出。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-layout="S11" data-animate="timeline-walk">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">复现实验怎么做</div>
+      <div class="r">13 / 16</div>
+    </div>
+    <div class="head-stack" data-anim="line">
+      <div class="t-meta">对齐论文输入组织、模型结构、baseline、划分和指标口径</div>
+      <h2 class="page-title small">复现定义为工程 workflow 复现，不声明作者源码级数值重现。</h2>
+    </div>
+    <div class="rul-flow" data-anim="up">
+      <div class="rul-step"><div class="num">01</div><div class="ttl">读取真实数据</div><div class="txt">优先从 data/external 读取 XJTU-SY 与 PHM2012。</div></div>
+      <div class="rul-step"><div class="num">02</div><div class="ttl">构造特征序列</div><div class="txt">每个快照提取 19 维特征，再按时间顺序组成序列。</div></div>
+      <div class="rul-step accent"><div class="num">03</div><div class="ttl">训练主模型</div><div class="txt">CNN-LSTM-AM 与 XLSTM-Transformer 均真实训练 8 epoch。</div></div>
+      <div class="rul-step"><div class="num">04</div><div class="ttl">训练 baseline</div><div class="txt">保留 CNN-LSTM、Feature-Transformer、LSTM-Transformer 对比。</div></div>
+      <div class="rul-step"><div class="num">05</div><div class="ttl">输出指标</div><div class="txt">RMSE、NormalizedRMSE、R2、Huang Score、PHM Score。</div></div>
+      <div class="rul-step"><div class="num">06</div><div class="ttl">保存证据</div><div class="txt">history、metrics、predictions、comparison_metrics 全部落盘。</div></div>
     </div>
   </div>
 </section>
@@ -1573,23 +1643,23 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">评价指标与实验结果解释</div>
-      <div class="r">12 / 14</div>
+      <div class="r">14 / 16</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">普通误差、论文 Score、提前 / 滞后倾向分开解释</div>
-      <h2 class="page-title small">重点不是追一个好看的数，而是解释模型误差。</h2>
+      <div class="t-meta">先区分普通误差、论文 Score、提前 / 滞后倾向，再解释结果边界</div>
+      <h2 class="page-title small">指标已复现输出；单次短训练不当作最终性能结论。</h2>
     </div>
     <div class="result-table" data-anim="up">
       <div class="head">实验</div><div class="head">数据集</div><div class="head">模型</div><div class="head">RMSE</div><div class="head">Huang Score</div>
       <div>CNN-LSTM-AM</div><div>XJTU-SY</div><div class="accent">Attention</div><div>406.30</div><div>29.00</div>
       <div>CNN-LSTM-AM</div><div>PHM2012</div><div class="accent">Attention</div><div>651.04</div><div>29.45</div>
-      <div>xLSTM-Transformer</div><div>XJTU-SY condition 1</div><div>XLSTM</div><div>2280.63</div><div>27.31</div>
-      <div>xLSTM-Transformer</div><div>PHM2012 condition 3</div><div>XLSTM</div><div>1594.74</div><div>31.89</div>
+      <div>xLSTM-Transformer</div><div>XJTU-SY condition 1</div><div>XLSTM</div><div>2280.51</div><div>27.30</div>
+      <div>xLSTM-Transformer</div><div>PHM2012 condition 3</div><div>XLSTM</div><div>1594.68</div><div>31.88</div>
     </div>
     <div data-anim="foot" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5vw;margin-top:3.2vh">
-      <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释。</p></div>
-      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/RUL 惩罚 Score 分开输出。</p></div>
-      <div class="difficulty-card"><h3>方向倾向</h3><p>over / under prediction rate 用于判断偏早或偏晚预测。</p></div>
+      <div class="difficulty-card"><h3>误差大小</h3><p>RMSE、MAE、SMAPE、R2 用于普通回归解释；PHM2012 上负 R2 已作为限制保留。</p></div>
+      <div class="difficulty-card accent"><h3>RUL Score</h3><p>Huang 原版 Score 与 PHM/RUL 惩罚 Score 分开输出，不混同解释。</p></div>
+      <div class="difficulty-card"><h3>方向倾向</h3><p>over / under prediction rate 用于判断偏早或偏晚预测，辅助解释维护风险。</p></div>
     </div>
   </div>
 </section>
@@ -1598,7 +1668,7 @@
   <div class="canvas-card">
     <div class="chrome-min">
       <div class="l">测试方案与验收证据</div>
-      <div class="r">13 / 14</div>
+      <div class="r">15 / 16</div>
     </div>
     <div data-anim="ledger" class="ledger-list">
       <div class="ledger-row course">
@@ -1632,7 +1702,7 @@
         <canvas class="ascii-bg" aria-hidden="true"></canvas>
         <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1">
           <div class="l">成员分工与总结</div>
-          <div class="r">14 / 14</div>
+          <div class="r">16 / 16</div>
         </div>
         <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.18em;margin-bottom:1.6vh">结题结论</div>
@@ -2054,7 +2124,7 @@ if(motion){
   }
 
   /* ---------- recipe: stack-build · 三层架构 ----------
-     中间 thin 先入 → 上层 fat skills 从顶推下 → 下层 application 从底推上 */
+     中间 thin 先入 → 上层 fat layer 从顶推下 → 下层 application 从底推上 */
   function rStackBuild(slide, all){
     const head = slide.querySelector('[data-anim="line"]');
     if(head) fade(head, {duration:.6, y:10});
@@ -2063,7 +2133,7 @@ if(motion){
     /* 先入: 中间薄层(LAYER 02) */
     if(blocks[1]) animate(blocks[1], {opacity:[0,1], scaleY:[.85, 1]},
       {duration:.55, delay:.3, easing:EASE_ENTRY_EXP});
-    /* 上推下: LAYER 01 fat skills 从顶部 push down */
+    /* 上推下: LAYER 01 fat layer 从顶部 push down */
     if(blocks[0]) animate(blocks[0], {opacity:[0,1], y:[-22, 0]},
       {duration:.6, delay:.6, easing:EASE_ENTRY_EXP});
     /* 下推上: LAYER 03 application 从底部 push up */
@@ -2295,7 +2365,7 @@ if(motion){
     }
   }
 
-  /* ---------- recipe: matrix-fill · P15 skill 矩阵 ----------
+  /* ---------- recipe: matrix-fill · P15 matrix ----------
      标题入 → 12 张卡按对角线波 (i+j) 扫入 → 底部 20,000 大数字最后 fade 入 */
   function rMatrixFill(slide, all){
     const head = slide.querySelector('[data-anim="line"]');
