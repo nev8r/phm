@@ -82,40 +82,49 @@ def use_case_diagram():
 
 
 def class_diagram():
-    fig, ax = setup_canvas(13, 7.5)
+    fig, ax = setup_canvas(13.8, 8.0)
     nodes = {
-        "XJTULoader": (0.4, 5.8),
-        "PHM2012Loader": (0.4, 4.6),
-        "BearingEntity": (3.0, 5.2),
-        "FeatureExtractor": (5.6, 5.2),
-        "FeatureSequenceRulLabeler": (8.3, 5.2),
-        "BearingWindowDataset": (8.3, 3.8),
-        "BaseRulModel": (5.6, 2.6),
-        "CNNLSTMAttention": (3.0, 1.2),
-        "XLSTMTransformer": (8.3, 1.2),
-        "BaseTrainer": (0.4, 2.6),
-        "BaseTester": (0.4, 1.2),
-        "Evaluator": (5.6, 0.1),
+        "BaseBearingLoader\n+ list_entities()\n+ load_entity()": (0.35, 6.25),
+        "XJTULoader\n+ parse condition\n+ load vibration CSV": (0.35, 4.95),
+        "PHM2012Loader\n+ align accel/temp\n+ parse split": (0.35, 3.65),
+        "BearingEntity\nentity_id, samples\nsample_rate, metadata": (3.15, 5.15),
+        "SignalFeatureExtractor\n+ extract()\n+ build_health_indicator()": (6.0, 5.15),
+        "FeatureSequenceRulLabeler\nsequence_length\n+ label()": (8.95, 5.15),
+        "BearingWindowDataset\nwindows, targets\nfeature_frame": (11.35, 5.15),
+        "BaseBearingModel\n+ forward()\n+ count_parameters()": (6.0, 2.9),
+        "CNNLSTMAttention\nCNN + LSTM + AM": (3.15, 1.3),
+        "XLSTMTransformer\nxLSTM + Transformer": (8.95, 1.3),
+        "BaseTrainer\n+ train()\nExperimentTracker": (0.35, 1.3),
+        "BaseTester\n+ test()\nPredictionResult": (3.15, 0.1),
+        "Evaluator\n+ add()\n+ evaluate()": (6.0, 0.1),
     }
     for name, (x, y) in nodes.items():
-        box(ax, (x, y), (2.2, 0.8), name, "#F5F5F5", fontsize=9)
-    for a, b in [
-        ("XJTULoader", "BearingEntity"),
-        ("PHM2012Loader", "BearingEntity"),
-        ("BearingEntity", "FeatureExtractor"),
-        ("FeatureExtractor", "FeatureSequenceRulLabeler"),
-        ("FeatureSequenceRulLabeler", "BearingWindowDataset"),
-        ("BearingWindowDataset", "BaseTrainer"),
-        ("BaseTrainer", "BaseRulModel"),
-        ("BaseTrainer", "BaseTester"),
-        ("BaseTester", "Evaluator"),
-        ("BaseRulModel", "CNNLSTMAttention"),
-        ("BaseRulModel", "XLSTMTransformer"),
-    ]:
-        x1, y1 = nodes[a]
-        x2, y2 = nodes[b]
-        arrow(ax, (x1 + 1.1, y1 + 0.4), (x2 + 1.1, y2 + 0.4))
-    ax.set_title("UML 类图：核心对象与依赖关系", fontsize=14, pad=12)
+        width = 2.45 if x < 11 else 2.2
+        box(ax, (x, y), (width, 0.92), name, "#F5F5F5", fontsize=8)
+
+    relations = [
+        ("BaseBearingLoader\n+ list_entities()\n+ load_entity()", "XJTULoader\n+ parse condition\n+ load vibration CSV", "extends"),
+        ("BaseBearingLoader\n+ list_entities()\n+ load_entity()", "PHM2012Loader\n+ align accel/temp\n+ parse split", "extends"),
+        ("XJTULoader\n+ parse condition\n+ load vibration CSV", "BearingEntity\nentity_id, samples\nsample_rate, metadata", "creates"),
+        ("PHM2012Loader\n+ align accel/temp\n+ parse split", "BearingEntity\nentity_id, samples\nsample_rate, metadata", "creates"),
+        ("BearingEntity\nentity_id, samples\nsample_rate, metadata", "SignalFeatureExtractor\n+ extract()\n+ build_health_indicator()", "uses samples"),
+        ("SignalFeatureExtractor\n+ extract()\n+ build_health_indicator()", "FeatureSequenceRulLabeler\nsequence_length\n+ label()", "features"),
+        ("FeatureSequenceRulLabeler\nsequence_length\n+ label()", "BearingWindowDataset\nwindows, targets\nfeature_frame", "builds"),
+        ("BearingWindowDataset\nwindows, targets\nfeature_frame", "BaseTrainer\n+ train()\nExperimentTracker", "train/test data"),
+        ("BaseTrainer\n+ train()\nExperimentTracker", "BaseBearingModel\n+ forward()\n+ count_parameters()", "optimizes"),
+        ("BaseBearingModel\n+ forward()\n+ count_parameters()", "CNNLSTMAttention\nCNN + LSTM + AM", "implemented by"),
+        ("BaseBearingModel\n+ forward()\n+ count_parameters()", "XLSTMTransformer\nxLSTM + Transformer", "implemented by"),
+        ("BaseTrainer\n+ train()\nExperimentTracker", "BaseTester\n+ test()\nPredictionResult", "trained model"),
+        ("BaseTester\n+ test()\nPredictionResult", "Evaluator\n+ add()\n+ evaluate()", "targets/predictions"),
+    ]
+    for source, target, label in relations:
+        x1, y1 = nodes[source]
+        x2, y2 = nodes[target]
+        start = (x1 + 1.15, y1 + 0.46)
+        end = (x2 + 1.15, y2 + 0.46)
+        arrow(ax, start, end)
+        ax.text((start[0] + end[0]) / 2, (start[1] + end[1]) / 2 + 0.12, label, ha="center", fontsize=7, color="#555555")
+    ax.set_title("UML 类图：核心类、方法与依赖关系", fontsize=14, pad=12)
     save(fig, "class-diagram.png")
 
 
