@@ -79,6 +79,18 @@ CUSTOM_CSS = """
   .rul-step .num{font-family:var(--mono);font-size:14px;letter-spacing:.14em;opacity:.65;font-weight:600;margin-bottom:auto}
   .rul-step .ttl{font-family:var(--sans),var(--sans-zh);font-size:max(18px,1.18vw);line-height:1.15;font-weight:400;letter-spacing:-.012em;margin-top:3vh}
   .rul-step .txt{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.86vw);line-height:1.45;opacity:.75;margin-top:1vh}
+  .architecture-board{display:grid;grid-template-columns:1.1fr .9fr;gap:3vw;align-items:stretch;margin-top:4.8vh;flex:1}
+  .architecture-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border-subtle);min-height:46vh}
+  .architecture-layer{background:var(--paper);padding:2.2vh 1.25vw;display:flex;flex-direction:column;justify-content:space-between;border-top:2px solid var(--ink)}
+  .architecture-layer.accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .architecture-layer .num{font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.62;font-weight:600}
+  .architecture-layer .ttl{font-family:var(--sans),var(--sans-zh);font-size:max(21px,1.42vw);line-height:1.15;font-weight:400;letter-spacing:-.012em}
+  .architecture-layer .desc{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.9vw);line-height:1.45;opacity:.76}
+  .architecture-side{display:flex;flex-direction:column;gap:1.4vh}
+  .architecture-note{background:var(--grey-1);border-top:2px solid var(--ink);padding:2.1vh 1.4vw}
+  .architecture-note.accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .architecture-note h3{font-family:var(--sans),var(--sans-zh);font-size:max(20px,1.35vw);line-height:1.2;font-weight:400;margin-bottom:.8vh}
+  .architecture-note p{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.92vw);line-height:1.48;opacity:.76}
   .difficulty-grid{display:grid;grid-template-columns:1fr 1px 1fr;gap:2.8vw;margin-top:4.8vh;align-items:stretch;flex:1}
   .difficulty-col{display:flex;flex-direction:column;gap:2vh}
   .difficulty-card{background:var(--grey-1);padding:2.2vh 1.5vw;border-top:2px solid var(--ink)}
@@ -406,17 +418,22 @@ SLIDES = f"""
       <div class="l">系统总体架构</div>
       <div class="r">08 / {TOTAL_SLIDES:02d}</div>
     </div>
-    <div data-anim="line" style="display:flex;justify-content:space-between;gap:4vw;align-items:flex-start">
-      <h2 class="page-title small">核心逻辑在 src 包内，notebook 是示例入口。</h2>
-      <p class="lead" style="font-weight:300;color:var(--text-secondary);max-width:40ch">每一层只做自己的事情：loader 不训练，模型不读原始文件，评价指标不关心数据来源。</p>
+    <div class="head-stack" data-anim="line">
+      <div class="t-meta">从数据读取到结果输出，按数据流分成四层</div>
+      <h2 class="page-title small">系统结构围绕 RUL 预测流程展开。</h2>
     </div>
-    <div class="rul-flow" data-anim="up">
-      <div class="rul-step"><div class="num">01</div><div class="ttl">Loader</div><div class="txt">解析目录、工况、采样率和通道。</div></div>
-      <div class="rul-step"><div class="num">02</div><div class="ttl">Entity</div><div class="txt">统一样本表、elapsed_seconds 和 RUL 单位。</div></div>
-      <div class="rul-step"><div class="num">03</div><div class="ttl">Feature</div><div class="txt">生成 19 维时频域特征。</div></div>
-      <div class="rul-step accent"><div class="num">04</div><div class="ttl">Labeler</div><div class="txt">把快照组织成特征序列和 RUL 标签。</div></div>
-      <div class="rul-step"><div class="num">05</div><div class="ttl">Model</div><div class="txt">baseline、CNN-LSTM-AM、xLSTM-Transformer。</div></div>
-      <div class="rul-step"><div class="num">06</div><div class="ttl">Evaluator</div><div class="txt">输出 metrics、predictions、comparison 表。</div></div>
+    <div class="architecture-board" data-anim="up">
+      <div class="architecture-flow">
+        <div class="architecture-layer"><div class="num">01 / Data</div><div class="ttl">数据接入</div><p class="desc">读取 XJTU-SY 与 PHM2012，整理工况、采样率、通道和时间顺序。</p></div>
+        <div class="architecture-layer"><div class="num">02 / Feature</div><div class="ttl">特征与标签</div><p class="desc">提取 19 维时频域特征，构造特征序列和秒级 RUL 标签。</p></div>
+        <div class="architecture-layer accent"><div class="num">03 / Model</div><div class="ttl">模型训练</div><p class="desc">训练 baseline、CNN-LSTM-AM、xLSTM-Transformer，并保存训练记录。</p></div>
+        <div class="architecture-layer"><div class="num">04 / Output</div><div class="ttl">评价与展示</div><p class="desc">输出误差指标、RUL 曲线、预测文件和复现实验对比表。</p></div>
+      </div>
+      <div class="architecture-side">
+        <div class="architecture-note accent"><h3>边界原则</h3><p>数据读取、特征构造、模型训练和评价输出分开实现，避免互相依赖。</p></div>
+        <div class="architecture-note"><h3>复用方式</h3><p>两个数据集进入同一套特征序列接口，后续替换模型时不重写 loader。</p></div>
+        <div class="architecture-note"><h3>展示入口</h3><p>核心逻辑在 src 包内；notebook 主要用于示例运行和论文复现实验。</p></div>
+      </div>
     </div>
   </div>
 </section>
