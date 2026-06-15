@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import json
 import os
+import random
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 
 from USTC.SSE.BearingPrediction.api import (
     BaseTester,
@@ -48,6 +51,39 @@ from USTC.SSE.BearingPrediction.api import (
     XLSTMTransformer,
     XJTULoader,
 )
+from USTC.SSE.BearingPrediction.training import TestResult
+
+
+HUANG_PAPER_RMSE_REFERENCE = [
+    {"dataset_name": "PHM2012", "model_name": "CNN-LSTM", "metric_name": "normalized_rmse", "paper_value": 0.178},
+    {"dataset_name": "PHM2012", "model_name": "CNN-LSTM-AM", "metric_name": "normalized_rmse", "paper_value": 0.152},
+    {"dataset_name": "PHM2012", "model_name": "CNN-LSTM-AM", "metric_name": "rmse_reduction_pct", "paper_value": 14.6},
+    {"dataset_name": "XJTU-SY", "model_name": "CNN-LSTM", "metric_name": "normalized_rmse", "paper_value": 0.188},
+    {"dataset_name": "XJTU-SY", "model_name": "CNN-LSTM-AM", "metric_name": "normalized_rmse", "paper_value": 0.162},
+    {"dataset_name": "XJTU-SY", "model_name": "CNN-LSTM-AM", "metric_name": "rmse_reduction_pct", "paper_value": 13.8},
+]
+
+
+JIANG_PAPER_REFERENCE = [
+    ("XJTU-SY", "condition_1_35Hz12kN", "Feature-Transformer", 0.0885, 0.9287, 0.9666),
+    ("XJTU-SY", "condition_1_35Hz12kN", "LSTM-Transformer", 0.0666, 0.9596, 0.6788),
+    ("XJTU-SY", "condition_1_35Hz12kN", "XLSTM-Transformer", 0.0583, 0.9691, 0.5572),
+    ("XJTU-SY", "condition_2_37_5Hz11kN", "Feature-Transformer", 0.1110, 0.8833, 4.5334),
+    ("XJTU-SY", "condition_2_37_5Hz11kN", "LSTM-Transformer", 0.0942, 0.9160, 3.2863),
+    ("XJTU-SY", "condition_2_37_5Hz11kN", "XLSTM-Transformer", 0.0784, 0.9418, 2.5777),
+    ("XJTU-SY", "condition_3_40Hz10kN", "Feature-Transformer", 0.0742, 0.8401, 0.9482),
+    ("XJTU-SY", "condition_3_40Hz10kN", "LSTM-Transformer", 0.0574, 0.9045, 0.8114),
+    ("XJTU-SY", "condition_3_40Hz10kN", "XLSTM-Transformer", 0.0532, 0.9179, 0.8410),
+    ("PHM2012", "condition_1", "Feature-Transformer", 0.1138, 0.8807, 18.6070),
+    ("PHM2012", "condition_1", "LSTM-Transformer", 0.1007, 0.9067, 17.9940),
+    ("PHM2012", "condition_1", "XLSTM-Transformer", 0.0565, 0.9706, 10.1616),
+    ("PHM2012", "condition_2", "Feature-Transformer", 0.0675, 0.6281, 4.5328),
+    ("PHM2012", "condition_2", "LSTM-Transformer", 0.0856, 0.4021, 8.0399),
+    ("PHM2012", "condition_2", "XLSTM-Transformer", 0.0651, 0.6539, 4.1367),
+    ("PHM2012", "condition_3", "Feature-Transformer", 0.1376, 0.8284, 3.6868),
+    ("PHM2012", "condition_3", "LSTM-Transformer", 0.1335, 0.8384, 3.6223),
+    ("PHM2012", "condition_3", "XLSTM-Transformer", 0.1211, 0.8671, 3.4079),
+]
 
 
 def example_output_root() -> Path:
@@ -358,6 +394,8 @@ def run_paper_cnn_lstm_attention_reproduction(
     phm2012_root: str | Path | None = None,
     max_samples_per_entity: int | None = None,
     prefer_real_data: bool = True,
+    require_real_data: bool = False,
+    profile: str | None = None,
 ) -> dict[str, object]:
     """
     run a CNN-LSTM-AM paper-style reproduction on XJTU-SY and PHM2012 data
@@ -375,6 +413,7 @@ def run_paper_cnn_lstm_attention_reproduction(
         phm2012_root=phm2012_root,
         max_samples_per_entity=sample_limit,
         prefer_real_data=prefer_real_data,
+        require_real_data=require_real_data,
     )
 
     run_summaries: list[dict[str, object]] = []
@@ -385,15 +424,10 @@ def run_paper_cnn_lstm_attention_reproduction(
         dataset = _build_paper_feature_sequence_dataset(entity)
         train_set, test_set = dataset.split_by_ratio(0.75)
         for model_name, use_attention in [("CNN-LSTM-AM", True), ("CNN-LSTM", False)]:
-            model = CNNLSTMAttention(
+            model = _build_cnn_lstm_attention_reproduction_model(
                 feature_size=int(dataset.inputs.shape[-1]),
-                output_size=1,
-                cnn_channels=(8, 8, 8),
-                lstm_hidden_size=12,
-                lstm_layers=3,
-                fc_hidden_sizes=(12, 6),
-                dropout=0.1,
                 use_attention=use_attention,
+                profile=profile,
             )
             run_slug = f"{_slugify(entity.dataset_name)}-{_slugify(entity.entity_id)}-{_slugify(model_name)}"
             run_output_root = output_root / run_slug
@@ -404,7 +438,7 @@ def run_paper_cnn_lstm_attention_reproduction(
                 run_name=f"paper-{run_slug}",
             )
             training_result = trainer.train(model, train_set, test_set)
-            test_result = BaseTester(device="cpu", batch_size=4).test(model, test_set)
+            test_result = BaseTester(device="cpu", batch_size=_example_batch_size()).test(model, test_set)
             metrics = Evaluator().add(
                 MAE(),
                 RMSE(),
@@ -489,6 +523,8 @@ def run_paper_xlstm_transformer_reproduction(
     phm2012_root: str | Path | None = None,
     max_samples_per_entity: int | None = None,
     prefer_real_data: bool = True,
+    require_real_data: bool = False,
+    profile: str | None = None,
 ) -> dict[str, object]:
     """
     run a Jiang et al. xLSTM-Transformer paper-style RUL reproduction
@@ -506,17 +542,25 @@ def run_paper_xlstm_transformer_reproduction(
         phm2012_root=phm2012_root,
         max_samples_per_entity=sample_limit,
         prefer_real_data=prefer_real_data,
+        require_real_data=require_real_data,
     )
 
     run_summaries: list[dict[str, object]] = []
     comparison_records: list[dict[str, object]] = []
     primary_run: dict[str, object] | None = None
 
-    for split_spec in split_specs:
+    for split_index, split_spec in enumerate(split_specs):
         train_set = split_spec["train_set"]
         test_set = split_spec["test_set"]
+        target_transform = None
+        if _normalize_reproduction_profile(profile) == "formal":
+            train_set = _append_sequence_time_index(train_set)
+            test_set = _append_sequence_time_index(test_set)
+            train_set, test_set, target_transform = _normalize_train_test_targets(train_set, test_set)
         feature_size = int(train_set.inputs.shape[-1])
-        for model_name, model in _build_xlstm_reproduction_models(feature_size):
+        for model_index, model_name in enumerate(["XLSTM-Transformer", "Feature-Transformer", "LSTM-Transformer"]):
+            _set_reproduction_seed(split_index * 100 + model_index)
+            model = _build_xlstm_reproduction_model(model_name, feature_size, profile=profile)
             run_slug = "-".join(
                 [
                     _slugify(str(split_spec["dataset_name"])),
@@ -532,7 +576,8 @@ def run_paper_xlstm_transformer_reproduction(
                 run_name=f"paper-{run_slug}",
             )
             training_result = trainer.train(model, train_set, test_set)
-            test_result = BaseTester(device="cpu", batch_size=4).test(model, test_set)
+            scaled_test_result = BaseTester(device="cpu", batch_size=_example_batch_size()).test(model, test_set)
+            test_result = _inverse_transform_test_result(scaled_test_result, target_transform)
             metrics = Evaluator().add(
                 MAE(),
                 RMSE(),
@@ -567,6 +612,7 @@ def run_paper_xlstm_transformer_reproduction(
                 "history_path": str(history_path),
                 "feature_sequence_shape": list(train_set.inputs.shape),
                 "epoch_count": int(len(training_result.history)),
+                "target_normalization": target_transform,
             }
             run_summaries.append(run_summary)
             comparison_records.append(
@@ -598,6 +644,8 @@ def run_paper_xlstm_transformer_reproduction(
     comparison_path = output_root / "comparison_metrics.csv"
     comparison_frame = _add_xlstm_baseline_comparison_columns(pd.DataFrame.from_records(comparison_records))
     comparison_frame.to_csv(comparison_path, index=False)
+    paper_reference_path = output_root / "paper_reference_comparison.csv"
+    _build_xlstm_paper_reference_comparison(comparison_frame).to_csv(paper_reference_path, index=False)
     primary_run = primary_run or run_summaries[0]
 
     return {
@@ -608,6 +656,7 @@ def run_paper_xlstm_transformer_reproduction(
         "trained_model_count": len(run_summaries),
         "runs": run_summaries,
         "comparison_path": str(comparison_path),
+        "paper_reference_path": str(paper_reference_path),
         "metrics": primary_run["metrics"],
         "prediction_path": primary_run["prediction_path"],
         "attention_path": primary_run["attention_path"],
@@ -615,8 +664,205 @@ def run_paper_xlstm_transformer_reproduction(
     }
 
 
+def run_formal_cnn_lstm_attention_reproduction(
+    *,
+    xjtu_root: str | Path | None = None,
+    phm2012_root: str | Path | None = None,
+    max_samples_per_entity: int | None = None,
+    profile: str | None = "formal",
+) -> dict[str, object]:
+    """
+    run the CNN-LSTM-AM reproduction with real-data train/test bearing splits
+
+    Returns
+    -------
+    dict[str, object]
+        formal reproduction summary
+    """
+
+    output_root = example_output_root() / "formal_cnn_lstm_attention"
+    sample_limit = max_samples_per_entity or int(os.getenv("BEARING_FORMAL_CNN_MAX_SAMPLES", "256"))
+    split_specs = _load_cnn_attention_formal_split_specs(
+        xjtu_root=xjtu_root,
+        phm2012_root=phm2012_root,
+        max_samples_per_entity=sample_limit,
+    )
+
+    run_summaries: list[dict[str, object]] = []
+    comparison_records: list[dict[str, object]] = []
+    first_attention_run: dict[str, object] | None = None
+    for split_index, split_spec in enumerate(split_specs):
+        train_set = split_spec["train_set"]
+        test_set = split_spec["test_set"]
+        train_set, test_set, target_transform = _normalize_train_test_targets(train_set, test_set)
+        feature_size = int(train_set.inputs.shape[-1])
+        for model_index, (model_name, use_attention) in enumerate([("CNN-LSTM-AM", True), ("CNN-LSTM", False)]):
+            _set_reproduction_seed(split_index * 100 + model_index)
+            model = _build_cnn_lstm_attention_reproduction_model(
+                feature_size=feature_size,
+                use_attention=use_attention,
+                profile=profile,
+            )
+            run_slug = "-".join(
+                [
+                    _slugify(str(split_spec["dataset_name"])),
+                    _slugify(str(split_spec["condition_name"])),
+                    _slugify(model_name),
+                ]
+            )
+            run_output_root = output_root / run_slug
+            trainer = _build_trainer(
+                run_output_root,
+                str(split_spec["dataset_name"]),
+                model_name,
+                run_name=f"formal-{run_slug}",
+            )
+            training_result = trainer.train(model, train_set, test_set)
+            scaled_test_result = BaseTester(device="cpu", batch_size=_example_batch_size()).test(model, test_set)
+            test_result = _inverse_transform_test_result(scaled_test_result, target_transform)
+            metrics = Evaluator().add(
+                MAE(),
+                RMSE(),
+                NormalizedRMSE(),
+                SMAPE(),
+                HuangRulScore(),
+                OverPredictionRate(),
+                WithinToleranceRate(tolerance=0.10),
+            ).evaluate(test_result.targets, test_result.predictions)
+            metrics["phm2012_score_scaled"] = _scaled_phm2012_score(test_result.targets, test_result.predictions)
+
+            run_output_root.mkdir(parents=True, exist_ok=True)
+            prediction_path = run_output_root / "predictions.csv"
+            metrics_path = run_output_root / "metrics.json"
+            attention_path = run_output_root / "attention_weights.csv"
+            test_result.as_frame().to_csv(prediction_path, index=False)
+            _write_json(metrics_path, metrics)
+            _write_attention_csv(attention_path, test_result.attention_weights)
+
+            history_path = trainer.experiment_tracker.run_dir / "history.csv" if trainer.experiment_tracker is not None else run_output_root / "history.csv"
+            run_summary = {
+                "dataset_name": split_spec["dataset_name"],
+                "condition_name": split_spec["condition_name"],
+                "train_entities": split_spec["train_entities"],
+                "test_entities": split_spec["test_entities"],
+                "data_source": split_spec["data_source"],
+                "model_name": model_name,
+                "use_attention": use_attention,
+                "metrics": metrics,
+                "prediction_count": int(len(test_result.predictions)),
+                "prediction_path": str(prediction_path),
+                "metrics_path": str(metrics_path),
+                "attention_path": str(attention_path),
+                "history_path": str(history_path),
+                "train_sequence_count": int(len(train_set)),
+                "test_sequence_count": int(len(test_set)),
+                "feature_sequence_shape": list(train_set.inputs.shape),
+                "epoch_count": int(len(training_result.history)),
+                "target_normalization": target_transform,
+            }
+            run_summaries.append(run_summary)
+            comparison_records.append(
+                {
+                    "dataset_name": split_spec["dataset_name"],
+                    "condition_name": split_spec["condition_name"],
+                    "train_entities": ",".join(split_spec["train_entities"]),
+                    "test_entities": ",".join(split_spec["test_entities"]),
+                    "data_source": split_spec["data_source"],
+                    "model_name": model_name,
+                    "mae": metrics["mae"],
+                    "rmse": metrics["rmse"],
+                    "normalized_rmse": metrics["normalized_rmse"],
+                    "smape": metrics["smape"],
+                    "huang_rul_score": metrics["huang_rul_score"],
+                    "over_prediction_rate": metrics["over_prediction_rate"],
+                    "within_10_percent_rate": metrics["within_10_percent_rate"],
+                    "phm2012_score_scaled": metrics["phm2012_score_scaled"],
+                    "prediction_count": int(len(test_result.predictions)),
+                    "epoch_count": int(len(training_result.history)),
+                    "train_sequence_count": int(len(train_set)),
+                    "test_sequence_count": int(len(test_set)),
+                    "history_path": str(history_path),
+                }
+            )
+            if use_attention and first_attention_run is None:
+                first_attention_run = run_summary
+
+    comparison_path = output_root / "comparison_metrics.csv"
+    comparison_frame = _add_attention_baseline_comparison_columns(pd.DataFrame.from_records(comparison_records))
+    comparison_frame.to_csv(comparison_path, index=False)
+    paper_reference_path = output_root / "paper_reference_comparison.csv"
+    _build_huang_paper_reference_comparison(comparison_frame).to_csv(paper_reference_path, index=False)
+    primary_run = first_attention_run or run_summaries[0]
+
+    return {
+        "status": "OK",
+        "paper": "Life prediction method of rolling bearing based on CNN-LSTM-AM",
+        "source": "https://www.extrica.com/article/23793",
+        "mode": "formal_real_data_split",
+        "used_condition_count": len(split_specs),
+        "trained_model_count": len(run_summaries),
+        "runs": run_summaries,
+        "comparison_path": str(comparison_path),
+        "paper_reference_path": str(paper_reference_path),
+        "metrics": primary_run["metrics"],
+        "prediction_path": primary_run["prediction_path"],
+        "attention_path": primary_run["attention_path"],
+        "feature_sequence_shape": primary_run["feature_sequence_shape"],
+    }
+
+
+def run_formal_paper_reproductions(
+    *,
+    xjtu_root: str | Path | None = None,
+    phm2012_root: str | Path | None = None,
+    cnn_max_samples_per_entity: int | None = None,
+    xlstm_max_samples_per_entity: int | None = None,
+    profile: str | None = "formal",
+) -> dict[str, object]:
+    """
+    run both formal real-data paper reproductions and write an aggregate summary
+
+    Returns
+    -------
+    dict[str, object]
+        aggregate summary
+    """
+
+    output_root = example_output_root() / "formal_paper_reproductions"
+    output_root.mkdir(parents=True, exist_ok=True)
+    cnn_result = run_formal_cnn_lstm_attention_reproduction(
+        xjtu_root=xjtu_root,
+        phm2012_root=phm2012_root,
+        max_samples_per_entity=cnn_max_samples_per_entity,
+        profile=profile,
+    )
+    xlstm_result = run_paper_xlstm_transformer_reproduction(
+        xjtu_root=xjtu_root,
+        phm2012_root=phm2012_root,
+        max_samples_per_entity=xlstm_max_samples_per_entity,
+        prefer_real_data=True,
+        require_real_data=True,
+        profile=profile,
+    )
+    aggregate = {
+        "status": "OK",
+        "mode": "formal_real_data",
+        "epoch_count": int(os.getenv("BEARING_EXAMPLE_EPOCHS", "2")),
+        "batch_size": _example_batch_size(),
+        "cnn_max_samples_per_entity": cnn_max_samples_per_entity,
+        "xlstm_max_samples_per_entity": xlstm_max_samples_per_entity,
+        "cnn_lstm_attention": _compact_reproduction_result(cnn_result),
+        "xlstm_transformer": _compact_reproduction_result(xlstm_result),
+    }
+    summary_path = output_root / "formal_reproduction_summary.json"
+    _write_json(summary_path, aggregate)
+    aggregate["summary_path"] = str(summary_path)
+    return aggregate
+
+
 def _build_trainer(output_root: Path, dataset_name: str, model_name: str, *, run_name: str) -> BaseTrainer:
     max_epochs = int(os.getenv("BEARING_EXAMPLE_EPOCHS", "2"))
+    batch_size = _example_batch_size()
     tracker = ExperimentTracker(
         output_root / "experiments",
         ExperimentConfig(
@@ -627,7 +873,7 @@ def _build_trainer(output_root: Path, dataset_name: str, model_name: str, *, run
             learning_rate=1e-3,
             weight_decay=1e-4,
             max_epochs=max_epochs,
-            batch_size=4,
+            batch_size=batch_size,
             sampling_strategy="chronological",
             prediction_mode="direct",
         ),
@@ -637,28 +883,204 @@ def _build_trainer(output_root: Path, dataset_name: str, model_name: str, *, run
         callbacks=[ExperimentLoggerCallback()],
         experiment_tracker=tracker,
         max_epochs=max_epochs,
-        batch_size=4,
+        batch_size=batch_size,
         learning_rate=1e-3,
         weight_decay=1e-4,
         shuffle_train=False,
+        loss_name=os.getenv("BEARING_EXAMPLE_LOSS", "smooth_l1"),
     )
 
 
-def _build_xlstm_reproduction_models(feature_size: int) -> list[tuple[str, object]]:
+def _example_batch_size() -> int:
+    return int(os.getenv("BEARING_EXAMPLE_BATCH_SIZE", "4"))
+
+
+def _set_reproduction_seed(offset: int = 0) -> None:
+    seed = int(os.getenv("BEARING_REPRODUCTION_SEED", "2026")) + offset
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def _normalize_reproduction_profile(profile: str | None) -> str:
+    return (profile or os.getenv("BEARING_REPRODUCTION_PROFILE", "smoke")).strip().lower()
+
+
+def _parse_int_tuple(value: str, *, expected_length: int) -> tuple[int, ...]:
+    parsed_values = tuple(int(part.strip()) for part in value.split(",") if part.strip())
+    if len(parsed_values) != expected_length:
+        raise ValueError(f"expected {expected_length} comma-separated integers, got {value!r}")
+    return parsed_values
+
+
+def _build_cnn_lstm_attention_reproduction_model(
+    *,
+    feature_size: int,
+    use_attention: bool,
+    profile: str | None,
+) -> CNNLSTMAttention:
+    normalized_profile = _normalize_reproduction_profile(profile)
+    if normalized_profile == "formal":
+        return CNNLSTMAttention(
+            feature_size=feature_size,
+            output_size=1,
+            cnn_channels=_parse_int_tuple(os.getenv("BEARING_FORMAL_CNN_CHANNELS", "32,64,64"), expected_length=3),
+            lstm_hidden_size=int(os.getenv("BEARING_FORMAL_CNN_LSTM_HIDDEN_SIZE", "64")),
+            lstm_layers=3,
+            fc_hidden_sizes=_parse_int_tuple(os.getenv("BEARING_FORMAL_CNN_FC_HIDDEN_SIZES", "64,32"), expected_length=2),
+            dropout=float(os.getenv("BEARING_FORMAL_DROPOUT", "0.2")),
+            use_attention=use_attention,
+        )
+    return CNNLSTMAttention(
+        feature_size=feature_size,
+        output_size=1,
+        cnn_channels=(8, 8, 8),
+        lstm_hidden_size=12,
+        lstm_layers=3,
+        fc_hidden_sizes=(12, 6),
+        dropout=0.1,
+        use_attention=use_attention,
+    )
+
+
+def _build_xlstm_reproduction_model(model_name: str, feature_size: int, *, profile: str | None = None) -> object:
+    normalized_profile = _normalize_reproduction_profile(profile)
+    if normalized_profile == "formal":
+        hidden_size = int(os.getenv("BEARING_FORMAL_XLSTM_HIDDEN_SIZE", "32"))
+        num_heads = int(os.getenv("BEARING_FORMAL_XLSTM_HEADS", "4"))
+        num_layers = int(os.getenv("BEARING_FORMAL_XLSTM_LAYERS", "2"))
+        dropout = float(os.getenv("BEARING_FORMAL_DROPOUT", "0.2"))
+    else:
+        hidden_size = 16
+        num_heads = 2
+        num_layers = 1
+        dropout = 0.1
     common_parameters = {
         "feature_size": feature_size,
         "output_size": 1,
         "sequence_length": 10,
-        "hidden_size": 16,
-        "num_heads": 2,
-        "num_layers": 1,
-        "dropout": 0.1,
+        "hidden_size": hidden_size,
+        "num_heads": num_heads,
+        "num_layers": num_layers,
+        "dropout": dropout,
     }
-    return [
-        ("XLSTM-Transformer", XLSTMTransformer(**common_parameters)),
-        ("Feature-Transformer", FeatureSequenceTransformer(**common_parameters)),
-        ("LSTM-Transformer", LSTMTransformer(**common_parameters)),
-    ]
+    if model_name == "XLSTM-Transformer":
+        return XLSTMTransformer(**common_parameters)
+    if model_name == "Feature-Transformer":
+        return FeatureSequenceTransformer(**common_parameters)
+    if model_name == "LSTM-Transformer":
+        return LSTMTransformer(**common_parameters)
+    raise ValueError(f"unknown xLSTM reproduction model: {model_name}")
+
+
+def _normalize_train_test_targets(
+    train_set: BearingWindowDataset,
+    test_set: BearingWindowDataset,
+) -> tuple[BearingWindowDataset, BearingWindowDataset, dict[str, float]]:
+    target_mode = os.getenv("BEARING_FORMAL_TARGET_MODE", "entity_relative").strip().lower()
+    if target_mode in {"entity_relative", "relative", "normalized_rul"}:
+        return (
+            _normalize_targets_by_entity(train_set),
+            _normalize_targets_by_entity(test_set),
+            {
+                "method": "entity_relative_rul",
+                "target_min": 0.0,
+                "target_max": 1.0,
+                "target_scale": 1.0,
+            },
+        )
+    combined_targets = np.concatenate([train_set.targets, test_set.targets]).astype(np.float32)
+    target_min = float(np.min(combined_targets))
+    target_max = float(np.max(combined_targets))
+    target_scale = max(target_max - target_min, 1.0)
+    transform = {
+        "method": "min_max",
+        "target_min": target_min,
+        "target_max": target_max,
+        "target_scale": float(target_scale),
+    }
+    return (
+        _replace_dataset_targets(train_set, (train_set.targets - target_min) / target_scale),
+        _replace_dataset_targets(test_set, (test_set.targets - target_min) / target_scale),
+        transform,
+    )
+
+
+def _replace_dataset_targets(dataset: BearingWindowDataset, targets: np.ndarray) -> BearingWindowDataset:
+    return BearingWindowDataset(
+        inputs=dataset.inputs.copy(),
+        targets=targets.astype(np.float32),
+        metadata_frame=dataset.metadata_frame.copy(),
+        task_type=dataset.task_type,
+        target_name=dataset.target_name,
+        input_name=dataset.input_name,
+        feature_frame=None if dataset.feature_frame is None else dataset.feature_frame.copy(),
+        extra_targets={key: values.copy() for key, values in dataset.extra_targets.items()},
+    )
+
+
+def _append_sequence_time_index(dataset: BearingWindowDataset) -> BearingWindowDataset:
+    if os.getenv("BEARING_FORMAL_XLSTM_TIME_INDEX", "1").strip().lower() in {"0", "false", "no"}:
+        return dataset
+    required_columns = {"entity_id", "start_sample_index", "end_sample_index"}
+    if not required_columns.issubset(dataset.metadata_frame.columns):
+        return dataset
+
+    metadata_frame = dataset.metadata_frame.reset_index(drop=True)
+    time_feature = np.zeros((len(dataset), dataset.inputs.shape[1], 1), dtype=np.float32)
+    entity_ranges: dict[object, tuple[float, float]] = {}
+    for entity_id, entity_rows in metadata_frame.groupby("entity_id"):
+        min_index = float(entity_rows["start_sample_index"].min())
+        max_index = float(entity_rows["end_sample_index"].max())
+        entity_ranges[entity_id] = (min_index, max(max_index - min_index, 1.0))
+
+    for row_index, row in metadata_frame.iterrows():
+        min_index, index_span = entity_ranges[row["entity_id"]]
+        start_value = (float(row["start_sample_index"]) - min_index) / index_span
+        end_value = (float(row["end_sample_index"]) - min_index) / index_span
+        time_feature[row_index, :, 0] = np.linspace(start_value, end_value, dataset.inputs.shape[1], dtype=np.float32)
+
+    feature_frame = dataset.feature_frame.copy() if dataset.feature_frame is not None else pd.DataFrame(index=metadata_frame.index)
+    feature_frame["end_time_index"] = time_feature[:, -1, 0]
+    return BearingWindowDataset(
+        inputs=np.concatenate([dataset.inputs, time_feature], axis=-1).astype(np.float32),
+        targets=dataset.targets.copy(),
+        metadata_frame=metadata_frame,
+        task_type=dataset.task_type,
+        target_name=dataset.target_name,
+        input_name=f"{dataset.input_name}_with_time_index",
+        feature_frame=feature_frame,
+        extra_targets={key: values.copy() for key, values in dataset.extra_targets.items()},
+    )
+
+
+def _normalize_targets_by_entity(dataset: BearingWindowDataset) -> BearingWindowDataset:
+    normalized_targets = dataset.targets.astype(np.float32).copy()
+    if "entity_id" not in dataset.metadata_frame.columns:
+        target_scale = max(float(np.max(normalized_targets)), 1.0)
+        return _replace_dataset_targets(dataset, normalized_targets / target_scale)
+    metadata_frame = dataset.metadata_frame.reset_index(drop=True)
+    for entity_id, entity_rows in metadata_frame.groupby("entity_id"):
+        row_indices = entity_rows.index.to_numpy(dtype=int)
+        entity_scale = max(float(np.max(normalized_targets[row_indices])), 1.0)
+        normalized_targets[row_indices] = normalized_targets[row_indices] / entity_scale
+    return _replace_dataset_targets(dataset, normalized_targets)
+
+
+def _inverse_transform_test_result(test_result: TestResult, transform: dict[str, float] | None) -> TestResult:
+    if transform is None:
+        return test_result
+    if transform.get("method") == "entity_relative_rul":
+        return test_result
+    target_min = float(transform["target_min"])
+    target_scale = float(transform["target_scale"])
+    return TestResult(
+        predictions=(test_result.predictions * target_scale) + target_min,
+        targets=(test_result.targets * target_scale) + target_min,
+        metadata_frame=test_result.metadata_frame.copy(),
+        uncertainties=None if test_result.uncertainties is None else test_result.uncertainties * target_scale,
+        attention_weights=test_result.attention_weights,
+    )
 
 
 def _load_xlstm_paper_split_specs(
@@ -667,9 +1089,10 @@ def _load_xlstm_paper_split_specs(
     phm2012_root: str | Path | None,
     max_samples_per_entity: int,
     prefer_real_data: bool,
+    require_real_data: bool,
 ) -> list[dict[str, object]]:
-    xjtu_data_root = _resolve_xjtu_root(xjtu_root, prefer_real_data)
-    phm_data_root = _resolve_phm2012_root(phm2012_root, prefer_real_data)
+    xjtu_data_root = _resolve_xjtu_root(xjtu_root, prefer_real_data, require_real_data=require_real_data)
+    phm_data_root = _resolve_phm2012_root(phm2012_root, prefer_real_data, require_real_data=require_real_data)
     data_source = "real_or_provided_files" if prefer_real_data and xjtu_data_root.exists() and phm_data_root.exists() else "generated_demo_files"
 
     split_specs: list[dict[str, object]] = []
@@ -724,18 +1147,20 @@ def _build_split_spec(
     test_entities: list[str],
     data_source: str,
     max_samples_per_entity: int,
+    dataset_builder: Callable[[BearingEntity], BearingWindowDataset] | None = None,
 ) -> dict[str, object] | None:
     available_entities = set(loader.list_entities())
     if not set(train_entities + test_entities).issubset(available_entities):
         return None
+    builder = dataset_builder or _build_xlstm_feature_sequence_dataset
     train_sets = [
-        _build_xlstm_feature_sequence_dataset(
+        builder(
             loader.load_entity(entity_id, max_samples=max_samples_per_entity)
         )
         for entity_id in train_entities
     ]
     test_sets = [
-        _build_xlstm_feature_sequence_dataset(
+        builder(
             loader.load_entity(entity_id, max_samples=max_samples_per_entity)
         )
         for entity_id in test_entities
@@ -757,9 +1182,10 @@ def _load_paper_reproduction_entities(
     phm2012_root: str | Path | None,
     max_samples_per_entity: int,
     prefer_real_data: bool,
+    require_real_data: bool,
 ) -> list[tuple[BearingEntity, str]]:
-    xjtu_data_root = _resolve_xjtu_root(xjtu_root, prefer_real_data)
-    phm_data_root = _resolve_phm2012_root(phm2012_root, prefer_real_data)
+    xjtu_data_root = _resolve_xjtu_root(xjtu_root, prefer_real_data, require_real_data=require_real_data)
+    phm_data_root = _resolve_phm2012_root(phm2012_root, prefer_real_data, require_real_data=require_real_data)
     data_source = "real_or_provided_files" if prefer_real_data and xjtu_data_root.exists() and phm_data_root.exists() else "generated_demo_files"
 
     xjtu_loader = XJTULoader(xjtu_data_root)
@@ -776,6 +1202,37 @@ def _load_paper_reproduction_entities(
         (xjtu_entity, data_source),
         (phm_entity, data_source),
     ]
+
+
+def _load_cnn_attention_formal_split_specs(
+    *,
+    xjtu_root: str | Path | None,
+    phm2012_root: str | Path | None,
+    max_samples_per_entity: int,
+) -> list[dict[str, object]]:
+    xjtu_data_root = _resolve_xjtu_root(xjtu_root, True, require_real_data=True)
+    phm_data_root = _resolve_phm2012_root(phm2012_root, True, require_real_data=True)
+    split_specs: list[dict[str, object]] = []
+    xjtu_loader = XJTULoader(xjtu_data_root)
+    phm_loader = PHM2012Loader(phm_data_root)
+    for condition_name, train_entities, test_entities in [
+        ("condition_1_35Hz12kN", ["Bearing1_1", "Bearing1_2", "Bearing1_4", "Bearing1_5"], ["Bearing1_3"]),
+        ("condition_1", ["Bearing1_1", "Bearing1_2"], ["Bearing1_3"]),
+    ]:
+        loader = xjtu_loader if condition_name.startswith("condition_1_35") else phm_loader
+        split_spec = _build_split_spec(
+            loader=loader,
+            condition_name=condition_name,
+            train_entities=train_entities,
+            test_entities=test_entities,
+            data_source="real_or_provided_files",
+            max_samples_per_entity=max_samples_per_entity,
+            dataset_builder=_build_paper_feature_sequence_dataset,
+        )
+        if split_spec is None:
+            raise ValueError(f"formal CNN-LSTM-AM split is incomplete for {loader.dataset_name} {condition_name}")
+        split_specs.append(split_spec)
+    return split_specs
 
 
 def _build_paper_feature_sequence_dataset(entity: BearingEntity) -> BearingWindowDataset:
@@ -817,22 +1274,49 @@ def _concat_window_datasets(datasets: list[BearingWindowDataset]) -> BearingWind
     )
 
 
-def _resolve_xjtu_root(root: str | Path | None, prefer_real_data: bool) -> Path:
+def _resolve_xjtu_root(root: str | Path | None, prefer_real_data: bool, *, require_real_data: bool = False) -> Path:
     if root is not None:
-        return Path(root)
+        resolved_root = Path(root)
+        if require_real_data and not resolved_root.exists():
+            raise FileNotFoundError(f"required XJTU-SY root does not exist: {resolved_root}")
+        if require_real_data:
+            _assert_real_dataset_root(resolved_root, dataset_name="XJTU-SY", minimum_file_count=500)
+        return resolved_root
     candidate_root = Path("data/external/xjtu/extracted/XJTU-SY_Bearing_Datasets")
     if prefer_real_data and candidate_root.exists():
+        if require_real_data:
+            _assert_real_dataset_root(candidate_root, dataset_name="XJTU-SY", minimum_file_count=500)
         return candidate_root
+    if require_real_data:
+        raise FileNotFoundError(f"required XJTU-SY root does not exist: {candidate_root}")
     return create_demo_xjtu_dataset(sample_count=24, signal_length=256)
 
 
-def _resolve_phm2012_root(root: str | Path | None, prefer_real_data: bool) -> Path:
+def _resolve_phm2012_root(root: str | Path | None, prefer_real_data: bool, *, require_real_data: bool = False) -> Path:
     if root is not None:
-        return Path(root)
+        resolved_root = Path(root)
+        if require_real_data and not resolved_root.exists():
+            raise FileNotFoundError(f"required PHM2012 root does not exist: {resolved_root}")
+        if require_real_data:
+            _assert_real_dataset_root(resolved_root, dataset_name="PHM2012", minimum_file_count=1000)
+        return resolved_root
     candidate_root = Path("data/external/phm2012/final")
     if prefer_real_data and candidate_root.exists():
+        if require_real_data:
+            _assert_real_dataset_root(candidate_root, dataset_name="PHM2012", minimum_file_count=1000)
         return candidate_root
+    if require_real_data:
+        raise FileNotFoundError(f"required PHM2012 root does not exist: {candidate_root}")
     return create_demo_phm2012_dataset(sample_count=24, signal_length=256)
+
+
+def _assert_real_dataset_root(root: Path, *, dataset_name: str, minimum_file_count: int) -> None:
+    file_count = sum(1 for path in root.rglob("*") if path.is_file())
+    if file_count < minimum_file_count:
+        raise ValueError(
+            f"{dataset_name} formal reproduction requires an official-scale real dataset root; "
+            f"{root} only contains {file_count} files, expected at least {minimum_file_count}."
+        )
 
 
 def _select_entity_id(loader: XJTULoader | PHM2012Loader, preferred_ids: list[str]) -> str:
@@ -879,9 +1363,11 @@ def _add_attention_baseline_comparison_columns(comparison_frame: pd.DataFrame) -
         baseline_row = model_rows.loc["CNN-LSTM"]
         rmse_reduction = _safe_percent_change(baseline_row["rmse"] - attention_row["rmse"], baseline_row["rmse"])
         score_change = _safe_percent_change(attention_row["huang_rul_score"] - baseline_row["huang_rul_score"], baseline_row["huang_rul_score"])
-        dataset_mask = comparison_frame["dataset_name"] == dataset_name
-        comparison_frame.loc[dataset_mask, "rmse_reduction_pct"] = rmse_reduction
-        comparison_frame.loc[dataset_mask, "huang_score_change_pct"] = score_change
+        attention_mask = (comparison_frame["dataset_name"] == dataset_name) & (
+            comparison_frame["model_name"] == "CNN-LSTM-AM"
+        )
+        comparison_frame.loc[attention_mask, "rmse_reduction_pct"] = rmse_reduction
+        comparison_frame.loc[attention_mask, "huang_score_change_pct"] = score_change
     return comparison_frame
 
 
@@ -911,6 +1397,148 @@ def _safe_percent_change(numerator: float, denominator: float) -> float:
     if abs(float(denominator)) < 1e-8:
         return 0.0
     return float((numerator / denominator) * 100.0)
+
+
+def _compact_reproduction_result(result: dict[str, object]) -> dict[str, object]:
+    runs = result.get("runs", [])
+    compact_runs: list[dict[str, object]] = []
+    for run in runs if isinstance(runs, list) else []:
+        if not isinstance(run, dict):
+            continue
+        metrics = run.get("metrics", {})
+        metric_summary = {}
+        if isinstance(metrics, dict):
+            for metric_name in ["rmse", "normalized_rmse", "r2", "r2_score", "huang_rul_score", "phm2012_score", "phm2012_score_scaled"]:
+                if metric_name in metrics:
+                    metric_summary[metric_name] = metrics[metric_name]
+        compact_runs.append(
+            {
+                "dataset_name": run.get("dataset_name"),
+                "condition_name": run.get("condition_name"),
+                "model_name": run.get("model_name"),
+                "data_source": run.get("data_source"),
+                "train_entities": run.get("train_entities"),
+                "test_entities": run.get("test_entities"),
+                "prediction_count": run.get("prediction_count"),
+                "epoch_count": run.get("epoch_count"),
+                "train_sequence_count": run.get("train_sequence_count"),
+                "test_sequence_count": run.get("test_sequence_count"),
+                "history_path": run.get("history_path"),
+                "prediction_path": run.get("prediction_path"),
+                "metrics_path": run.get("metrics_path"),
+                "attention_path": run.get("attention_path"),
+                "metrics": metric_summary,
+            }
+        )
+    return {
+        "paper": result.get("paper"),
+        "source": result.get("source"),
+        "mode": result.get("mode"),
+        "comparison_path": result.get("comparison_path"),
+        "paper_reference_path": result.get("paper_reference_path"),
+        "trained_model_count": result.get("trained_model_count"),
+        "used_condition_count": result.get("used_condition_count"),
+        "used_dataset_count": result.get("used_dataset_count"),
+        "runs": compact_runs,
+    }
+
+
+def _build_huang_paper_reference_comparison(comparison_frame: pd.DataFrame) -> pd.DataFrame:
+    records: list[dict[str, object]] = []
+    for reference in HUANG_PAPER_RMSE_REFERENCE:
+        dataset_name = str(reference["dataset_name"])
+        model_name = str(reference["model_name"])
+        metric_name = str(reference["metric_name"])
+        paper_value = float(reference["paper_value"])
+        local_rows = comparison_frame[
+            (comparison_frame["dataset_name"] == dataset_name)
+            & (comparison_frame["model_name"] == model_name)
+        ]
+        if local_rows.empty:
+            local_value = np.nan
+        else:
+            local_value = float(local_rows.iloc[0].get(metric_name, np.nan))
+        records.append(
+            _build_reference_record(
+                paper="Huang et al. 2024 CNN-LSTM-AM",
+                dataset_name=dataset_name,
+                condition_name=str(local_rows.iloc[0].get("condition_name", "")) if not local_rows.empty else "",
+                model_name=model_name,
+                metric_name=metric_name,
+                local_metric_name=metric_name,
+                paper_value=paper_value,
+                local_value=local_value,
+                pass_threshold_pct=50.0 if metric_name == "normalized_rmse" else 75.0,
+                note="Huang paper RMSE is normalized; Score direction is reported separately and not mixed with HuangRulScore.",
+            )
+        )
+    return pd.DataFrame.from_records(records)
+
+
+def _build_xlstm_paper_reference_comparison(comparison_frame: pd.DataFrame) -> pd.DataFrame:
+    records: list[dict[str, object]] = []
+    metric_specs = [
+        ("rmse", "normalized_rmse", 75.0),
+        ("r2", "r2", 75.0),
+        ("score", "phm2012_score", 200.0),
+    ]
+    for dataset_name, condition_name, model_name, paper_rmse, paper_r2, paper_score in JIANG_PAPER_REFERENCE:
+        paper_values = {"rmse": paper_rmse, "r2": paper_r2, "score": paper_score}
+        local_rows = comparison_frame[
+            (comparison_frame["dataset_name"] == dataset_name)
+            & (comparison_frame["condition_name"] == condition_name)
+            & (comparison_frame["model_name"] == model_name)
+        ]
+        for paper_metric_name, local_metric_name, pass_threshold_pct in metric_specs:
+            local_value = np.nan if local_rows.empty else float(local_rows.iloc[0].get(local_metric_name, np.nan))
+            records.append(
+                _build_reference_record(
+                    paper="Jiang et al. 2026 xLSTM-Transformer",
+                    dataset_name=dataset_name,
+                    condition_name=condition_name,
+                    model_name=model_name,
+                    metric_name=paper_metric_name,
+                    local_metric_name=local_metric_name,
+                    paper_value=float(paper_values[paper_metric_name]),
+                    local_value=local_value,
+                    pass_threshold_pct=pass_threshold_pct,
+                    note="Paper values are from Tables 4 and 5; local RMSE is compared through normalized_rmse.",
+                )
+            )
+    return pd.DataFrame.from_records(records)
+
+
+def _build_reference_record(
+    *,
+    paper: str,
+    dataset_name: str,
+    condition_name: str,
+    model_name: str,
+    metric_name: str,
+    local_metric_name: str,
+    paper_value: float,
+    local_value: float,
+    pass_threshold_pct: float,
+    note: str,
+) -> dict[str, object]:
+    relative_gap_pct = _safe_percent_change(local_value - paper_value, paper_value)
+    if np.isnan(local_value):
+        relative_gap_pct = np.nan
+    return {
+        "paper": paper,
+        "dataset_name": dataset_name,
+        "condition_name": condition_name,
+        "model_name": model_name,
+        "paper_metric_name": metric_name,
+        "local_metric_name": local_metric_name,
+        "paper_value": paper_value,
+        "local_value": local_value,
+        "relative_gap_pct": relative_gap_pct,
+        "abs_relative_gap_pct": abs(relative_gap_pct) if not np.isnan(relative_gap_pct) else np.nan,
+        "pass_threshold_pct": pass_threshold_pct,
+        "within_threshold": bool(abs(relative_gap_pct) <= pass_threshold_pct) if not np.isnan(relative_gap_pct) else False,
+        "note": note,
+    }
 
 
 def _write_attention_csv(output_path: Path, attention_weights: np.ndarray | None) -> None:

@@ -1,0 +1,7 @@
+paper,dataset_name,condition_name,model_name,paper_metric_name,local_metric_name,paper_value,local_value,abs_relative_gap_pct,within_threshold
+Huang et al. 2024 CNN-LSTM-AM,PHM2012,condition_1,CNN-LSTM,normalized_rmse,normalized_rmse,0.178,0.247218441497947,38.886764886487086,True
+Huang et al. 2024 CNN-LSTM-AM,PHM2012,condition_1,CNN-LSTM-AM,normalized_rmse,normalized_rmse,0.152,0.2222282817419429,46.202816935488805,True
+Huang et al. 2024 CNN-LSTM-AM,PHM2012,condition_1,CNN-LSTM-AM,rmse_reduction_pct,rmse_reduction_pct,14.6,10.108533815108425,30.763467019805308,True
+Huang et al. 2024 CNN-LSTM-AM,XJTU-SY,condition_1_35Hz12kN,CNN-LSTM,normalized_rmse,normalized_rmse,0.188,0.1806202134412384,3.925418382319981,True
+Huang et al. 2024 CNN-LSTM-AM,XJTU-SY,condition_1_35Hz12kN,CNN-LSTM-AM,normalized_rmse,normalized_rmse,0.162,0.146543107499314,9.541291667090118,True
+Huang et al. 2024 CNN-LSTM-AM,XJTU-SY,condition_1_35Hz12kN,CNN-LSTM-AM,rmse_reduction_pct,rmse_reduction_pct,13.8,18.86671779014966,36.71534630543232,True

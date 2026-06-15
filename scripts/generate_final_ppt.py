@@ -172,7 +172,7 @@ def build_presentation() -> Presentation:
     add_metric(slide, 0.8, 1.25, "2", "真实数据集", BLUE)
     add_metric(slide, 3.4, 1.25, "19", "时频域特征", GREEN)
     add_metric(slide, 6.0, 1.25, "2", "RUL 论文复现", ORANGE)
-    add_metric(slide, 8.6, 1.25, "31", "自动化测试通过", PURPLE)
+    add_metric(slide, 8.6, 1.25, "39", "全量测试通过", PURPLE)
     add_bullets(
         slide,
         1.0,
@@ -186,9 +186,9 @@ def build_presentation() -> Presentation:
         size=17,
     )
 
-    slide = add_slide(prs, "问题定义：为什么是 RUL")
+    slide = add_slide(prs, "任务定义：预测剩余寿命")
     add_card(slide, 0.8, 1.25, 3.8, 2.0, "业务语义", "轴承不是只回答“是否失效”，而是要估计距离失效还有多久，服务维修窗口安排。", BLUE, fill=SOFT_BLUE)
-    add_card(slide, 4.75, 1.25, 3.8, 2.0, "数据语义", "两个数据集都是 run-to-failure 退化过程，天然适合 RUL、健康指标和生存概率分析。", GREEN, fill=SOFT_GREEN)
+    add_card(slide, 4.75, 1.25, 3.8, 2.0, "数据语义", "两个数据集都记录轴承从正常运行到失效前的采样过程，适合构造 RUL 标签和健康趋势。", GREEN, fill=SOFT_GREEN)
     add_card(slide, 8.7, 1.25, 3.8, 2.0, "工程语义", "系统输出训练历史、预测表、指标表和图表，便于复现实验和答辩追溯。", ORANGE, fill=SOFT_ORANGE)
     add_bullets(slide, 1.0, 4.05, 11.0, ["项目名称按开题报告统一为“工业轴承设备剩余寿命预测系统的实现”，核心任务是 RUL 预测。", "阶段划分和失效概率分析作为辅助能力，结题主线是剩余寿命预测和预测性维护。"], size=16)
 
@@ -256,7 +256,7 @@ def build_presentation() -> Presentation:
         ],
         size=17,
     )
-    add_card(slide, 1.15, 5.2, 10.9, 0.76, "答辩可强调", "系统不只是完成 CSV 读取，而是把不同数据集的采样周期、工况、通道和 RUL 单位统一到了后续训练接口。", RED, body_size=14)
+    add_card(slide, 1.15, 5.2, 10.9, 0.76, "答辩可强调", "系统处理的是按时间采集的退化轨迹，先统一采样周期、工况、通道和 RUL 单位，再进入训练接口。", RED, body_size=14)
 
     slide = add_slide(prs, "论文复现一：CNN-LSTM-AM")
     add_card(slide, 0.8, 1.05, 3.55, 1.65, "论文核心", "19 维特征 -> CNN 局部编码 -> LSTM 时序建模 -> attention 聚合 -> RUL 回归。", BLUE, fill=SOFT_BLUE)
@@ -267,16 +267,16 @@ def build_presentation() -> Presentation:
         0.85,
         3.25,
         [
-            ("XJTU-SY", "Bearing1_5，8 epoch 小样本真实训练", "CNN-LSTM-AM RMSE 406.30"),
-            ("PHM2012", "Bearing3_1，8 epoch 小样本真实训练", "CNN-LSTM-AM RMSE 651.04"),
+            ("XJTU-SY", "condition_1，50 epoch，92 条预测", "CNN-LSTM-AM NormalizedRMSE 0.1465"),
+            ("PHM2012", "condition_1，50 epoch，92 条预测", "CNN-LSTM-AM NormalizedRMSE 0.2222"),
             ("边界", "验证真实训练、指标体系和 workflow 可复现", "不冒充论文完整数值对齐"),
         ],
         row_height=0.62,
     )
 
     slide = add_slide(prs, "论文复现二：xLSTM-Transformer")
-    add_card(slide, 0.8, 1.05, 3.55, 1.75, "为什么选它", "论文同时覆盖 XJTU-SY 和 PHM2012，公开工况划分、序列长度和 RMSE/R2/Score。", BLUE, fill=SOFT_BLUE)
-    add_card(slide, 4.85, 1.05, 3.55, 1.75, "实现方式", "XLSTM-Transformer = 指数门控 memory 分支 + Transformer encoder + RUL head。", GREEN, fill=SOFT_GREEN)
+    add_card(slide, 0.8, 1.05, 3.55, 1.75, "选择依据", "论文同时覆盖 XJTU-SY 和 PHM2012，公开工况划分、序列长度和 RMSE/R2/Score。", BLUE, fill=SOFT_BLUE)
+    add_card(slide, 4.85, 1.05, 3.55, 1.75, "实现方式", "XLSTM-Transformer = 指数门控 memory 分支 + Transformer encoder + RUL head，并追加快照时间索引特征。", GREEN, fill=SOFT_GREEN)
     add_card(slide, 8.9, 1.05, 3.55, 1.75, "对比基线", "Feature-Transformer 和 LSTM-Transformer，用对照实验说明结构差异。", ORANGE, fill=SOFT_ORANGE)
     add_rows(
         slide,
@@ -285,9 +285,10 @@ def build_presentation() -> Presentation:
         [
             ("XJTU-SY", "3 个工况：4 个轴承训练、1 个轴承测试", "每工况 3 模型"),
             ("PHM2012", "3 个工况：*_1、*_2 训练，*_3 测试", "共 18 行结果"),
-            ("边界", "论文结构 + 项目特征管线适配", "非作者源码逐行复刻"),
+            ("代表结果", "XJTU-SY condition 1 NRMSE 0.0646，R2 0.9506", "PHM2012 condition 3 NRMSE 0.1076，R2 0.8640"),
+            ("边界", "PHM2012 condition 2 NRMSE 0.3742，R2 -0.6439", "Score 尺度仍有明显 gap"),
         ],
-        row_height=0.62,
+        row_height=0.52,
     )
 
     slide = add_slide(prs, "评价指标：不混淆 Score 口径")
@@ -302,16 +303,16 @@ def build_presentation() -> Presentation:
         [
             "PHM/NASA 类 score 是挑战赛惩罚函数，不等同于 Huang 论文原版 Score。",
             "答辩展示时优先说明指标口径，再解释数值；避免把不同 score 横向误比。",
-            "小样本复现的主要价值是工程闭环和指标可落盘，不是追求论文表格完全相同。",
+            "96 快照抽样复现的主要价值是工程闭环、指标口径和 gap 表可复查，不把结果包装成作者全量训练。",
         ],
         size=16,
     )
 
     slide = add_slide(prs, "测试验收：用证据说话")
-    add_metric(slide, 0.85, 1.05, "31", "pytest 全量通过", GREEN)
+    add_metric(slide, 0.85, 1.05, "39", "pytest 全量通过", GREEN)
     add_metric(slide, 3.45, 1.05, "20", "论文与 notebook focused", BLUE)
     add_metric(slide, 6.05, 1.05, "18", "xLSTM 真实训练结果行", ORANGE)
-    add_metric(slide, 8.65, 1.05, "8", "真实训练 epoch", PURPLE)
+    add_metric(slide, 8.65, 1.05, "50", "正式训练 epoch", PURPLE)
     add_bullets(
         slide,
         1.0,
@@ -349,11 +350,11 @@ def build_presentation() -> Presentation:
         1.05,
         [
             ("任务边界？", "数据是 run-to-failure 退化序列", "主任务是 RUL 和预测性维护"),
-            ("为什么与论文数值存在差异？", "小样本、8 epoch、CPU 友好验收", "验证流程，不冒充完整论文数值"),
+            ("为什么与论文数值存在差异？", "96 快照抽样、单次训练、本机算力约束", "验证流程，不冒充作者全量训练"),
             ("如何避免数据泄漏？", "按时间或轴承划分，notebook 不随机混相邻窗口", "真实复现按论文工况划分"),
             ("xLSTM 是否完全复刻？", "论文无源码，本项目做结构复现", "已在文档说明复现边界"),
             ("工程价值是什么？", "统一数据抽象、训练接口、实验记录、测试文档", "可扩展而非一次性脚本"),
-            ("不足与改进？", "小样本 8 epoch，未做多随机种子统计", "后续做全量训练和更强泛化"),
+            ("不足与改进？", "96 快照抽样，未做多随机种子统计", "后续做全量训练和更强泛化"),
         ],
     )
 
@@ -361,7 +362,7 @@ def build_presentation() -> Presentation:
     set_background(slide, NAVY)
     text_box(slide, 0.85, 1.2, 10.8, 0.62, "谢谢老师和同学", size=38, color=RGBColor(255, 255, 255), bold=True)
     text_box(slide, 0.9, 2.25, 10.4, 0.36, "欢迎提问：数据语义、特征工程、模型复现、指标口径、工程交付", size=18, color=RGBColor(226, 232, 240))
-    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "我们完成的是课程项目级真实训练复现和工程闭环，不把小样本结果包装成论文完整数值复现。", ORANGE, body_size=15, fill=CARD_BG)
+    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "我们完成的是课程项目级真实训练复现和工程闭环，不把 96 快照抽样结果包装成作者全量训练。", ORANGE, body_size=15, fill=CARD_BG)
 
     return prs
 

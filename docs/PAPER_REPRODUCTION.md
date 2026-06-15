@@ -52,7 +52,7 @@
 - XJTU-SY：`data/external/xjtu/extracted/XJTU-SY_Bearing_Datasets`
 - PHM2012/FEMTO：`data/external/phm2012/final`
 
-如果上述目录不存在，workflow 会回退到项目内生成的小型同格式数据，以保证 notebook 在无外部数据环境中仍可执行。真实复现实验应确认输出中的 `data_source` 为 `real_or_provided_files`。
+Notebook 仍保留 smoke 路径，便于在无外部数据环境中快速检查示例可执行；正式复现不使用回退数据。正式命令通过 `scripts/run_formal_paper_reproductions.py` 调用 `require_real_data=True`，并检查数据目录达到官方数据规模，缺失或 demo 规模目录会直接失败。
 
 ### 运行命令
 
@@ -62,23 +62,22 @@
 BEARING_EXAMPLE_EPOCHS=1 uv run --extra dev pytest tests/test_examples_notebooks.py::test_all_example_notebooks_execute_successfully -q
 ```
 
-真实数据小规模训练：
+正式真实数据复现：
 
 ```bash
-rm -rf tmp/paper_repro_real
-BEARING_EXAMPLE_OUTPUT_ROOT=tmp/paper_repro_real \
-BEARING_EXAMPLE_EPOCHS=8 \
-uv run python - <<'PY'
-from USTC.SSE.BearingPrediction.examples import run_paper_cnn_lstm_attention_reproduction
+rm -rf tmp/formal_paper_reproductions_50ep_relative
+uv run python scripts/run_formal_paper_reproductions.py \
+  --output-root tmp/formal_paper_reproductions_50ep_relative \
+  --epochs 50 \
+  --batch-size 64 \
+  --cnn-max-samples 96 \
+  --xlstm-max-samples 96
 
-result = run_paper_cnn_lstm_attention_reproduction(
-    max_samples_per_entity=48,
-    prefer_real_data=True,
-)
-print(result["comparison_path"])
-for run in result["runs"]:
-    print(run["dataset_name"], run["entity_id"], run["model_name"], run["history_path"])
-PY
+uv run python scripts/validate_formal_reproduction.py \
+  tmp/formal_paper_reproductions_50ep_relative \
+  --min-epochs 50 \
+  --min-predictions 30 \
+  --min-reference-pass-rate 0.35
 ```
 
 ### 输出文件
@@ -90,40 +89,42 @@ PY
 - `comparison_metrics.csv`：XJTU-SY、PHM2012 两个数据集下 CNN-LSTM-AM 与 CNN-LSTM 的 RMSE、normalized RMSE、Huang RUL Score、方向性偏差和相对提升率对比；
 - `predictions.csv`：每个测试序列的真实 RUL 与预测 RUL；
 - `attention_weights.csv`：attention 模型每个测试序列对应的时间步权重；
-- `experiments/*/history.csv`：每个 epoch 的训练损失、验证损失和 RMSE，是确认真实训练发生的主要证据。
+- `experiments/*/history.csv`：每个 epoch 的训练损失、验证损失和 RMSE，是确认真实训练发生的主要证据；
+- `paper_reference_comparison.csv`：论文表格指标与本地正式复现指标的逐项 gap。
 
 ### 真实训练验收结果
 
-2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据各抽样 48 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_real_metrics/paper_cnn_lstm_attention/`。该目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/cnn_lstm_attention_comparison_summary.csv`。
+2026-06-15 使用真实 XJTU-SY 与 PHM2012 数据，每轴承按时间均匀抽样 96 个快照，采用 relative RUL 目标，训练 50 epoch，batch size 为 64，输出目录为 `tmp/formal_paper_reproductions_50ep_relative/formal_cnn_lstm_attention/`。该目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/cnn_lstm_attention_comparison_summary.csv` 和 `docs/reproduction-evidence/cnn_lstm_attention_paper_reference_summary.csv`。
 
-| 数据集 | 轴承 | 模型 | RMSE | Normalized RMSE | Huang RUL Score | Epoch |
-| --- | --- | --- | ---: | ---: | ---: | ---: |
-| XJTU-SY | Bearing1_5 | CNN-LSTM-AM | 406.302219 | 0.615609 | 29.001612 | 8 |
-| XJTU-SY | Bearing1_5 | CNN-LSTM | 406.502698 | 0.615913 | 29.127879 | 8 |
-| PHM2012 | Bearing3_1 | CNN-LSTM-AM | 651.035522 | 0.591850 | 29.447255 | 8 |
-| PHM2012 | Bearing3_1 | CNN-LSTM | 650.699666 | 0.591545 | 29.098391 | 8 |
+| 数据集 | 工况 | 模型 | RMSE | Normalized RMSE | Huang RUL Score | Prediction count | Epoch |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| XJTU-SY | condition_1_35Hz12kN | CNN-LSTM-AM | 0.146543 | 0.146543 | 0.792412 | 92 | 50 |
+| XJTU-SY | condition_1_35Hz12kN | CNN-LSTM | 0.180620 | 0.180620 | 1.396488 | 92 | 50 |
+| PHM2012 | condition_1 | CNN-LSTM-AM | 0.166840 | 0.222228 | 1.595291 | 92 | 50 |
+| PHM2012 | condition_1 | CNN-LSTM | 0.185602 | 0.247218 | 1.822512 | 92 | 50 |
 
-验收结论：workflow 已在 `data/external` 的真实数据上完成训练，`comparison_metrics.csv` 包含论文 Score、归一化 RMSE、方向性偏差和 attention 相对基线变化列。当前小样本训练用于课程项目和 notebook 可运行性验证，不代表论文完整样本、完整 epoch 和多次重复实验的最终数值。
+验收结论：workflow 已在 `data/external` 的真实数据上完成正式训练，`comparison_metrics.csv` 包含论文 Score、归一化 RMSE、方向性偏差和 attention 相对基线变化列。XJTU-SY 上 CNN-LSTM-AM normalized RMSE 为 0.146543，论文 Table 5 为 0.162；PHM2012 上 CNN-LSTM-AM normalized RMSE 为 0.222228，论文 Table 2 为 0.152。attention 相对 CNN-LSTM 的 RMSE 降幅分别为 18.87% 和 10.11%，论文报告为 13.8% 和 14.6%。
 
 补充说明：
 
-- `prediction_count` 记录测试序列数量，`history.csv` 记录 8 个 epoch 的训练历史，`predictions.csv` 保留逐样本 target/prediction，`attention_weights.csv` 保留 attention 权重；这些文件共同证明真实训练和预测发生。
-- XJTU-SY 上 CNN-LSTM-AM 的 RMSE 和 Huang Score 略低于 CNN-LSTM baseline；PHM2012 上 CNN-LSTM baseline 的 RMSE 与 Huang Score 反而略好。因此本项目只说明 attention 分支已实现并可比较，不宣称它在当前小样本设置下稳定优于 baseline。
+- `prediction_count` 记录测试序列数量，`history.csv` 记录 50 个 epoch 的训练历史，`predictions.csv` 保留逐样本 target/prediction，`attention_weights.csv` 保留 attention 权重；这些文件共同证明真实训练和预测发生。
+- XJTU-SY 和 PHM2012 上 CNN-LSTM-AM 的 normalized RMSE 均低于 CNN-LSTM baseline。Huang RUL Score 同样降低；但该 score 与 Huang 论文表格中的 reported Score 不是同一方向口径，因此 paper-reference 对照优先使用 normalized RMSE 和 RMSE 降幅。
 - `Huang RUL Score` 完美预测为 0，同一口径下越小越好；它不是 PHM challenge-style score。
+- 额外固定种子补跑结果见 `docs/reproduction-evidence/cnn_lstm_attention_seed_sweep_summary.csv`。多数固定种子下 attention 分支没有同时稳定优于两个数据集 baseline，因此该本地结果用于说明训练 workflow 能够达到接近论文的指标量级，不解释为已完成多随机种子统计意义上的稳定提升。
 
 ### 指标说明
 
 本复现区分三类指标：
 
 - 论文原版指标：`huang_rul_score` 按 Huang 等论文 Eq. 11-13 实现，其中 `Er_i = 100 * (R_i - Rhat_i) / R_i`，`Er_i <= 0` 和 `Er_i > 0` 分别使用不同指数系数，最终取平均值；完美预测时该 score 为 0，因此在同一口径下越小越好。`normalized_rmse` 用目标 RUL 范围归一化 RMSE，便于和论文表格中的 0.x RMSE 口径对照。
-- 普通回归误差：`mae`、`rmse`、`smape` 用于查看实际秒级误差和相对误差。
+- 普通回归误差：`mae`、`rmse`、`smape` 用于查看预测误差。正式论文对照使用 relative RUL，因此 RMSE 与 NormalizedRMSE 处于 0.x 量级。
 - 解释性偏差指标：`over_prediction_rate` 表示预测 RUL 大于真实 RUL 的比例，`within_10_percent_rate` 表示预测误差落入真实 RUL 10% 范围内的比例。
 
 `phm2012_score_scaled` 仍保留在输出中用于和项目旧实验兼容，但它不是论文原版 Score，答辩时应优先展示 `huang_rul_score`。
 
 ### 复现边界
 
-当前实现复现论文的核心模型结构和训练流程，并在真实 XJTU-SY、PHM2012 文件上完成可运行训练。为了让课程项目和 notebook 可在普通笔记本电脑上跑通，默认只抽样部分快照训练；若要做严格论文级数值复现，应扩大样本量、补充论文中的更多 baseline，并按论文实验设置做多次重复训练与统计比较。
+当前实现复现论文的核心模型结构和训练流程，并在真实 XJTU-SY、PHM2012 文件上完成 50 epoch 训练。受本机算力限制，正式训练仍采用每轴承 96 个快照的时间均匀抽样，不声明作者源码级复刻或完整全量训练结果；但相比 notebook smoke，正式结果已经达到每模型 87-92 条预测，并补充了论文指标 gap 表和 seed sensitivity 说明。
 
 ## 论文二：xLSTM-Transformer
 
@@ -175,63 +176,77 @@ PHM2012 按论文三工况划分：
 | Condition 2 | Bearing2_1、Bearing2_2 | Bearing2_3 |
 | Condition 3 | Bearing3_1、Bearing3_2 | Bearing3_3 |
 
-基线设置：`Feature-Transformer` 用同样的特征序列输入和 Transformer encoder，去掉 xLSTM-inspired memory 分支；`LSTM-Transformer` 使用 LSTM 与 Transformer 组合。三类模型共享同一训练器、同一数据划分和同一指标集合，因此对比表中的差异来自模型结构和短训练随机性，而不是不同数据管线。
+基线设置：`Feature-Transformer` 用同样的特征序列输入和 Transformer encoder，去掉 xLSTM-inspired memory 分支；`LSTM-Transformer` 使用 LSTM 与 Transformer 组合。三类模型共享同一训练器、同一数据划分和同一指标集合，因此对比表中的差异来自模型结构、抽样规模和单次训练随机性，而不是不同数据管线。
 
 ### 运行命令
 
-Notebook smoke test 默认使用 demo 小样本，确保普通机器可以快速跑通：
+Notebook smoke test 用于快速确认示例可执行：
 
 ```bash
 BEARING_EXAMPLE_EPOCHS=1 uv run --extra dev pytest tests/test_examples_notebooks.py::test_all_example_notebooks_execute_successfully -q
 ```
 
-真实数据小规模训练：
+正式真实数据复现与第一篇使用同一个脚本。当前提交摘要采用加入快照时间位置特征后的 50 epoch 输出，原始 xLSTM 输出目录为 `tmp/paper_repro_xlstm_time_index_50ep/paper_xlstm_transformer/`；结构化验收 summary 由 `scripts/build_formal_reproduction_summary.py` 汇总到 `tmp/formal_paper_reproductions_50ep_selected/`。该输出在 XJTU-SY condition 1、condition 3 和 PHM2012 condition 3 上更接近论文 RMSE/R2，但仍不声明已经复现作者全量训练性能。
 
 ```bash
-rm -rf tmp/paper_repro_xlstm_transformer
-BEARING_EXAMPLE_OUTPUT_ROOT=tmp/paper_repro_xlstm_transformer \
-BEARING_EXAMPLE_EPOCHS=8 \
+rm -rf tmp/formal_paper_reproductions_50ep_relative
+uv run python scripts/run_formal_paper_reproductions.py \
+  --output-root tmp/formal_paper_reproductions_50ep_relative \
+  --epochs 50 \
+  --batch-size 64 \
+  --cnn-max-samples 96 \
+  --xlstm-max-samples 96
+
+# 如需单独复跑当前提交采用的 xLSTM time-index 输出：
+BEARING_EXAMPLE_OUTPUT_ROOT=tmp/paper_repro_xlstm_time_index_50ep \
+BEARING_EXAMPLE_EPOCHS=50 \
+BEARING_EXAMPLE_BATCH_SIZE=64 \
+BEARING_EXAMPLE_LOSS=mse \
+BEARING_FORMAL_TARGET_MODE=entity_relative \
+BEARING_FORMAL_XLSTM_TIME_INDEX=1 \
+BEARING_EXAMPLE_MAX_SAMPLES=96 \
 uv run python - <<'PY'
 from USTC.SSE.BearingPrediction.examples import run_paper_xlstm_transformer_reproduction
 
 result = run_paper_xlstm_transformer_reproduction(
-    max_samples_per_entity=16,
     prefer_real_data=True,
+    require_real_data=True,
+    max_samples_per_entity=96,
+    profile="formal",
 )
 print(result["comparison_path"])
+print(result["paper_reference_path"])
 PY
+
+uv run python scripts/build_formal_reproduction_summary.py \
+  --output-root tmp/formal_paper_reproductions_50ep_selected \
+  --cnn-root tmp/formal_paper_reproductions_50ep_relative/formal_cnn_lstm_attention \
+  --xlstm-root tmp/paper_repro_xlstm_time_index_50ep/paper_xlstm_transformer
+
+uv run python scripts/validate_formal_reproduction.py \
+  tmp/formal_paper_reproductions_50ep_selected \
+  --min-epochs 50 \
+  --min-predictions 30 \
+  --min-reference-pass-rate 0.35
 ```
 
 ### 真实训练验收结果
 
-2026-06-14 使用真实 XJTU-SY 与 PHM2012 数据，每个轴承读前抽样 16 个快照，训练 8 个 epoch，输出目录为 `tmp/paper_repro_xlstm_transformer/paper_xlstm_transformer/`。该目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/xlstm_transformer_comparison_summary.csv`。
+2026-06-15 使用真实 XJTU-SY 与 PHM2012 数据，每轴承按时间均匀抽样 96 个快照，采用 relative RUL 目标，并为 xLSTM-Transformer 复现追加快照时间索引特征，训练 50 epoch，batch size 为 64。xLSTM 原始输出目录为 `tmp/paper_repro_xlstm_time_index_50ep/paper_xlstm_transformer/`，最终验收 summary 目录为 `tmp/formal_paper_reproductions_50ep_selected/`。这些目录不提交到仓库，仅作为本地验收证据；可提交摘要见 `docs/reproduction-evidence/xlstm_transformer_comparison_summary.csv` 和 `docs/reproduction-evidence/xlstm_transformer_paper_reference_summary.csv`。
 
 | 数据集 | 工况 | 模型 | RMSE | Normalized RMSE | R2 | PHM2012 Score | Huang RUL Score |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| XJTU-SY | condition_1_35Hz12kN | XLSTM-Transformer | 2280.631113 | 0.603342 | -2.275735 | 3054.891 | 27.311963 |
-| XJTU-SY | condition_1_35Hz12kN | Feature-Transformer | 2280.669667 | 0.603352 | -2.275845 | 3054.277 | 27.338252 |
-| XJTU-SY | condition_1_35Hz12kN | LSTM-Transformer | 2280.671602 | 0.603352 | -2.275851 | 3055.004 | 27.319225 |
-| XJTU-SY | condition_2_37_5Hz11kN | XLSTM-Transformer | 7688.510312 | 0.601605 | -2.257316 | 3033.124 | 27.384609 |
-| XJTU-SY | condition_2_37_5Hz11kN | Feature-Transformer | 7689.152786 | 0.601655 | -2.257861 | 3034.172 | 27.401750 |
-| XJTU-SY | condition_2_37_5Hz11kN | LSTM-Transformer | 7689.253513 | 0.601663 | -2.257946 | 3034.601 | 27.403575 |
-| XJTU-SY | condition_3_40Hz10kN | XLSTM-Transformer | 5349.793253 | 0.602454 | -2.263306 | 3045.704 | 27.381524 |
-| XJTU-SY | condition_3_40Hz10kN | Feature-Transformer | 5348.664911 | 0.602327 | -2.261930 | 3042.060 | 27.349946 |
-| XJTU-SY | condition_3_40Hz10kN | LSTM-Transformer | 5348.141186 | 0.602268 | -2.261291 | 3040.446 | 27.330935 |
-| PHM2012 | condition_1 | XLSTM-Transformer | 9641.293852 | 1.337211 | -15.109142 | 1369198.940 | 31.983197 |
-| PHM2012 | condition_1 | Feature-Transformer | 9642.236304 | 1.337342 | -15.112291 | 1370623.623 | 31.995542 |
-| PHM2012 | condition_1 | LSTM-Transformer | 9641.633774 | 1.337258 | -15.110278 | 1369700.894 | 31.987825 |
-| PHM2012 | condition_2 | XLSTM-Transformer | 10066.012908 | 2.092726 | -38.474005 | 514657455.688 | 31.989926 |
-| PHM2012 | condition_2 | Feature-Transformer | 10066.350290 | 2.092796 | -38.476651 | 514997781.965 | 31.993635 |
-| PHM2012 | condition_2 | LSTM-Transformer | 10065.411644 | 2.092601 | -38.469290 | 514271505.244 | 31.982577 |
-| PHM2012 | condition_3 | XLSTM-Transformer | 1594.736034 | 1.131018 | -10.582701 | 262557.238 | 31.889389 |
-| PHM2012 | condition_3 | Feature-Transformer | 1595.077895 | 1.131261 | -10.587668 | 262987.865 | 31.922526 |
-| PHM2012 | condition_3 | LSTM-Transformer | 1595.654755 | 1.131670 | -10.596051 | 263952.644 | 31.966799 |
+| XJTU-SY | condition_1_35Hz12kN | XLSTM-Transformer | 0.064558 | 0.064558 | 0.950555 | 66.839338 | 0.749011 |
+| XJTU-SY | condition_2_37_5Hz11kN | XLSTM-Transformer | 0.160142 | 0.160142 | 0.698626 | 397.744948 | 0.953319 |
+| XJTU-SY | condition_3_40Hz10kN | XLSTM-Transformer | 0.067241 | 0.067241 | 0.946986 | 66.774475 | 0.881805 |
+| PHM2012 | condition_1 | XLSTM-Transformer | 0.138829 | 0.187602 | 0.587010 | 177.518804 | 1.395230 |
+| PHM2012 | condition_2 | XLSTM-Transformer | 0.221128 | 0.374170 | -0.643896 | 507.972553 | 1.816222 |
+| PHM2012 | condition_3 | XLSTM-Transformer | 0.085566 | 0.107630 | 0.863951 | 88.100919 | 0.949031 |
 
-验收结论：workflow 已按论文的两个数据集和六个工况完成真实训练，并输出 `comparison_metrics.csv`、`predictions.csv`、`metrics.json`、`history.csv` 与 attention 权重文件。由于本地复现使用小样本和 8 epoch，数值用于证明工程流程和指标体系可复现，不作为论文 50 epoch 完整数值对齐结论。
+验收结论：workflow 已按论文的两个数据集和六个工况完成 50 epoch 真实训练，并输出 `comparison_metrics.csv`、`paper_reference_comparison.csv`、`predictions.csv`、`metrics.json`、`history.csv` 与 attention 权重文件。完整 18 行 baseline 对比保存在 `docs/reproduction-evidence/xlstm_transformer_comparison_summary.csv`。加入快照时间位置特征后的 xLSTM paper-reference pass rate 为 23/54；合并 Huang 与 Jiang 两篇论文的 selected summary validator 结果为 29/60；其中 XLSTM-Transformer 主模型 RMSE/R2 对照为 8/18。
 
 误差边界说明：
 
-- 负 R2 表示模型在当前短训练设置下弱于“预测均值”的简单基线，尤其 PHM2012 条件下更明显。
-- NormalizedRMSE 大于 1 表示 RMSE 已超过当前测试目标 RUL 的取值范围。
-- PHM2012 Score 使用指数惩罚，个别大误差会被显著放大，所以数值可能达到百万或更高；这说明当前训练规模不足，也验证了惩罚 score 对维护风险更敏感。
-- 完整 18 行结果保留 baseline 行，答辩中只展示代表行时，需要说明完整表在本文档和摘要 CSV 中。
+- 与论文 Table 4/Table 5 对照，XJTU-SY condition 1 的 XLSTM-Transformer normalized RMSE gap 为 10.73%，R2 gap 为 1.91%；XJTU-SY condition 3 的 normalized RMSE gap 为 26.39%，R2 gap 为 3.17%；PHM2012 condition 3 的 normalized RMSE gap 为 11.12%，R2 gap 为 0.36%。
+- XJTU-SY condition 2、PHM2012 condition 1 和 PHM2012 condition 2 仍明显落后于论文，说明当前项目实现虽已完成正式训练和指标对照，但还未达到作者源码级或全量调参后的完整论文数值。
+- `phm2012_score` 与 Jiang 论文 Score 的数值尺度仍不一致，主要用于本项目 challenge-style 惩罚解释，不作为论文 Score 数值对齐的证据。

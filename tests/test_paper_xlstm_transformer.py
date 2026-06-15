@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 import torch
 
 from USTC.SSE.BearingPrediction.api import XLSTMTransformer
@@ -83,6 +84,31 @@ def test_xlstm_reproduction_workflow_trains_two_datasets_and_baselines(tmp_path:
         assert "rmse" in metrics
         assert "r2" in metrics
         assert "huang_rul_score" in metrics
+
+
+def test_xlstm_reproduction_require_real_data_rejects_demo_roots(tmp_path: Path) -> None:
+    xjtu_root = create_demo_xjtu_dataset(tmp_path / "input_data", sample_count=16, signal_length=128)
+    phm_root = create_demo_phm2012_dataset(tmp_path / "input_data", sample_count=16, signal_length=128)
+
+    with pytest.raises(ValueError, match="official-scale real dataset root"):
+        run_paper_xlstm_transformer_reproduction(
+            xjtu_root=xjtu_root,
+            phm2012_root=phm_root,
+            max_samples_per_entity=16,
+            prefer_real_data=True,
+            require_real_data=True,
+        )
+
+
+def test_xlstm_reproduction_require_real_data_rejects_missing_roots(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        run_paper_xlstm_transformer_reproduction(
+            xjtu_root=tmp_path / "missing-xjtu",
+            phm2012_root=tmp_path / "missing-phm2012",
+            max_samples_per_entity=16,
+            prefer_real_data=True,
+            require_real_data=True,
+        )
 
 
 def test_xlstm_transformer_notebook_exists_and_calls_workflow() -> None:

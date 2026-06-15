@@ -255,7 +255,7 @@ def draw_end_to_end_architecture() -> None:
 def draw_training_evidence_chain() -> None:
     fig, ax, output = _diagram_canvas("training-evidence-chain.png", "真实训练证据链：不是静态截图，而是可复查输出")
     rows = [
-        ("运行命令", "BEARING_EXAMPLE_OUTPUT_ROOT=tmp/...  BEARING_EXAMPLE_EPOCHS=8"),
+        ("运行命令", "BEARING_EXAMPLE_OUTPUT_ROOT=tmp/...  BEARING_EXAMPLE_EPOCHS=50"),
         ("数据来源", "data_source = real_or_provided_files；实体 ID、max_samples、工况写入 metrics"),
         ("训练过程", "experiments/*/history.csv 记录每个 epoch 的 train/val loss 和 RMSE"),
         ("预测结果", "predictions.csv 保留 target、prediction、metadata，可画 RUL 曲线"),

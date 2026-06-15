@@ -1,0 +1,17 @@
+run_name,source_dir,reference_pass_count,reference_row_count,xjtu_am_normalized_rmse,phm2012_am_normalized_rmse,xjtu_am_rmse_reduction_pct,phm2012_am_rmse_reduction_pct,mean_am_normalized_rmse
+selected_old_relative,tmp/formal_paper_reproductions_50ep_relative/formal_cnn_lstm_attention,6,6,0.146543,0.222228,18.866718,10.108534,0.184386
+seed_8,tmp/formal_cnn_seed8_50ep/formal_cnn_lstm_attention,2,6,0.184699,0.255011,-0.872895,27.836746,0.219855
+seed_6,tmp/formal_cnn_seed6_50ep/formal_cnn_lstm_attention,4,6,0.191738,0.309949,10.322399,-42.749915,0.250843
+seed_5,tmp/formal_cnn_seed5_50ep/formal_cnn_lstm_attention,2,6,0.225228,0.281568,-5.520626,26.847305,0.253398
+seed_123,tmp/formal_cnn_seed123_50ep/formal_cnn_lstm_attention,2,6,0.19505,0.32588,-11.107496,-9.563647,0.260465
+seed_7,tmp/formal_cnn_seed7_50ep/formal_cnn_lstm_attention,2,6,0.213206,0.33222,-14.642847,-7.532306,0.272713
+seed_3,tmp/formal_cnn_seed3_50ep/formal_cnn_lstm_attention,2,6,0.218442,0.342435,-20.632022,-26.401036,0.280438
+seed_4,tmp/formal_cnn_seed4_50ep/formal_cnn_lstm_attention,3,6,0.196074,0.367417,28.535778,-70.134665,0.281745
+seed_12,tmp/formal_cnn_seed12_50ep/formal_cnn_lstm_attention,2,6,0.17062,0.398434,-5.382991,-37.682806,0.284527
+seed_13,tmp/formal_cnn_seed13_50ep/formal_cnn_lstm_attention,2,6,0.223071,0.38779,-27.178835,-15.289133,0.30543
+seed_10,tmp/formal_cnn_seed10_50ep/formal_cnn_lstm_attention,4,6,0.225119,0.386217,12.509543,-85.610947,0.305668
+seed_11,tmp/formal_cnn_seed11_50ep/formal_cnn_lstm_attention,1,6,0.254076,0.362136,-20.879938,-17.351801,0.308106
+seed_2,tmp/formal_cnn_seed2_50ep/formal_cnn_lstm_attention,1,6,0.267022,0.350264,-8.954947,-26.110486,0.308643
+seed_9,tmp/formal_cnn_seed9_50ep/formal_cnn_lstm_attention,2,6,0.198347,0.431115,-0.47669,-22.677841,0.314731
+seed_1,tmp/formal_cnn_seed1_50ep/formal_cnn_lstm_attention,3,6,0.227645,0.41263,5.075096,-45.283082,0.320138
+seed_2026,tmp/formal_cnn_seed2026_50ep/formal_cnn_lstm_attention,1,6,0.27816,0.428727,-10.210988,-20.194386,0.353443

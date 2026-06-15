@@ -63,6 +63,7 @@ class BaseTrainer:
         num_workers: int = 0,
         gradient_clip_norm: float = 5.0,
         shuffle_train: bool = True,
+        loss_name: str = "smooth_l1",
     ) -> None:
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         self.callbacks = callbacks or []
@@ -73,6 +74,7 @@ class BaseTrainer:
         self.num_workers = num_workers
         self.gradient_clip_norm = gradient_clip_norm
         self.shuffle_train = shuffle_train
+        self.loss_name = loss_name.strip().lower()
         self.experiment_tracker = experiment_tracker
         self.model: nn.Module | None = None
         self.should_stop = False
@@ -235,6 +237,8 @@ class BaseTrainer:
     def _build_criterion(self, task_type: str) -> nn.Module:
         if task_type == "classification":
             return nn.CrossEntropyLoss()
+        if self.loss_name in {"mse", "mse_loss", "mean_squared_error"}:
+            return nn.MSELoss()
         return nn.SmoothL1Loss()
 
     def _compute_loss(
@@ -267,4 +271,3 @@ class BaseTrainer:
 
         if self.experiment_tracker is not None:
             self.experiment_tracker.log_alert(alert_record)
-

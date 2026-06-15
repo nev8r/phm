@@ -1,6 +1,5 @@
-dataset_name,entity_id,data_source,model_name,rmse,normalized_rmse,huang_rul_score,prediction_count,epoch_count
-XJTU-SY,Bearing1_5,real_or_provided_files,CNN-LSTM-AM,406.302219,0.615609,29.001612,11,8
-XJTU-SY,Bearing1_5,real_or_provided_files,CNN-LSTM,406.502698,0.615913,29.127879,11,8
-PHM2012,Bearing3_1,real_or_provided_files,CNN-LSTM-AM,651.035522,0.591850,29.447255,11,8
-PHM2012,Bearing3_1,real_or_provided_files,CNN-LSTM,650.699666,0.591545,29.098391,11,8
-
+dataset_name,condition_name,data_source,model_name,rmse,normalized_rmse,huang_rul_score,prediction_count,epoch_count,train_sequence_count,test_sequence_count,rmse_reduction_pct
+XJTU-SY,condition_1_35Hz12kN,real_or_provided_files,CNN-LSTM-AM,0.146543107499314,0.146543107499314,0.7924119495359802,92,50,324,92,18.86671779014966
+XJTU-SY,condition_1_35Hz12kN,real_or_provided_files,CNN-LSTM,0.1806202134412384,0.1806202134412384,1.3964876055099726,92,50,324,92,
+PHM2012,condition_1,real_or_provided_files,CNN-LSTM-AM,0.1668403705894429,0.2222282817419429,1.5952905554501595,92,50,184,92,10.108533815108425
+PHM2012,condition_1,real_or_provided_files,CNN-LSTM,0.185602012816523,0.247218441497947,1.8225121797295971,92,50,184,92,

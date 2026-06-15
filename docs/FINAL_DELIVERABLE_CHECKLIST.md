@@ -54,8 +54,9 @@ uv run python scripts/generate_final_ppt.py
 
 | 验收项 | 最近结果 |
 | --- | --- |
-| Focused 测试 | `20 passed in 6.95s` |
-| 全量测试 | `31 passed in 8.53s` |
+| Focused 测试 | `20 passed in 4.26s` |
+| notebook 测试 | `4 passed in 27.57s` |
+| 全量测试 | `39 passed in 28.93s` |
 | 网页 PPT 校验 | `Swiss deck validation passed: 16 slide(s)` |
 | 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 16 份 PDF + 16 份 DOCX |
 | 论文复现证据 | 真实训练输出位于本机 `tmp/`，提交包保留 `docs/reproduction-evidence` 摘要 |

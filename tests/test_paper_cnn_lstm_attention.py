@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 import torch
 
 from USTC.SSE.BearingPrediction.api import (
@@ -161,6 +162,14 @@ def test_paper_reproduction_workflow_trains_two_datasets_and_attention_baseline(
     assert comparison_frame["huang_rul_score"].notna().all()
     assert comparison_frame["normalized_rmse"].notna().all()
     assert (comparison_frame["epoch_count"] == 1).all()
+    assert comparison_frame.loc[
+        comparison_frame["model_name"] == "CNN-LSTM-AM",
+        "rmse_reduction_pct",
+    ].notna().all()
+    assert comparison_frame.loc[
+        comparison_frame["model_name"] == "CNN-LSTM",
+        "rmse_reduction_pct",
+    ].isna().all()
     assert Path(result["comparison_path"]).exists()
     assert result["used_dataset_count"] == 2
     assert result["trained_model_count"] == 4
@@ -175,3 +184,28 @@ def test_paper_reproduction_workflow_trains_two_datasets_and_attention_baseline(
         if run_summary["model_name"] == "CNN-LSTM-AM":
             assert len(attention_frame) == run_summary["prediction_count"]
         assert Path(run_summary["history_path"]).exists()
+
+
+def test_paper_reproduction_require_real_data_rejects_demo_roots(tmp_path: Path) -> None:
+    xjtu_root = create_demo_xjtu_dataset(tmp_path / "input_data", sample_count=12, signal_length=128)
+    phm_root = create_demo_phm2012_dataset(tmp_path / "input_data", sample_count=12, signal_length=128)
+
+    with pytest.raises(ValueError, match="official-scale real dataset root"):
+        run_paper_cnn_lstm_attention_reproduction(
+            xjtu_root=xjtu_root,
+            phm2012_root=phm_root,
+            max_samples_per_entity=12,
+            prefer_real_data=True,
+            require_real_data=True,
+        )
+
+
+def test_paper_reproduction_require_real_data_rejects_missing_roots(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        run_paper_cnn_lstm_attention_reproduction(
+            xjtu_root=tmp_path / "missing-xjtu",
+            phm2012_root=tmp_path / "missing-phm2012",
+            max_samples_per_entity=12,
+            prefer_real_data=True,
+            require_real_data=True,
+        )
