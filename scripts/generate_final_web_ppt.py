@@ -296,12 +296,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S04" data-animate="grid-reveal">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">项目目标与交付物</div>
+      <div class="l">项目目标和交付内容</div>
       <div class="r">02 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">本次答辩重点放在数据理解、工程实现和验收证据</div>
-      <h2 class="page-title">把真实轴承振动数据转成可复现的 RUL 预测流程。</h2>
+      <div class="t-meta">本次答辩重点：数据理解、系统实现、论文复现和验收证据</div>
+      <h2 class="page-title">一个可运行的轴承 RUL 预测系统。</h2>
     </div>
     <div class="course-grid-6" data-anim="up">
       <article class="course-cell accent"><div class="num">01</div><div class="ttl">任务定义</div><p class="desc">估计设备还能稳定运行多久，输出连续剩余寿命。</p></article>
@@ -342,12 +342,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S08" data-animate="duo-mirror">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">数据来源与时间语义</div>
+      <div class="l">两个数据集</div>
       <div class="r">04 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">两个真实退化数据集；一个偏全寿命连续采样，一个带竞赛 Learning / Test 语义</div>
-      <h2 class="page-title">数据不是文件列表，而是带时间顺序的退化过程。</h2>
+      <div class="t-meta">两个真实轴承数据集的采样方式和 RUL 标签来源不同</div>
+      <h2 class="page-title">两个数据集的时间组织方式。</h2>
     </div>
     <div class="duo-compare" data-anim="up" style="margin-top:5vh">
       <div class="col accent">
@@ -424,8 +424,8 @@ SLIDES = f"""
       <div class="r">07 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">同一指标在不同工况和不同轴承上的变化幅度并不相同</div>
-      <h2 class="page-title small">特征分析不能只依赖一条代表曲线。</h2>
+      <div class="t-meta">代表曲线说明趋势，多轴承统计说明差异</div>
+      <h2 class="page-title small">多轴承特征摘要。</h2>
     </div>
     <div class="figure-board" data-anim="up">
       <div class="figure-frame">
@@ -443,12 +443,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S16" data-animate="field-notes">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">特征工程与 RUL 标签构造</div>
+      <div class="l">19 维特征与 RUL 标签</div>
       <div class="r">08 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">14 个时域特征 + 5 个频域特征</div>
-      <h2 class="page-title">19 维特征让长振动片段变得可解释、可训练。</h2>
+      <h2 class="page-title">19 维特征与 RUL 标签。</h2>
     </div>
     <div class="feature-board" data-anim="up">
       <div class="feature-list">
@@ -473,8 +473,8 @@ SLIDES = f"""
       <div class="r">09 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">从数据读取到结果输出，按真实数据流组织模块</div>
-      <h2 class="page-title small">架构图对应源码模块，不只是概念分层。</h2>
+      <div class="t-meta">从数据读取、特征构造到训练评价的模块关系</div>
+      <h2 class="page-title small">系统总体架构。</h2>
     </div>
     <div class="figure-board" data-anim="up">
       <div class="figure-frame">
@@ -496,8 +496,8 @@ SLIDES = f"""
       <div class="r">10 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">同一个模型训练流程，不能依赖某个数据集的目录习惯</div>
-      <h2 class="page-title">解决办法是把差异收在 loader 层。</h2>
+      <div class="t-meta">XJTU-SY 和 PHM2012 的目录、时间间隔和标签来源不同</div>
+      <h2 class="page-title">数据集差异由 loader 统一处理。</h2>
     </div>
     <div class="difficulty-grid" data-anim="up">
       <div class="difficulty-col">
@@ -516,12 +516,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S11" data-animate="timeline-walk">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">难点二：信号到序列特征</div>
+      <div class="l">难点二：特征序列构造</div>
       <div class="r">11 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">原始振动快照太长，直接输入不适合课程范围内的稳定复现</div>
-      <h2 class="page-title">模型看到的是一段连续变化，而不是孤立的一个点。</h2>
+      <div class="t-meta">每个快照先提取特征，再按时间顺序组成输入序列</div>
+      <h2 class="page-title">从振动快照到特征序列。</h2>
     </div>
     <div class="sequence-table" data-anim="up">
       <div class="sequence-cell"><div class="top">01</div><div class="main">Raw snapshot</div><div class="sub">32768 或 2560 个振动点</div></div>
@@ -541,7 +541,7 @@ SLIDES = f"""
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">选择标准：数据集匹配、结构可实现、指标可复查</div>
-      <h2 class="page-title small">两篇论文分别覆盖 attention 路线和跨工况 Transformer 路线。</h2>
+      <h2 class="page-title small">两篇 RUL 论文的选择依据。</h2>
     </div>
     <div class="paper-choice-grid" data-anim="up">
       <article class="paper-card accent">
@@ -563,12 +563,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S11" data-animate="timeline-walk">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">复现实验怎么做</div>
+      <div class="l">复现实验步骤</div>
       <div class="r">13 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">对齐论文输入组织、模型结构、baseline、划分和指标口径</div>
-      <h2 class="page-title small">复现定义为工程 workflow 复现，不声明作者源码级数值重现。</h2>
+      <div class="t-meta">对齐输入组织、模型结构、baseline、数据划分和指标口径</div>
+      <h2 class="page-title small">复现实验的执行步骤。</h2>
     </div>
     <div class="rul-flow" data-anim="up">
       <div class="rul-step"><div class="num">01</div><div class="ttl">读取真实数据</div><div class="txt">优先从 data/external 读取 XJTU-SY 与 PHM2012。</div></div>
@@ -584,12 +584,12 @@ SLIDES = f"""
 <section class="slide" data-layout="S20" data-animate="stacked-ledger">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">评价指标与实验结果解释</div>
+      <div class="l">指标和结果</div>
       <div class="r">14 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">8 epoch；CNN-LSTM-AM 每数据集抽样 48 快照，xLSTM-Transformer 每轴承抽样 16 快照</div>
-      <h2 class="page-title small">指标已复现输出；单次短训练不当作最终性能结论。</h2>
+      <h2 class="page-title small">复现指标与结果边界。</h2>
     </div>
     <div class="result-table" data-anim="up">
       <div class="head">实验</div><div class="head">数据集</div><div class="head">模型</div><div class="head">RMSE</div><div class="head">Huang Score</div>
@@ -653,8 +653,8 @@ SLIDES = f"""
         </div>
         <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.18em;margin-bottom:1.6vh">结题结论</div>
-          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.5vw,11.3vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">三条证据链，支撑一个 RUL 系统。</h2>
-          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">真实文件到统一实体，快照信号到特征序列，真实训练到预测文件和测试报告。</div>
+          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.5vw,11.3vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">成果、边界和后续工作。</h2>
+          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">系统链路已经跑通；当前复现仍受小样本、短训练和单次实验限制。</div>
         </div>
         <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.62)">谢谢老师和同学</div>
