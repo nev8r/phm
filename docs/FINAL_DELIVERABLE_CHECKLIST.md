@@ -31,6 +31,7 @@
 | 模型与实验设计说明 | `docx/final/25_模型与实验设计说明.pdf` | 已完成 |
 | 验证证据与追踪矩阵 | `docx/final/26_验证证据与追踪矩阵.pdf` | 已完成 |
 | 生存分析与失效概率范围说明 | `docx/final/27_生存分析与失效概率范围说明.pdf` | 已完成 |
+| 指标驱动实验结果说明与 RUL 改进任务书 | `docx/final/28_指标驱动RUL改进任务书.pdf`、`docs/project-owner/08_指标驱动实验结果说明.md` | 已完成 |
 | 结题答辩 PPT（推荐） | `docx/final/web-ppt/index.html` | 已完成 |
 | 结题答辩 PPT（备用） | `docx/final/工业轴承设备剩余寿命预测系统的实现-结题答辩.pptx` | 已完成 |
 | 用户示例 | `examples/*.ipynb` | 已完成 |
@@ -58,7 +59,7 @@ uv run python scripts/generate_final_ppt.py
 | notebook 测试 | `4 passed in 27.57s` |
 | 全量测试 | `39 passed in 28.93s` |
 | 网页 PPT 校验 | `Swiss deck validation passed: 16 slide(s)` |
-| 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 16 份 PDF + 16 份 DOCX |
+| 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 17 份 PDF + 17 份 DOCX |
 | 论文复现证据 | 真实训练输出位于本机 `tmp/`，提交包保留 `docs/reproduction-evidence` 摘要 |
 
 ## 归档建议
