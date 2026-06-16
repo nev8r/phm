@@ -242,7 +242,7 @@ class SotaEvidenceBuilder:
                     "experiment_name": row["experiment_name"],
                     "dataset_name": row["dataset_name"],
                     "condition_name": row["condition_name"],
-                    "feature_backend": "formal_19_feature_sequence",
+                    "feature_backend": self._feature_backend_for_row(row),
                     "model_backend": row["local_method_name"],
                     "target_method": row["method_name"],
                     "metric_name": row["metric_name"],
@@ -287,7 +287,7 @@ class SotaEvidenceBuilder:
             "target_path": self._display_path(target_path),
             "reproduction_path": self._display_path(reproduction_path),
             "metric_driven_path": self._display_path(metric_driven_path),
-            "pass_count": int((reproduction["status"] == "PASS").sum()),
+            "pass_count": int(reproduction["status"].astype(str).str.endswith("PASS").sum()),
             "needs_optimization_count": int((reproduction["status"] == "NEEDS_OPTIMIZATION").sum()),
             "blocked_count": int(reproduction["status"].astype(str).str.startswith("BLOCKED").sum()),
         }
@@ -402,7 +402,11 @@ class SotaEvidenceBuilder:
             if target_id in reproduced_target_ids:
                 continue
             target = targets[target_id]
-            status = "BLOCKED_EXTERNAL_ENV" if target.reproducibility_status != "open_source_data_layer" else "REFERENCE_ONLY"
+            status = (
+                "REFERENCE_ONLY"
+                if target.source_type == "paper_reference_only" or target.reproducibility_status.startswith("reference_only")
+                else "BLOCKED_EXTERNAL_ENV"
+            )
             records.append(
                 self._blocked_record(
                     target,
@@ -431,7 +435,7 @@ class SotaEvidenceBuilder:
             local_value=float("nan"),
             local_mean=float("nan"),
             local_std=float("nan"),
-            run_count=1,
+            run_count=0,
             seeds="not_run",
             prediction_count=0,
             evidence_path="not_available",
@@ -461,6 +465,15 @@ class SotaEvidenceBuilder:
                 frame["r2"] = frame["r2_score"]
             frames.append((Path("docs/reproduction-evidence/xlstm_transformer_comparison_summary.csv"), frame))
         return frames
+
+    @staticmethod
+    def _feature_backend_for_row(row: dict[str, object]) -> str:
+        status = str(row["status"])
+        if status.startswith("BLOCKED") or status == "REFERENCE_ONLY":
+            return "not_run"
+        if str(row["local_method_name"]) == "RULSurv RSF port":
+            return "rulsurv_two_channel_time_frequency_elapsed"
+        return "formal_19_feature_sequence"
 
     def _display_path(self, path: Path) -> str:
         try:

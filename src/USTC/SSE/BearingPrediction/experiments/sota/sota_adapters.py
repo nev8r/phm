@@ -205,6 +205,7 @@ class RulSurvRsfPortAdapter:
 
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         dataset = self._build_condition_frame()
+        audit_frame = self._build_snapshot_audit_frame(dataset)
         original_metrics, original_predictions = self._run_original_cv(dataset, RandomSurvivalForest, Surv)
         holdout_metrics, holdout_predictions = self._run_project_holdout(dataset, RandomSurvivalForest, Surv)
 
@@ -215,15 +216,18 @@ class RulSurvRsfPortAdapter:
         metrics_path = self.config.output_dir / "rulsurv_rsf_port_metrics.csv"
         predictions_path = self.config.output_dir / "rulsurv_rsf_port_predictions.csv"
         summary_path = self.config.output_dir / "rulsurv_rsf_port_summary.csv"
+        audit_path = self.config.output_dir / "rulsurv_rsf_port_snapshot_audit.csv"
         config_path = self.config.output_dir / "rulsurv_rsf_port_config.json"
         metrics_frame.to_csv(metrics_path, index=False)
         predictions_frame.to_csv(predictions_path, index=False)
         summary_frame.to_csv(summary_path, index=False)
+        audit_frame.to_csv(audit_path, index=False)
         config_path.write_text(json.dumps(self._json_ready_config(), ensure_ascii=False, indent=2), encoding="utf-8")
         return {
             "metrics_path": self._display_path(metrics_path),
             "predictions_path": self._display_path(predictions_path),
             "summary_path": self._display_path(summary_path),
+            "audit_path": self._display_path(audit_path),
             "config_path": self._display_path(config_path),
         }
 
@@ -350,7 +354,9 @@ class RulSurvRsfPortAdapter:
     def _build_condition_frame(self) -> pd.DataFrame:
         frames = [self._bearing_feature_frame(bearing_id) for bearing_id in ("Bearing1_1", "Bearing1_2", "Bearing1_3", "Bearing1_4", "Bearing1_5")]
         condition_frame = pd.concat(frames, ignore_index=True)
-        condition_frame = condition_frame[condition_frame["TrueTime"] > 1.0].reset_index(drop=True)
+        # Exclude only the failure instant (TTE = 0). Positive one-minute RUL
+        # snapshots remain valid survival samples and should not be dropped.
+        condition_frame = condition_frame[condition_frame["TrueTime"] > 0.0].reset_index(drop=True)
         self._condition_frame = condition_frame
         return condition_frame
 
@@ -435,8 +441,9 @@ class RulSurvRsfPortAdapter:
         censored = dataset.copy()
         samples_to_censor = censored.sample(frac=self.config.censoring_level, random_state=0).index
         for row_index in samples_to_censor:
-            survival_time = int(max(2, censored.loc[row_index, "Survival_time"]))
-            censored.loc[row_index, "Survival_time"] = int(rng.integers(1, survival_time))
+            survival_time = int(max(1, censored.loc[row_index, "Survival_time"]))
+            censored_time = int(rng.integers(0, survival_time)) if survival_time > 1 else 1
+            censored.loc[row_index, "Survival_time"] = max(1, censored_time)
             censored.loc[row_index, "Event"] = False
         return censored
 
@@ -487,11 +494,12 @@ class RulSurvRsfPortAdapter:
             local_mean = float(seed_means.mean())
             local_std = float(seed_means.std(ddof=0))
             split_description = (
-                "RULSurv-compatible XJTU-SY condition 1 row-level 5-fold CV with 25% random censoring"
+                "RULSurv-compatible XJTU-SY condition 1 row-level 5-fold CV with 25% random censoring; "
+                "rows from the same bearing can appear in different folds, so this is not a held-out-bearing generalization split"
                 if protocol == "rulsurv_original_25pct_censored_cv"
                 else "Project migration split: train Bearing1_1/Bearing1_2/Bearing1_4/Bearing1_5, test Bearing1_3"
             )
-            status = "PASS" if calculate_gap_percent(
+            status = "PROTOCOL_PASS" if protocol == "rulsurv_original_25pct_censored_cv" and calculate_gap_percent(
                 local_value=local_mean,
                 target_value=self.config.target_true_mae_minutes,
                 higher_is_better=False,
@@ -522,7 +530,8 @@ class RulSurvRsfPortAdapter:
                     "status": status,
                     "notes": (
                         "Local Python 3.11 port of the RULSurv RSF route using RULSurv-style time/frequency features. "
-                        "Original repo dependencies are not vendored; scikit-survival is supplied at run time with uv --with."
+                        "Original repo dependencies are not vendored; scikit-survival is supplied at run time with uv --with. "
+                        "Interpret the original-protocol CV separately from the project holdout migration result."
                     ),
                 }
             )
@@ -530,6 +539,40 @@ class RulSurvRsfPortAdapter:
 
     def _row_values(self, column_name: str, row_index: np.ndarray) -> np.ndarray:
         return self._condition_frame.loc[row_index, column_name].to_numpy()
+
+    def _build_snapshot_audit_frame(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        records = []
+        for bearing_id in ("Bearing1_1", "Bearing1_2", "Bearing1_3", "Bearing1_4", "Bearing1_5"):
+            bearing_dir = self.config.xjtu_root / self.config.condition_dir / bearing_id
+            raw_snapshot_count = len(list(bearing_dir.glob("*.csv")))
+            used_snapshot_count = int((dataset["bearing_id"] == bearing_id).sum())
+            records.append(
+                {
+                    "dataset_name": "XJTU-SY",
+                    "condition_name": self.config.condition_dir,
+                    "bearing_id": bearing_id,
+                    "raw_snapshot_count": raw_snapshot_count,
+                    "used_snapshot_count": used_snapshot_count,
+                    "excluded_snapshot_count": raw_snapshot_count - used_snapshot_count,
+                    "exclusion_reason": "Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.",
+                    "uses_sampling_cap": False,
+                }
+            )
+        total_raw = sum(int(record["raw_snapshot_count"]) for record in records)
+        total_used = sum(int(record["used_snapshot_count"]) for record in records)
+        records.append(
+            {
+                "dataset_name": "XJTU-SY",
+                "condition_name": self.config.condition_dir,
+                "bearing_id": "TOTAL",
+                "raw_snapshot_count": total_raw,
+                "used_snapshot_count": total_used,
+                "excluded_snapshot_count": total_raw - total_used,
+                "exclusion_reason": "One TTE=0 failure instant per bearing is excluded.",
+                "uses_sampling_cap": False,
+            }
+        )
+        return pd.DataFrame.from_records(records)
 
     @staticmethod
     def _one_sided_fft(values: np.ndarray) -> np.ndarray:

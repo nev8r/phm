@@ -154,12 +154,49 @@ def test_evidence_builder_includes_rulsurv_rsf_port_reproduction() -> None:
     assert original_protocol["local_method_name"] == "RULSurv RSF port"
     assert original_protocol["source_commit"] == "6365e0832de9724a5bcbbac4557c6643dfb78d91"
     assert original_protocol["run_count"] >= 3
-    assert original_protocol["prediction_count"] >= 600
+    assert original_protocol["prediction_count"] == 611
     assert original_protocol["local_mean"] <= original_protocol["target_value"]
-    assert original_protocol["status"] == "PASS"
+    assert original_protocol["status"] == "PROTOCOL_PASS"
 
     project_holdout = rulsurv_rows.loc[
         rulsurv_rows["experiment_name"] == "RULSurv-RSF-port-project_bearing1_3_holdout_migration"
     ].iloc[0]
     assert project_holdout["run_count"] >= 3
+    assert project_holdout["prediction_count"] == 157
     assert project_holdout["status"] == "NEEDS_OPTIMIZATION"
+
+    blocked_rows = reproduction_frame.loc[reproduction_frame["status"].astype(str).str.startswith("BLOCKED")]
+    assert (blocked_rows["run_count"] == 0).all()
+
+    rgpd_reference = reproduction_frame.loc[
+        reproduction_frame["target_id"] == "rgpd-phm2012-reference-rmse"
+    ].iloc[0]
+    assert rgpd_reference["status"] == "REFERENCE_ONLY"
+    assert rgpd_reference["run_count"] == 0
+
+    metric_summary = builder.build_metric_driven_summary(reproduction_frame)
+    non_run_metric_rows = metric_summary.loc[
+        metric_summary["status"].astype(str).str.startswith("BLOCKED")
+        | (metric_summary["status"] == "REFERENCE_ONLY")
+    ]
+    assert (non_run_metric_rows["feature_backend"] == "not_run").all()
+
+
+def test_rulsurv_snapshot_audit_proves_full_condition_usage() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    audit_path = project_root / "docs" / "reproduction-evidence" / "rulsurv_rsf_port" / "rulsurv_rsf_port_snapshot_audit.csv"
+    audit_frame = pd.read_csv(audit_path)
+
+    expected_counts = {
+        "Bearing1_1": (123, 122),
+        "Bearing1_2": (161, 160),
+        "Bearing1_3": (158, 157),
+        "Bearing1_4": (122, 121),
+        "Bearing1_5": (52, 51),
+        "TOTAL": (616, 611),
+    }
+    for bearing_id, (raw_count, used_count) in expected_counts.items():
+        row = audit_frame.loc[audit_frame["bearing_id"] == bearing_id].iloc[0]
+        assert row["raw_snapshot_count"] == raw_count
+        assert row["used_snapshot_count"] == used_count
+        assert row["uses_sampling_cap"] in {False, "False"}

@@ -316,13 +316,15 @@ def validate_reproduction_frame(reproduction_frame: pd.DataFrame, *, min_run_cou
         for column_name in ["target_id", "experiment_name", "local_method_name", "source_url", "evidence_path", "status"]:
             if pd.isna(row[column_name]) or str(row[column_name]).strip() == "":
                 raise ValueError(f"{column_name} is required for reproduction row {row_index}")
-        if int(row["run_count"]) < min_run_count:
-            raise ValueError(f"run_count must be at least {min_run_count} for reproduction row {row_index}")
         if int(row["prediction_count"]) < 0:
             raise ValueError(f"prediction_count must be non-negative for reproduction row {row_index}")
         status = str(row["status"])
         if status.startswith("BLOCKED") or status == "REFERENCE_ONLY":
+            if int(row["run_count"]) != 0:
+                raise ValueError(f"run_count must be 0 for non-run reproduction row {row_index}")
             continue
+        if int(row["run_count"]) < min_run_count:
+            raise ValueError(f"run_count must be at least {min_run_count} for reproduction row {row_index}")
         for column_name in ["target_value", "local_value", "local_mean", "gap_percent", "mean_gap_percent"]:
             if pd.isna(row[column_name]):
                 raise ValueError(f"{column_name} must be numeric for reproduction row {row_index}")

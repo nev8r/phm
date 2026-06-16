@@ -61,7 +61,7 @@ uv run python scripts/generate_final_ppt.py
 | 网页 PPT 校验 | `Swiss deck validation passed: 16 slide(s)` |
 | 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 17 份 PDF + 17 份 DOCX |
 | 论文复现证据 | 真实训练输出位于本机 `tmp/`，提交包保留 `docs/reproduction-evidence` 摘要 |
-| Open-Source SOTA 对照 | target/gap 表已生成；RULSurv RSF port 原协议 mean true MAE `10.273811` min，优于 target `12.6` min；AutoRUL/GNN/Weibull 仍为后续硬门槛 |
+| Open-Source SOTA 对照 | target/gap 表已生成；RULSurv RSF port 原协议 row-level CV mean true MAE `10.244649` min，低于 target `12.6` min，状态 `PROTOCOL_PASS`；该结果不等价于 held-out-bearing 泛化，AutoRUL/GNN/Weibull 仍为后续硬门槛 |
 
 ## 归档建议
 

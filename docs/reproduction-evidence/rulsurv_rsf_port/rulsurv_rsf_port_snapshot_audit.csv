@@ -1,0 +1,7 @@
+dataset_name,condition_name,bearing_id,raw_snapshot_count,used_snapshot_count,excluded_snapshot_count,exclusion_reason,uses_sampling_cap
+XJTU-SY,35Hz12kN,Bearing1_1,123,122,1,Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.,False
+XJTU-SY,35Hz12kN,Bearing1_2,161,160,1,Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.,False
+XJTU-SY,35Hz12kN,Bearing1_3,158,157,1,Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.,False
+XJTU-SY,35Hz12kN,Bearing1_4,122,121,1,Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.,False
+XJTU-SY,35Hz12kN,Bearing1_5,52,51,1,Only TTE=0 failure instant is excluded; all positive-RUL snapshots are used.,False
+XJTU-SY,35Hz12kN,TOTAL,616,611,5,One TTE=0 failure instant per bearing is excluded.,False

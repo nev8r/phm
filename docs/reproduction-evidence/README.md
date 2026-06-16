@@ -82,7 +82,7 @@ PY
 
 - Feature-Transformer 在 XJTU-SY condition 1 上 repeated mean normalized RMSE 为 `0.096967`，对目标 `0.0885` 的 mean gap 为 `9.57%`，达到接近强基线门槛。
 - XLSTM-Transformer best observed normalized RMSE 为 `0.064558`，对目标 `0.0583` 的 best gap 为 `10.73%`，但 repeated mean gap 为 `73.40%`，仍需优化。
-- RULSurv RSF port 已完成：在 RULSurv-compatible 25% censored 5-fold CV 上，3 seeds mean true MAE 为 `10.273811` min，优于 target `12.6` min；在本项目 Bearing1_3 holdout migration 上 mean true MAE 为 `19.510684` min，仍需优化。
+- RULSurv RSF port 已完成：读取 XJTU-SY `35Hz12kN` 工况 5 个轴承的 616 个原始 csv 快照，入模 611 个正 RUL 快照样本，仅排除每个轴承 `TTE=0` 的失效瞬间；在 RULSurv-compatible 25% censored row-level 5-fold CV 上，3 seeds mean true MAE 为 `10.244649` min，优于 target `12.6` min。该 row-level CV 可能把同一 bearing 的不同时间点分入不同 fold，因此不等价于 held-out-bearing 泛化；在本项目 Bearing1_3 holdout migration 上 mean true MAE 为 `19.244161` min，仍需优化。
 - AutoRUL、GNN_RUL_Benchmarking 与 Weibull KIML 已锁定为 open-source SOTA/强基线 target，但当前仓库未在兼容外部环境中重跑，不能宣称这些路线已完成。
 
 生成命令：

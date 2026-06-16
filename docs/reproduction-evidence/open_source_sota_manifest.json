@@ -4,5 +4,5 @@
   "metric_driven_path": "docs/reproduction-evidence/metric_driven_comparison_summary.csv",
   "pass_count": 2,
   "needs_optimization_count": 2,
-  "blocked_count": 4
+  "blocked_count": 3
 }
