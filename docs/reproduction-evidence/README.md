@@ -65,3 +65,29 @@ print(result["comparison_path"])
 print(result["paper_reference_path"])
 PY
 ```
+
+## Open-Source SOTA 对照
+
+`next goal.md` 升级后，本目录新增 open-source SOTA 目标锁定和 gap 证据：
+
+| 文件 | 说明 |
+| --- | --- |
+| `open_source_sota_survey.md` | RULSurv、GNN_RUL_Benchmarking、rul-datasets/rul-adapt、RGPD reference 的调研与裁定 |
+| `open_source_sota_targets.csv` | 结构化 target 表，包含 repo URL、commit、split、metric 和目标值 |
+| `open_source_sota_reproduction_summary.csv` | 本地 formal 结果与 target 的 gap 表，blocked 外部 target 不填假指标 |
+| `metric_driven_comparison_summary.csv` | 指标驱动汇总表，用于答辩说明 |
+| `rulsurv_rsf_port/` | RULSurv RSF port 的 config、metrics、predictions 和 summary |
+
+当前状态：
+
+- Feature-Transformer 在 XJTU-SY condition 1 上 repeated mean normalized RMSE 为 `0.096967`，对目标 `0.0885` 的 mean gap 为 `9.57%`，达到接近强基线门槛。
+- XLSTM-Transformer best observed normalized RMSE 为 `0.064558`，对目标 `0.0583` 的 best gap 为 `10.73%`，但 repeated mean gap 为 `73.40%`，仍需优化。
+- RULSurv RSF port 已完成：在 RULSurv-compatible 25% censored 5-fold CV 上，3 seeds mean true MAE 为 `10.273811` min，优于 target `12.6` min；在本项目 Bearing1_3 holdout migration 上 mean true MAE 为 `19.510684` min，仍需优化。
+- AutoRUL、GNN_RUL_Benchmarking 与 Weibull KIML 已锁定为 open-source SOTA/强基线 target，但当前仓库未在兼容外部环境中重跑，不能宣称这些路线已完成。
+
+生成命令：
+
+```bash
+uv run --with scikit-survival python scripts/run_rulsurv_rsf_port.py
+uv run python scripts/run_open_source_sota_evidence.py
+```

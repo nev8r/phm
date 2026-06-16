@@ -1,0 +1,8 @@
+{
+  "target_path": "docs/reproduction-evidence/open_source_sota_targets.csv",
+  "reproduction_path": "docs/reproduction-evidence/open_source_sota_reproduction_summary.csv",
+  "metric_driven_path": "docs/reproduction-evidence/metric_driven_comparison_summary.csv",
+  "pass_count": 2,
+  "needs_optimization_count": 2,
+  "blocked_count": 4
+}

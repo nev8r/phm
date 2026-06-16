@@ -1,0 +1,26 @@
+{
+  "xjtu_root": "data/external/xjtu/extracted/XJTU-SY_Bearing_Datasets",
+  "output_dir": "docs/reproduction-evidence/rulsurv_rsf_port",
+  "condition_dir": "35Hz12kN",
+  "target_id": "rulsurv-xjtu-high-rsf-true-mae",
+  "source_url": "https://github.com/thecml/rulsurv",
+  "source_commit": "6365e0832de9724a5bcbbac4557c6643dfb78d91",
+  "target_true_mae_minutes": 12.6,
+  "censoring_level": 0.25,
+  "n_splits": 5,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "n_estimators": 200,
+  "min_samples_leaf": 20,
+  "max_depth": 7,
+  "train_bearings": [
+    "Bearing1_1",
+    "Bearing1_2",
+    "Bearing1_4",
+    "Bearing1_5"
+  ],
+  "test_bearing": "Bearing1_3"
+}
