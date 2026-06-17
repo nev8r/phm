@@ -301,7 +301,7 @@ SLIDES = f"""
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">本次答辩重点：需求分析、数据集介绍、项目架构、特征分析、训练展示和不足边界</div>
-      <h2 class="page-title">项目交付了一条可复查的 RUL 流程。</h2>
+      <h2 class="page-title">项目目标和交付内容</h2>
     </div>
     <div class="course-grid-6" data-anim="up">
       <article class="course-cell accent"><div class="num">01</div><div class="ttl">任务定义</div><p class="desc">估计设备还能稳定运行多久，输出连续剩余寿命。</p></article>
@@ -460,7 +460,7 @@ SLIDES = f"""
       <div class="feature-compact">
         <div class="t-meta" style="color:var(--accent);margin-bottom:2vh">Labeling</div>
         <div class="mono">snapshot → 14 time + 5 frequency features<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>Health indicator = RMS + kurtosis + crest + energy</div>
-        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">tsfresh 已完成 train-only 筛选，但相关性整体偏弱；top correlation 约 0.200994，只作为自动特征分析旁证。</p>
+        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">tsfresh 已完成 Minimal/Efficient train-only 筛选、held-out baseline 和 manual+tsfresh 融合验证；RF 仍弱于 Rocket，只作为自动特征分析旁证。</p>
       </div>
     </div>
   </div>
@@ -618,13 +618,14 @@ SLIDES = f"""
     </div>
     <div class="result-table" data-anim="up">
       <div class="head">路线</div><div class="head">当前结果</div><div class="head">状态</div><div class="head">边界</div><div class="head">答辩口径</div>
-      <div>tsfresh</div><div>selected RF NRMSE 0.315629</div><div class="accent">RUN_RECORDED</div><div>相关性整体偏弱</div><div>自动特征分析旁证</div>
+      <div>tsfresh Minimal</div><div>selected RF NRMSE 0.315629</div><div class="accent">RUN_RECORDED</div><div>top corr 0.200994</div><div>自动特征分析旁证</div>
+      <div>tsfresh Efficient</div><div>selected RF 0.318682；manual+selected 0.319927</div><div class="accent">RUN_RECORDED</div><div>top corr 0.424468</div><div>不是核心突破</div>
       <div>sktime RocketRegressor</div><div>held-out NRMSE 0.263706</div><div>RUN_RECORDED</div><div>项目 split baseline</div><div>优于 tsfresh RF</div>
       <div>RULSurv row-level</div><div>true MAE 6.926416 min</div><div>PROTOCOL_PASS</div><div>非 held-out bearing</div><div>原协议近似复现</div>
       <div>RULSurv held-out</div><div>true MAE 14.307856 min</div><div>MIGRATION_PASS</div><div>survival_probability=0.25 保守解码</div><div>项目迁移策略</div>
       <div>外部 SOTA</div><div>AutoRUL / GNN / Weibull source pin + 依赖 probe</div><div>未重跑</div><div>尚未在本地跑出指标</div><div>后续强基线目标</div>
     </div>
-    <div class="difficulty-card accent" data-anim="foot" style="margin-top:3vh"><h3>一句话底线</h3><p>外部 SOTA 未本地重跑；tsfresh 相关性整体偏弱；RULSurv held-out pass 是 survival_probability=0.25 的保守解码迁移结果。</p></div>
+    <div class="difficulty-card accent" data-anim="foot" style="margin-top:3vh"><h3>一句话底线</h3><p>外部 SOTA 未本地重跑；tsfresh 已做 Minimal/Efficient 与 manual+tsfresh，但不是核心突破；RULSurv held-out pass 是 survival_probability=0.25 的保守解码迁移结果。</p></div>
   </div>
 </section>
 
@@ -693,7 +694,7 @@ SLIDES = f"""
           <div class="closing-item"><div class="n">25%</div><div><h3>cyy：数据处理与特征工程</h3><p>两个数据集 loader、时频域特征、样本组织和数据文档。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zdh：分析与评价支持</h3><p>概率分析基础能力、评价支持、测试报告和确认测试材料。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zy：可视化与文档</h3><p>可视化页面、用户手册、安装手册和答辩材料。</p></div></div>
-          <div class="closing-item accent"><div class="n">Next</div><div><h3>边界与后续</h3><p>外部 SOTA 未重跑；tsfresh 弱相关；RULSurv held-out 是 0.25 保守解码迁移。后续做容器化复现、更多工况和温度融合。</p></div></div>
+          <div class="closing-item accent"><div class="n">Next</div><div><h3>边界与后续</h3><p>外部 SOTA 未重跑；tsfresh 已做 Minimal/Efficient 与 manual+tsfresh，但不是核心突破；RULSurv held-out 是 0.25 保守解码迁移。后续做容器化复现、更多工况和温度融合。</p></div></div>
         </div>
         <div data-anim="foot" class="t-meta" style="color:var(--text-helper);text-align:right">复查入口：notebook、pytest、comparison_metrics.csv、predictions.csv</div>
       </div>

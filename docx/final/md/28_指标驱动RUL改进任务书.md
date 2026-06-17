@@ -13,7 +13,7 @@
 | 小组成员 | zyj、cyy、zdh、zy |
 | 文档负责人 | zyj |
 | 参与编写 | cyy、zdh、zy |
-| 版本 | V2.0 |
+| 版本 | V2.1 |
 | 修订日期 | 2026-06-17 |
 | 归档形式 | Markdown 源文件、PDF、DOCX |
 | 内容基线 | 已执行的 tsfresh/sktime/RULSurv 指标证据、答辩边界和后续工作 |
@@ -24,6 +24,7 @@
 | --- | --- | --- | --- |
 | V1.0 | 2026-06-16 | 项目组 | 根据 `next goal.md` 整理下一阶段指标驱动 RUL 改进任务书 |
 | V2.0 | 2026-06-17 | 项目组 | 同步已完成实验结果，删除未来计划模板和空表 |
+| V2.1 | 2026-06-17 | 项目组 | 补充 tsfresh Minimal/Efficient 配置对照、manual+tsfresh 融合 baseline 和图表证据 |
 
 ## 1. 文档目的
 
@@ -31,7 +32,7 @@
 
 统一结论如下：
 
-> 项目已完成 tsfresh train-only 特征筛选、tsfresh RUL baseline、sktime Rocket/TimeSeriesForest baseline、strict same-config repeated seed rerun、RULSurv RSF port 以及 external SOTA source pin / dependency probe evidence。结题材料可以引用这些证据，但不能把 external SOTA probe 写成本地复现完成，不能把 tsfresh 写成核心性能突破，也不能把 RULSurv held-out 迁移写成自然泛化完全解决。
+> 项目已完成 tsfresh Minimal/Efficient train-only 特征筛选、tsfresh RUL baseline、manual 19 + tsfresh selected 融合 baseline、sktime Rocket/TimeSeriesForest baseline、strict same-config repeated seed rerun、RULSurv RSF port 以及 external SOTA source pin / dependency probe evidence。结题材料可以引用这些证据，但不能把 external SOTA probe 写成本地复现完成，不能把 tsfresh 写成核心性能突破，也不能把 RULSurv held-out 迁移写成自然泛化完全解决。
 
 ## 2. 当前数据划分与防泄漏协议
 
@@ -57,13 +58,19 @@
 
 tsfresh 的定位是自动特征分析旁证，不是替代主线深度模型的核心突破。
 
+下文中的 `tsfresh selected features` 指只用训练轴承完成筛选后固定下来的自动特征子集；本轮同时报告 Minimal 与 Efficient 两套配置，并额外报告 manual 19 + tsfresh selected features 的融合输入。
+
 已生成证据：
 
 ```text
 docs/reproduction-evidence/tsfresh_feature_relevance_summary.csv
 docs/reproduction-evidence/tsfresh_feature_relevance_summary.md
+docs/reproduction-evidence/tsfresh_feature_correlation_bar.png
+docs/reproduction-evidence/tsfresh_feature_group_distribution.png
+docs/reproduction-evidence/tsfresh_top_feature_rul_trend.png
 docs/reproduction-evidence/tsfresh_rul_baseline_summary.csv
 docs/reproduction-evidence/tsfresh_rul_baseline_predictions.csv
+docs/reproduction-evidence/tsfresh_rul_baseline_nrmse_comparison.png
 ```
 
 关键结果：
@@ -71,15 +78,19 @@ docs/reproduction-evidence/tsfresh_rul_baseline_predictions.csv
 | 方法 | run_count | mean normalized RMSE | 说明 |
 | --- | ---: | ---: | --- |
 | manual 19 features + RandomForest | 3 | 0.345365 | 手工特征传统模型 baseline |
-| tsfresh selected features + RandomForest | 3 | 0.315629 | 对手工 RF 有一定改进 |
+| tsfresh Minimal selected features + RandomForest | 3 | 0.315629 | Minimal 自动特征 baseline，当前 tsfresh RF 最优 |
+| tsfresh Efficient selected features + RandomForest | 3 | 0.318682 | Efficient 候选更多，但 RF 指标未超过 Minimal selected |
+| manual 19 + tsfresh Minimal selected + RandomForest | 3 | 0.333545 | 融合后优于手工 19，但不如 Minimal selected-only |
+| manual 19 + tsfresh Efficient selected + RandomForest | 3 | 0.319927 | 融合后接近 Efficient selected-only，未形成核心突破 |
 
 特征相关性边界：
 
-- top feature `vertical__maximum` correlation 约 `0.200994`；
+- `MinimalFCParameters` top feature `vertical__maximum` correlation 约 `0.200994`；
+- `EfficientFCParameters` top feature `horizontal__partial_autocorrelation__lag_1` correlation 约 `0.424468`；
 - `vertical__absolute_maximum` correlation 约 `0.125944`；
 - 后续 selected features 中不少 correlation 只有 `0.04` 左右，p-value 较高；
 - 多个能量、方差、RMS 类候选特征分数为 0；
-- 因此结题材料应说“tsfresh 相关性整体偏弱，只能作为自动特征分析旁证”，不能说“tsfresh 发现了强退化特征”。
+- 因此结题材料应说“tsfresh 已完成 Minimal/Efficient 对照和融合输入验证，但相关性与 baseline 证据仍不足以支撑核心性能突破”，不能说“tsfresh 发现了强退化特征”。
 
 ## 4. sktime 已执行结果
 
@@ -175,7 +186,10 @@ docs/reproduction-evidence/external_sota_attempts/weibull-kiml-femto-rmse.txt
 | 方法 | 数据 / split | run_count | mean normalized RMSE / MAE | 结论 |
 | --- | --- | ---: | ---: | --- |
 | manual 19 features + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.345365 | 传统 baseline |
-| tsfresh selected features + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.315629 | 对手工 RF 有补充，但相关性整体偏弱 |
+| tsfresh Minimal selected features + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.315629 | 对手工 RF 有补充，但相关性整体偏弱 |
+| tsfresh Efficient selected features + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.318682 | Efficient 配置已补充，未超过 Minimal selected |
+| manual 19 + tsfresh Minimal selected + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.333545 | 融合输入已验证，提升有限 |
+| manual 19 + tsfresh Efficient selected + RandomForest | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.319927 | 融合输入已验证，仍不是核心突破 |
 | sktime RocketRegressor | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.263706 | 当前补充 baseline 中最好 |
 | sktime TimeSeriesForestRegressor | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.315919 | 与 tsfresh RF 接近 |
 | XLSTM-Transformer strict rerun | XJTU-SY Bearing1_3 held-out | 3 | NRMSE 0.157007 | 50 epoch 同配置重复证据 |
@@ -190,7 +204,7 @@ docs/reproduction-evidence/external_sota_attempts/weibull-kiml-femto-rmse.txt
 ```text
 外部 SOTA：AutoRUL / GNN / Weibull KIML 已完成 source pin 和依赖 probe，但尚未在本地跑出指标，不能宣称这些路线已复现完成。
 
-tsfresh：已完成 train-only 特征筛选和 held-out baseline，但本次特征相关性整体偏弱，只能作为自动特征分析旁证，不是核心性能突破。
+tsfresh：已完成 Minimal/Efficient train-only 特征筛选、held-out baseline 和 manual+tsfresh 融合输入验证，但本次特征相关性与 RF baseline 证据仍不足以支撑核心性能突破，只能作为自动特征分析旁证。
 
 RULSurv：row-level 协议复现达到 target；held-out Bearing1_3 pass 依赖 survival_probability=0.25 的保守解码，是项目迁移策略，不能说成原始 RULSurv 自然泛化已经完全解决。
 ```
@@ -207,8 +221,8 @@ RULSurv：row-level 协议复现达到 target；held-out Bearing1_3 pass 依赖 
 
 本轮完成标准是：
 
-- 已把 tsfresh/sktime/RULSurv/external SOTA 的真实完成度同步进结题材料；
+- 已把 tsfresh Minimal/Efficient、manual+tsfresh、sktime/RULSurv/external SOTA 的真实完成度同步进结题材料；
 - 已删除“只做未来计划、不提交实验 CSV”的过期口径；
 - 已将 taskbook 改成当前结果说明和后续工作清单；
-- 已明确外部 SOTA 未重跑、tsfresh 相关性整体偏弱、RULSurv held-out 为 `survival_probability=0.25` 保守解码迁移结果；
+- 已明确外部 SOTA 未重跑、tsfresh 相关性整体偏弱且不是核心性能突破、RULSurv held-out 为 `survival_probability=0.25` 保守解码迁移结果；
 - 课程归档材料应以本文件、`docs/project-owner/08_指标驱动实验结果说明.md` 和 `docs/reproduction-evidence/README.md` 的一致口径为准。

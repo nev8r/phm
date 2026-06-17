@@ -39,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     parser.add_argument("--downsample-points", type=int, default=256)
+    parser.add_argument("--tsfresh-configs", nargs="+", default=["minimal", "efficient"])
     return parser.parse_args()
 
 
@@ -48,7 +49,14 @@ def main() -> None:
     """
 
     args = parse_args()
-    config = cli_config(args.project_root, args.xjtu_root, args.output_dir, args.seeds, args.downsample_points)
+    config = cli_config(
+        args.project_root,
+        args.xjtu_root,
+        args.output_dir,
+        args.seeds,
+        args.downsample_points,
+        args.tsfresh_configs,
+    )
     try:
         paths = run_tsfresh_feature_analysis(config)
     except RuntimeError as exc:

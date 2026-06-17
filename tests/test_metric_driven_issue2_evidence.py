@@ -63,17 +63,46 @@ def test_tsfresh_feature_relevance_artifact_has_train_only_selection_schema() ->
         "feature_group",
         "interpretation",
         "selection_split",
+        "selection_scope",
+        "feature_set_config",
+        "feature_grain",
+        "train_bearings",
+        "held_out_bearing",
         "overlaps_manual_19",
     }
     assert required_columns.issubset(relevance.columns)
     assert len(relevance) >= 10
     assert set(relevance["selection_split"]) == {"train_only"}
+    assert set(relevance["selection_scope"]) == {"train_bearings_only"}
+    assert {"MinimalFCParameters", "EfficientFCParameters"}.issubset(set(relevance["feature_set_config"]))
+    assert set(relevance["feature_grain"]) == {"single_snapshot"}
+    assert set(relevance["held_out_bearing"]) == {"Bearing1_3"}
+    assert relevance["train_bearings"].astype(str).str.contains("Bearing1_1").all()
     assert relevance["selected"].astype(bool).any()
     assert relevance["feature_name"].nunique() > 2
     assert set(relevance["target_name"]) == {"rul"}
     assert set(relevance["dataset_name"]) == {"XJTU-SY"}
     assert set(relevance["condition_name"]) == {"condition_1_35Hz12kN"}
     assert relevance["interpretation"].astype(str).str.len().min() > 10
+
+    markdown = markdown_path.read_text(encoding="utf-8")
+    for required_text in [
+        "MinimalFCParameters",
+        "EfficientFCParameters",
+        "相关性整体偏弱",
+        "train-only",
+        "Bearing1_3",
+    ]:
+        assert required_text in markdown
+
+    for figure_name in [
+        "tsfresh_feature_correlation_bar.png",
+        "tsfresh_feature_group_distribution.png",
+        "tsfresh_top_feature_rul_trend.png",
+    ]:
+        figure_path = EVIDENCE_DIR / figure_name
+        assert figure_path.exists(), f"missing tsfresh feature figure: {figure_name}"
+        assert figure_path.stat().st_size > 0
 
 
 def test_tsfresh_rul_baseline_outputs_repeated_manual_and_selected_feature_results() -> None:
@@ -86,6 +115,8 @@ def test_tsfresh_rul_baseline_outputs_repeated_manual_and_selected_feature_resul
     required_summary_columns = {
         "experiment_name",
         "feature_backend",
+        "feature_input",
+        "feature_set_config",
         "model_name",
         "dataset_name",
         "condition_name",
@@ -107,21 +138,35 @@ def test_tsfresh_rul_baseline_outputs_repeated_manual_and_selected_feature_resul
         "prediction_count",
         "feature_count",
         "selection_split",
+        "selection_scope",
         "status",
     }
     assert required_summary_columns.issubset(summary.columns)
-    assert {"manual_19", "tsfresh_selected"}.issubset(set(summary["feature_backend"]))
+    assert {"manual_19", "tsfresh_selected", "manual_19_plus_tsfresh_selected"}.issubset(
+        set(summary["feature_input"])
+    )
+    assert {"MinimalFCParameters", "EfficientFCParameters"}.issubset(set(summary["feature_set_config"]))
+    assert (
+        summary.loc[summary["feature_input"] == "manual_19", "feature_set_config"].eq("manual_19").all()
+    )
     assert set(summary["selection_split"]) == {"train_only"}
-    assert (summary.groupby("feature_backend")["seed"].nunique() >= 3).all()
+    assert set(summary["selection_scope"]) == {"train_bearings_only"}
+    assert (summary.groupby(["feature_backend", "feature_set_config"])["seed"].nunique() >= 3).all()
     assert (summary["run_count"] >= 3).all()
     assert (summary["prediction_count"] > 0).all()
     assert set(summary["split_name"]) == {"train_Bearing1_1_1_2_1_4_1_5_test_Bearing1_3"}
     assert not summary["status"].astype(str).str.startswith("COMPLETED_WITHOUT_RUN").any()
+    assert (
+        summary.loc[summary["feature_input"] == "manual_19_plus_tsfresh_selected", "feature_count"]
+        > summary.loc[summary["feature_input"] == "manual_19", "feature_count"].max()
+    ).all()
 
     predictions = pd.read_csv(prediction_path)
     required_prediction_columns = {
         "experiment_name",
         "feature_backend",
+        "feature_input",
+        "feature_set_config",
         "seed",
         "bearing_id",
         "snapshot_index",
@@ -130,9 +175,15 @@ def test_tsfresh_rul_baseline_outputs_repeated_manual_and_selected_feature_resul
         "split_name",
     }
     assert required_prediction_columns.issubset(predictions.columns)
-    assert set(predictions["feature_backend"]) == {"manual_19", "tsfresh_selected"}
+    assert {"manual_19", "tsfresh_selected", "manual_19_plus_tsfresh_selected"}.issubset(
+        set(predictions["feature_input"])
+    )
     assert (predictions["true_rul"] >= 0).all()
     assert predictions["predicted_rul"].notna().all()
+
+    figure_path = EVIDENCE_DIR / "tsfresh_rul_baseline_nrmse_comparison.png"
+    assert figure_path.exists()
+    assert figure_path.stat().st_size > 0
 
 
 def test_sktime_baseline_outputs_two_repeated_wrapper_routes() -> None:

@@ -77,8 +77,10 @@ PY
 | `open_source_sota_reproduction_summary.csv` | 本地 formal 结果与 target 的 gap 表，blocked 外部 target 不填假指标 |
 | `metric_driven_comparison_summary.csv` | 指标驱动汇总表，用于答辩说明 |
 | `rulsurv_rsf_port/` | RULSurv RSF port 的 config、metrics、predictions 和 summary |
-| `tsfresh_feature_relevance_summary.csv` / `.md` | XJTU condition 1 上基于 `MinimalFCParameters` 的 tsfresh 特征相关性与 train-only 选择说明 |
-| `tsfresh_rul_baseline_summary.csv` / `tsfresh_rul_baseline_predictions.csv` | 手工 19 维特征 vs train-selected tsfresh 特征的 3-seed RandomForest RUL baseline |
+| `tsfresh_feature_relevance_summary.csv` / `.md` | XJTU condition 1 上基于 `MinimalFCParameters` 与 `EfficientFCParameters` 的 tsfresh 特征相关性、train-only 选择和弱相关结论 |
+| `tsfresh_feature_correlation_bar.png` / `tsfresh_feature_group_distribution.png` / `tsfresh_top_feature_rul_trend.png` | top tsfresh 相关性、selected feature group 分布和 top feature-RUL 趋势图 |
+| `tsfresh_rul_baseline_summary.csv` / `tsfresh_rul_baseline_predictions.csv` | 手工 19 维、train-selected tsfresh、manual 19 + tsfresh selected 的同 split 3-seed RandomForest RUL baseline |
+| `tsfresh_rul_baseline_nrmse_comparison.png` | manual 19、tsfresh selected、manual+tsfresh selected 的 NRMSE 对照图 |
 | `sktime_rul_baseline_summary.csv` / `sktime_rul_baseline_predictions.csv` | `RocketRegressor` 与 `TimeSeriesForestRegressor` 的 3-seed sktime panel baseline |
 | `strict_repeated_seed_summary.csv` / `strict_repeated_seed_config.json` | XLSTM-Transformer 与 Feature-Transformer 在同一配置、同一 held-out split 下的 3-seed、50 epoch 真实 rerun |
 | `external_sota_attempts.csv` / `external_sota_attempts/*.txt` | AutoRUL、GNN、Weibull KIML 的 source pin、依赖 probe 失败日志与可复现后续方案 |
@@ -87,7 +89,7 @@ PY
 
 - Feature-Transformer 在 XJTU-SY condition 1 上 repeated mean normalized RMSE 为 `0.096967`，对目标 `0.0885` 的 mean gap 为 `9.57%`，达到接近强基线门槛。
 - XLSTM-Transformer best observed normalized RMSE 为 `0.064558`，对目标 `0.0583` 的 best gap 为 `10.73%`，但 repeated mean gap 为 `73.40%`，仍需优化。
-- 新增 tsfresh baseline 使用 XJTU-SY `35Hz12kN` 全部正 RUL 快照、train bearing 选择特征、Bearing1_3 held-out 测试。RandomForest 3-seed mean normalized RMSE：手工 19 维特征 `0.345365`，tsfresh selected features `0.315629`。
+- 新增 tsfresh baseline 使用 XJTU-SY `35Hz12kN` 全部正 RUL 快照、train bearing 选择特征、Bearing1_3 held-out 测试。`MinimalFCParameters` 生成 20 个候选特征，top correlation 为 `0.200994`；`EfficientFCParameters` 生成 1554 个候选特征，top correlation 为 `0.424468`。RandomForest 3-seed mean normalized RMSE：手工 19 维特征 `0.345365`，Minimal tsfresh selected `0.315629`，Efficient tsfresh selected `0.318682`，manual 19 + Minimal selected `0.333545`，manual 19 + Efficient selected `0.319927`。结论是 tsfresh 已完成 Minimal/Efficient 对照和融合输入验证，但相关性整体偏弱，当前不能包装成核心性能突破。
 - 新增 sktime baseline 使用同一 held-out split 与 RUL 标签。3-seed mean normalized RMSE：`RocketRegressor` `0.263706`，`TimeSeriesForestRegressor` `0.315919`。
 - 新增 strict repeated seed rerun 使用同一 XJTU condition 1 split、同一 50 epoch 配置、3 个 seed；该文件证明重复协议和配置锁定。mean normalized RMSE：XLSTM-Transformer `0.157007`，Feature-Transformer `0.186688`。
 - RULSurv RSF port 已完成：读取 XJTU-SY `35Hz12kN` 工况 5 个轴承的 616 个原始 csv 快照，入模 611 个正 RUL 快照样本，仅排除每个轴承 `TTE=0` 的失效瞬间；在 RULSurv-compatible 25% censored row-level 5-fold CV 上，3 seeds mean true MAE 为 `6.926416` min，优于 target `12.6` min，状态为 `PROTOCOL_PASS`。该 row-level CV 可能把同一 bearing 的不同时间点分入不同 fold，因此必须与 held-out-bearing 泛化分开解释；在本项目 Bearing1_3 holdout migration 上，固定 conservative survival quantile 解码后的 mean true MAE 为 `14.307856` min，低于 `15.75` min gate，状态为 `MIGRATION_PASS`。

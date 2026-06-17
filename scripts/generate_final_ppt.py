@@ -222,7 +222,7 @@ def build_presentation() -> Presentation:
         [
             "RMS、峰值和谱能量通常随退化增强而上升，是健康指标构造的重要基础。",
             "峭度、脉冲因子对冲击性退化或失效更敏感，适合捕捉早期异常波动。",
-            "tsfresh 已完成 train-only 筛选，但相关性整体偏弱：top correlation 约 0.200994，只作为自动特征分析旁证。",
+            "tsfresh 已完成 Minimal/Efficient train-only 筛选、held-out baseline 和 manual+tsfresh 融合验证；RF NRMSE 仍弱于 Rocket，定位为自动特征分析旁证。",
         ],
         size=16,
     )
@@ -298,7 +298,8 @@ def build_presentation() -> Presentation:
         0.75,
         1.02,
         [
-            ("tsfresh", "selected features + RandomForest mean NRMSE 0.315629", "相关性整体偏弱，不是核心性能突破"),
+            ("tsfresh Minimal", "selected RF mean NRMSE 0.315629", "top correlation 0.200994，相关性整体偏弱"),
+            ("tsfresh Efficient", "selected RF mean NRMSE 0.318682；manual+selected 0.319927", "top correlation 0.424468，但不是核心突破"),
             ("sktime RocketRegressor", "held-out Bearing1_3 mean NRMSE 0.263706", "当前优于 tsfresh RF，是补充 baseline"),
             ("RULSurv row-level", "25% censored CV mean true MAE 6.926416 min", "PROTOCOL_PASS，但不是 held-out 泛化"),
             ("RULSurv held-out", "Bearing1_3 mean true MAE 14.307856 min", "MIGRATION_PASS，survival_probability=0.25 保守解码"),
@@ -379,7 +380,7 @@ def build_presentation() -> Presentation:
         [
             ("任务边界？", "数据是 run-to-failure 退化序列", "主任务是 RUL 和预测性维护"),
             ("外部 SOTA？", "AutoRUL/GNN/Weibull 只有 source pin 和依赖 probe", "尚未在本地跑出指标"),
-            ("tsfresh 强吗？", "已做 train-only baseline，但相关性整体偏弱", "旁证，不是核心突破"),
+            ("tsfresh 强吗？", "Minimal/Efficient 与 manual+tsfresh 已跑", "RF 仍弱于 Rocket，不是核心突破"),
             ("RULSurv 泛化？", "row-level 与 held-out 分开解释", "held-out 是 survival_probability=0.25 保守解码"),
             ("为什么与论文数值存在差异？", "96 快照抽样、作者源码不可得、协议差异", "验证流程，不冒充作者全量训练"),
             ("如何避免数据泄漏？", "按时间或轴承划分，notebook 不随机混相邻窗口", "真实复现按论文工况划分"),
@@ -392,7 +393,7 @@ def build_presentation() -> Presentation:
     set_background(slide, NAVY)
     text_box(slide, 0.85, 1.2, 10.8, 0.62, "谢谢老师和同学", size=38, color=RGBColor(255, 255, 255), bold=True)
     text_box(slide, 0.9, 2.25, 10.4, 0.36, "欢迎提问：数据语义、特征工程、模型复现、指标口径、工程交付", size=18, color=RGBColor(226, 232, 240))
-    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "外部 SOTA 未重跑；tsfresh 相关性整体偏弱；RULSurv held-out 是 survival_probability=0.25 的保守解码迁移结果。", ORANGE, body_size=15, fill=CARD_BG)
+    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "外部 SOTA 未重跑；tsfresh 已做 Minimal/Efficient 与 manual+tsfresh，但不是核心突破；RULSurv held-out 是 survival_probability=0.25 的保守解码迁移结果。", ORANGE, body_size=15, fill=CARD_BG)
 
     return prs
 

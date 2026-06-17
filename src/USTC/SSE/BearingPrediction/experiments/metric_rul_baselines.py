@@ -42,6 +42,7 @@ MANUAL_FEATURE_NAMES = tuple(FeatureConfig(sample_rate=25_600.0).enabled_feature
 SPLIT_NAME = "train_Bearing1_1_1_2_1_4_1_5_test_Bearing1_3"
 TRAIN_BEARINGS = ("Bearing1_1", "Bearing1_2", "Bearing1_4", "Bearing1_5")
 TEST_BEARING = "Bearing1_3"
+DEFAULT_TSFRESH_CONFIG_KEYS = ("minimal", "efficient")
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,8 @@ class XjtuMetricBaselineConfig:
         deterministic points kept from each vibration snapshot
     seeds : tuple[int, ...]
         repeated run random seeds
+    tsfresh_config_keys : tuple[str, ...]
+        tsfresh calculator configurations to compare
     """
 
     project_root: Path
@@ -72,6 +75,7 @@ class XjtuMetricBaselineConfig:
     downsample_points: int = 256
     seeds: tuple[int, ...] = (0, 1, 2)
     n_estimators: int = 80
+    tsfresh_config_keys: tuple[str, ...] = DEFAULT_TSFRESH_CONFIG_KEYS
 
     @property
     def resolved_xjtu_root(self) -> Path:
@@ -225,19 +229,39 @@ def run_tsfresh_feature_analysis(config: XjtuMetricBaselineConfig) -> dict[str, 
     """
 
     dataset = load_xjtu_condition_snapshots(config)
-    tsfresh_features = extract_tsfresh_feature_frame(dataset)
-    selected_features, relevance = select_tsfresh_features_train_only(tsfresh_features, dataset.metadata["true_rul"], dataset.train_mask())
-    del selected_features
-    relevance_summary = build_tsfresh_relevance_summary(relevance, config)
+    relevance_summaries: list[pd.DataFrame] = []
+    trend_records: list[dict[str, object]] = []
+    for config_key in config.tsfresh_config_keys:
+        tsfresh_features = extract_tsfresh_feature_frame(dataset, config_key)
+        selected_features, relevance = select_tsfresh_features_train_only(
+            tsfresh_features,
+            dataset.metadata["true_rul"],
+            dataset.train_mask(),
+        )
+        del selected_features
+        relevance_summary = build_tsfresh_relevance_summary(relevance, config, config_key)
+        relevance_summaries.append(relevance_summary)
+        if not relevance_summary.empty:
+            top_feature = str(relevance_summary.iloc[0]["feature_name"])
+            trend_records.extend(_top_tsfresh_feature_trend_records(dataset, tsfresh_features, top_feature, config_key))
+
+    relevance_summary = pd.concat(relevance_summaries, ignore_index=True)
 
     config.resolved_output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = config.resolved_output_dir / "tsfresh_feature_relevance_summary.csv"
     markdown_path = config.resolved_output_dir / "tsfresh_feature_relevance_summary.md"
     relevance_summary.to_csv(csv_path, index=False)
     markdown_path.write_text(_render_tsfresh_relevance_markdown(relevance_summary), encoding="utf-8")
+    figure_paths = _write_tsfresh_feature_analysis_figures(
+        relevance_summary,
+        pd.DataFrame.from_records(trend_records),
+        config.resolved_output_dir,
+        config.project_root,
+    )
     return {
         "summary_path": _display_path(csv_path, config.project_root),
         "markdown_path": _display_path(markdown_path, config.project_root),
+        **figure_paths,
     }
 
 
@@ -258,26 +282,52 @@ def run_tsfresh_rul_baseline(config: XjtuMetricBaselineConfig) -> dict[str, str]
 
     dataset = load_xjtu_condition_snapshots(config)
     manual_features = extract_manual_feature_frame(dataset)
-    tsfresh_features = extract_tsfresh_feature_frame(dataset)
-    tsfresh_selected, relevance = select_tsfresh_features_train_only(
-        tsfresh_features,
-        dataset.metadata["true_rul"],
-        dataset.train_mask(),
-    )
-    del relevance
+    feature_sets: list[dict[str, object]] = [
+        {
+            "feature_backend": "manual_19",
+            "feature_input": "manual_19",
+            "feature_set_config": "manual_19",
+            "feature_frame": manual_features,
+        }
+    ]
+    for config_key in config.tsfresh_config_keys:
+        tsfresh_features = extract_tsfresh_feature_frame(dataset, config_key)
+        tsfresh_selected, relevance = select_tsfresh_features_train_only(
+            tsfresh_features,
+            dataset.metadata["true_rul"],
+            dataset.train_mask(),
+        )
+        del relevance
+        config_suffix = _tsfresh_config_suffix(config_key)
+        config_label = _tsfresh_parameter_label(config_key)
+        manual_plus_tsfresh = pd.concat([manual_features, tsfresh_selected.add_prefix(f"{config_suffix}__")], axis=1)
+        feature_sets.extend(
+            [
+                {
+                    "feature_backend": f"tsfresh_{config_suffix}_selected",
+                    "feature_input": "tsfresh_selected",
+                    "feature_set_config": config_label,
+                    "feature_frame": tsfresh_selected,
+                },
+                {
+                    "feature_backend": f"manual_19_plus_tsfresh_{config_suffix}_selected",
+                    "feature_input": "manual_19_plus_tsfresh_selected",
+                    "feature_set_config": config_label,
+                    "feature_frame": manual_plus_tsfresh,
+                },
+            ]
+        )
 
-    feature_sets = {
-        "manual_19": manual_features,
-        "tsfresh_selected": tsfresh_selected,
-    }
     summary_records: list[dict[str, object]] = []
     prediction_records: list[dict[str, object]] = []
-    for feature_backend, feature_frame in feature_sets.items():
+    for feature_set in feature_sets:
         backend_summary, backend_predictions = _run_repeated_random_forest_baseline(
             config=config,
             dataset=dataset,
-            feature_backend=feature_backend,
-            feature_frame=feature_frame,
+            feature_backend=str(feature_set["feature_backend"]),
+            feature_input=str(feature_set["feature_input"]),
+            feature_set_config=str(feature_set["feature_set_config"]),
+            feature_frame=feature_set["feature_frame"],
             model_name="RandomForestRegressor",
         )
         summary_records.extend(backend_summary)
@@ -285,15 +335,17 @@ def run_tsfresh_rul_baseline(config: XjtuMetricBaselineConfig) -> dict[str, str]
 
     summary = pd.DataFrame.from_records(summary_records)
     predictions = pd.DataFrame.from_records(prediction_records)
-    summary = _attach_repeated_metric_stats(summary, group_column="feature_backend")
+    summary = _attach_repeated_metric_stats(summary, group_column=["feature_backend", "feature_set_config"])
     config.resolved_output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = config.resolved_output_dir / "tsfresh_rul_baseline_summary.csv"
     prediction_path = config.resolved_output_dir / "tsfresh_rul_baseline_predictions.csv"
     summary.to_csv(summary_path, index=False)
     predictions.to_csv(prediction_path, index=False)
+    figure_path = _write_tsfresh_rul_baseline_figure(summary, config.resolved_output_dir, config.project_root)
     return {
         "summary_path": _display_path(summary_path, config.project_root),
         "predictions_path": _display_path(prediction_path, config.project_root),
+        "nrmse_figure_path": figure_path,
     }
 
 
@@ -755,14 +807,16 @@ def extract_manual_feature_frame(dataset: XjtuSnapshotDataset) -> pd.DataFrame:
     return feature_frame.replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
 
-def extract_tsfresh_feature_frame(dataset: XjtuSnapshotDataset) -> pd.DataFrame:
+def extract_tsfresh_feature_frame(dataset: XjtuSnapshotDataset, feature_set_config: str = "minimal") -> pd.DataFrame:
     """
-    extract tsfresh MinimalFCParameters features for two vibration channels.
+    extract tsfresh features for two vibration channels.
 
     Parameters
     ----------
     dataset : XjtuSnapshotDataset
         loaded snapshots
+    feature_set_config : str
+        tsfresh feature calculator configuration
 
     Returns
     -------
@@ -772,13 +826,15 @@ def extract_tsfresh_feature_frame(dataset: XjtuSnapshotDataset) -> pd.DataFrame:
 
     try:
         from tsfresh import extract_features
-        from tsfresh.feature_extraction import MinimalFCParameters
+        from tsfresh.feature_extraction import EfficientFCParameters, MinimalFCParameters
     except ImportError as exc:  # pragma: no cover - exercised by CLI use without advanced extra
         raise RuntimeError(
             "tsfresh feature analysis requires the advanced extra. "
             "Run: uv run --extra advanced python scripts/run_tsfresh_feature_analysis.py"
         ) from exc
 
+    config_key = _normalize_tsfresh_config_key(feature_set_config)
+    feature_parameters = MinimalFCParameters() if config_key == "minimal" else EfficientFCParameters()
     long_frame = _build_tsfresh_long_frame(dataset)
     features = extract_features(
         long_frame,
@@ -786,7 +842,7 @@ def extract_tsfresh_feature_frame(dataset: XjtuSnapshotDataset) -> pd.DataFrame:
         column_sort="time",
         column_kind="kind",
         column_value="value",
-        default_fc_parameters=MinimalFCParameters(),
+        default_fc_parameters=feature_parameters,
         disable_progressbar=True,
         n_jobs=1,
     )
@@ -887,7 +943,11 @@ def calculate_rul_metrics(targets: np.ndarray, predictions: np.ndarray) -> dict[
     }
 
 
-def build_tsfresh_relevance_summary(relevance: pd.DataFrame, config: XjtuMetricBaselineConfig) -> pd.DataFrame:
+def build_tsfresh_relevance_summary(
+    relevance: pd.DataFrame,
+    config: XjtuMetricBaselineConfig,
+    feature_set_config: str,
+) -> pd.DataFrame:
     """
     build reader-facing tsfresh relevance summary.
 
@@ -897,6 +957,8 @@ def build_tsfresh_relevance_summary(relevance: pd.DataFrame, config: XjtuMetricB
         relevance table
     config : XjtuMetricBaselineConfig
         baseline configuration
+    feature_set_config : str
+        tsfresh feature calculator configuration
 
     Returns
     -------
@@ -905,11 +967,14 @@ def build_tsfresh_relevance_summary(relevance: pd.DataFrame, config: XjtuMetricB
     """
 
     records: list[dict[str, object]] = []
+    config_label = _tsfresh_parameter_label(feature_set_config)
+    train_bearings = ",".join(TRAIN_BEARINGS)
     for row in relevance.to_dict("records"):
         feature_name = str(row["feature_name"])
         records.append(
             {
                 "feature_name": feature_name,
+                "feature_set_config": config_label,
                 "dataset_name": "XJTU-SY",
                 "condition_name": config.condition_name,
                 "target_name": "rul",
@@ -920,11 +985,15 @@ def build_tsfresh_relevance_summary(relevance: pd.DataFrame, config: XjtuMetricB
                 "feature_group": _feature_group(feature_name),
                 "interpretation": _feature_interpretation(feature_name),
                 "selection_split": "train_only",
+                "selection_scope": "train_bearings_only",
+                "feature_grain": "single_snapshot",
+                "train_bearings": train_bearings,
+                "held_out_bearing": TEST_BEARING,
                 "overlaps_manual_19": _overlaps_manual_feature(feature_name),
             }
         )
     summary = pd.DataFrame.from_records(records)
-    return summary.sort_values(["selected", "score"], ascending=[False, False]).reset_index(drop=True)
+    return summary.sort_values(["feature_set_config", "selected", "score"], ascending=[True, False, False]).reset_index(drop=True)
 
 
 def _run_repeated_random_forest_baseline(
@@ -932,6 +1001,8 @@ def _run_repeated_random_forest_baseline(
     config: XjtuMetricBaselineConfig,
     dataset: XjtuSnapshotDataset,
     feature_backend: str,
+    feature_input: str,
+    feature_set_config: str,
     feature_frame: pd.DataFrame,
     model_name: str,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -957,6 +1028,8 @@ def _run_repeated_random_forest_baseline(
             {
                 "experiment_name": experiment_name,
                 "feature_backend": feature_backend,
+                "feature_input": feature_input,
+                "feature_set_config": feature_set_config,
                 "model_name": model_name,
                 "dataset_name": "XJTU-SY",
                 "condition_name": config.condition_name,
@@ -967,6 +1040,7 @@ def _run_repeated_random_forest_baseline(
                 "prediction_count": int(test_mask.sum()),
                 "feature_count": int(feature_frame.shape[1]),
                 "selection_split": "train_only",
+                "selection_scope": "train_bearings_only",
                 "status": "RUN_RECORDED",
             }
         )
@@ -978,6 +1052,10 @@ def _run_repeated_random_forest_baseline(
                 backend_column="feature_backend",
                 backend_value=feature_backend,
                 seed=seed,
+                extra_fields={
+                    "feature_input": feature_input,
+                    "feature_set_config": feature_set_config,
+                },
             )
         )
     return summary_records, prediction_records
@@ -991,32 +1069,186 @@ def _prediction_rows(
     backend_column: str,
     backend_value: str,
     seed: int,
+    extra_fields: dict[str, object] | None = None,
 ) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for row, prediction in zip(metadata.to_dict("records"), predictions, strict=True):
+        record = {
+            "experiment_name": experiment_name,
+            backend_column: backend_value,
+            "seed": seed,
+            "bearing_id": row["bearing_id"],
+            "snapshot_index": row["snapshot_index"],
+            "true_rul": row["true_rul"],
+            "predicted_rul": max(0.0, float(prediction)),
+            "split_name": row["split_name"],
+        }
+        if extra_fields is not None:
+            record.update(extra_fields)
+        records.append(record)
+    return records
+
+
+def _attach_repeated_metric_stats(summary: pd.DataFrame, *, group_column: str | list[str]) -> pd.DataFrame:
+    metric_names = ["rmse", "normalized_rmse", "mae", "r2", "huang_rul_score", "phm2012_score"]
+    summary = summary.copy()
+    group_columns = [group_column] if isinstance(group_column, str) else list(group_column)
+    for metric_name in metric_names:
+        stats = summary.groupby(group_columns)[metric_name].agg(
+            **{
+                f"{metric_name}_mean": "mean",
+                f"{metric_name}_std": lambda values: float(values.std(ddof=0)),
+            }
+        )
+        summary = summary.join(stats, on=group_columns)
+    return summary
+
+
+def _normalize_tsfresh_config_key(feature_set_config: str) -> str:
+    normalized = feature_set_config.strip().lower().replace("_", "").replace("-", "")
+    aliases = {
+        "minimal": "minimal",
+        "minimalfcparameters": "minimal",
+        "efficient": "efficient",
+        "efficientfcparameters": "efficient",
+    }
+    if normalized not in aliases:
+        raise ValueError(f"unsupported tsfresh feature set config: {feature_set_config}")
+    return aliases[normalized]
+
+
+def _tsfresh_parameter_label(feature_set_config: str) -> str:
+    config_key = _normalize_tsfresh_config_key(feature_set_config)
+    return "MinimalFCParameters" if config_key == "minimal" else "EfficientFCParameters"
+
+
+def _tsfresh_config_suffix(feature_set_config: str) -> str:
+    return _normalize_tsfresh_config_key(feature_set_config)
+
+
+def _top_tsfresh_feature_trend_records(
+    dataset: XjtuSnapshotDataset,
+    feature_frame: pd.DataFrame,
+    feature_name: str,
+    feature_set_config: str,
+) -> list[dict[str, object]]:
+    config_label = _tsfresh_parameter_label(feature_set_config)
+    train_mask = dataset.train_mask()
+    values = feature_frame[feature_name].to_numpy(dtype=float)
+    records: list[dict[str, object]] = []
+    for row_index, row in enumerate(dataset.metadata.to_dict("records")):
         records.append(
             {
-                "experiment_name": experiment_name,
-                backend_column: backend_value,
-                "seed": seed,
+                "feature_set_config": config_label,
+                "feature_name": feature_name,
                 "bearing_id": row["bearing_id"],
-                "snapshot_index": row["snapshot_index"],
                 "true_rul": row["true_rul"],
-                "predicted_rul": max(0.0, float(prediction)),
-                "split_name": row["split_name"],
+                "feature_value": values[row_index],
+                "sample_scope": "train" if train_mask[row_index] else "held_out",
             }
         )
     return records
 
 
-def _attach_repeated_metric_stats(summary: pd.DataFrame, *, group_column: str) -> pd.DataFrame:
-    metric_names = ["rmse", "normalized_rmse", "mae", "r2", "huang_rul_score", "phm2012_score"]
-    summary = summary.copy()
-    for metric_name in metric_names:
-        grouped = summary.groupby(group_column)[metric_name]
-        summary[f"{metric_name}_mean"] = summary[group_column].map(grouped.mean())
-        summary[f"{metric_name}_std"] = summary[group_column].map(lambda key: float(grouped.std(ddof=0).loc[key]))
-    return summary
+def _write_tsfresh_feature_analysis_figures(
+    relevance_summary: pd.DataFrame,
+    trend_frame: pd.DataFrame,
+    output_dir: Path,
+    project_root: Path,
+) -> dict[str, str]:
+    plt = _load_plotting_backend()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    correlation_path = output_dir / "tsfresh_feature_correlation_bar.png"
+    group_path = output_dir / "tsfresh_feature_group_distribution.png"
+    trend_path = output_dir / "tsfresh_top_feature_rul_trend.png"
+
+    plot_rows = (
+        relevance_summary.sort_values(["feature_set_config", "score"], ascending=[True, False])
+        .groupby("feature_set_config", group_keys=False)
+        .head(8)
+        .copy()
+    )
+    plot_rows["plot_label"] = plot_rows["feature_set_config"] + " | " + plot_rows["feature_name"]
+    plot_rows = plot_rows.sort_values("score", ascending=True)
+    fig, ax = plt.subplots(figsize=(11, max(4.8, 0.32 * len(plot_rows))))
+    ax.barh(plot_rows["plot_label"], plot_rows["score"], color="#3b82f6")
+    ax.set_title("Top tsfresh feature correlation with RUL")
+    ax.set_xlabel("absolute train-only Pearson correlation")
+    ax.set_ylabel("feature")
+    ax.grid(axis="x", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(correlation_path, dpi=180)
+    plt.close(fig)
+
+    selected_rows = relevance_summary.loc[relevance_summary["selected"].astype(bool)]
+    group_counts = selected_rows.groupby(["feature_set_config", "feature_group"]).size().unstack(fill_value=0)
+    fig, ax = plt.subplots(figsize=(8.5, 4.8))
+    group_counts.plot(kind="bar", stacked=True, ax=ax, colormap="tab20")
+    ax.set_title("Selected tsfresh feature group distribution")
+    ax.set_xlabel("tsfresh calculator set")
+    ax.set_ylabel("selected feature count")
+    ax.legend(title="feature group", bbox_to_anchor=(1.02, 1), loc="upper left")
+    fig.tight_layout()
+    fig.savefig(group_path, dpi=180)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(9.5, 5.2))
+    if not trend_frame.empty:
+        markers = {"train": "o", "held_out": "x"}
+        for (feature_set_config, sample_scope), rows in trend_frame.groupby(["feature_set_config", "sample_scope"]):
+            ax.scatter(
+                rows["true_rul"],
+                rows["feature_value"],
+                s=14,
+                alpha=0.65,
+                marker=markers.get(str(sample_scope), "o"),
+                label=f"{feature_set_config} {sample_scope}",
+            )
+    ax.set_title("Top tsfresh feature trend against RUL")
+    ax.set_xlabel("true RUL")
+    ax.set_ylabel("top feature value")
+    ax.invert_xaxis()
+    ax.grid(alpha=0.25)
+    ax.legend(loc="best", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(trend_path, dpi=180)
+    plt.close(fig)
+
+    return {
+        "correlation_figure_path": _display_path(correlation_path, project_root),
+        "group_figure_path": _display_path(group_path, project_root),
+        "trend_figure_path": _display_path(trend_path, project_root),
+    }
+
+
+def _write_tsfresh_rul_baseline_figure(summary: pd.DataFrame, output_dir: Path, project_root: Path) -> str:
+    plt = _load_plotting_backend()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "tsfresh_rul_baseline_nrmse_comparison.png"
+    plot_rows = summary.drop_duplicates(["feature_backend", "feature_set_config"]).copy()
+    plot_rows["plot_label"] = plot_rows["feature_input"] + "\n" + plot_rows["feature_set_config"]
+    plot_rows = plot_rows.sort_values("normalized_rmse_mean", ascending=True)
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    ax.bar(plot_rows["plot_label"], plot_rows["normalized_rmse_mean"], yerr=plot_rows["normalized_rmse_std"], color="#10b981")
+    ax.set_title("RUL baseline NRMSE by feature input")
+    ax.set_xlabel("feature input and tsfresh configuration")
+    ax.set_ylabel("mean normalized RMSE, 3 seeds")
+    ax.grid(axis="y", alpha=0.25)
+    ax.tick_params(axis="x", labelrotation=25)
+    fig.tight_layout()
+    fig.savefig(figure_path, dpi=180)
+    plt.close(fig)
+    return _display_path(figure_path, project_root)
+
+
+def _load_plotting_backend():
+    import matplotlib
+
+    matplotlib.use("Agg", force=True)
+    import matplotlib.pyplot as plt
+
+    return plt
 
 
 def _build_tsfresh_long_frame(dataset: XjtuSnapshotDataset) -> pd.DataFrame:
@@ -1119,18 +1351,37 @@ def _overlaps_manual_feature(feature_name: str) -> bool:
 
 
 def _render_tsfresh_relevance_markdown(summary: pd.DataFrame) -> str:
-    top_rows = summary.head(20)
+    top_rows = (
+        summary.sort_values(["feature_set_config", "score"], ascending=[True, False])
+        .groupby("feature_set_config", group_keys=False)
+        .head(10)
+    )
+    config_lines = []
+    for config_name, rows in summary.groupby("feature_set_config"):
+        selected_count = int(rows["selected"].astype(bool).sum())
+        max_score = float(rows["score"].max())
+        config_lines.append(
+            f"- `{config_name}`: {len(rows)} generated features in this summary, {selected_count} selected features, top train-only correlation `{max_score:.6f}`."
+        )
     lines = [
         "# tsfresh Feature Relevance Summary",
         "",
         "Selection uses only train bearings (`Bearing1_1`, `Bearing1_2`, `Bearing1_4`, `Bearing1_5`) and keeps `Bearing1_3` held out for RUL baselines.",
         "",
-        "| feature_name | score | p_value | correlation | selected | feature_group | overlaps_manual_19 |",
-        "| --- | ---: | ---: | ---: | --- | --- | --- |",
+        "This run compares `MinimalFCParameters` and `EfficientFCParameters` on single-snapshot vibration features. The conclusion is intentionally conservative: 相关性整体偏弱, so tsfresh is treated as an evaluated automatic feature candidate rather than a core performance breakthrough.",
+        "",
+        "## Configuration Overview",
+        "",
+        *config_lines,
+        "",
+        "## Top Correlation Features",
+        "",
+        "| feature_set_config | feature_name | score | p_value | correlation | selected | feature_group | overlaps_manual_19 |",
+        "| --- | --- | ---: | ---: | ---: | --- | --- | --- |",
     ]
     for row in top_rows.to_dict("records"):
         lines.append(
-            "| {feature_name} | {score:.6f} | {p_value:.6g} | {correlation:.6f} | {selected} | {feature_group} | {overlaps_manual_19} |".format(
+            "| {feature_set_config} | {feature_name} | {score:.6f} | {p_value:.6g} | {correlation:.6f} | {selected} | {feature_group} | {overlaps_manual_19} |".format(
                 **row
             )
         )
@@ -1138,6 +1389,8 @@ def _render_tsfresh_relevance_markdown(summary: pd.DataFrame) -> str:
         [
             "",
             "All feature scores are correlation-derived screening scores on train rows. The downstream baseline transforms held-out rows with the already selected feature list only.",
+            "",
+            "Generated figures: `tsfresh_feature_correlation_bar.png`, `tsfresh_feature_group_distribution.png`, and `tsfresh_top_feature_rul_trend.png`.",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -1154,7 +1407,14 @@ def _display_path(path: Path, project_root: Path) -> str:
         return str(path)
 
 
-def cli_config(project_root: Path, xjtu_root: Path | None, output_dir: Path | None, seeds: list[int], downsample_points: int) -> XjtuMetricBaselineConfig:
+def cli_config(
+    project_root: Path,
+    xjtu_root: Path | None,
+    output_dir: Path | None,
+    seeds: list[int],
+    downsample_points: int,
+    tsfresh_configs: list[str] | None = None,
+) -> XjtuMetricBaselineConfig:
     """
     build config from CLI arguments.
 
@@ -1170,6 +1430,8 @@ def cli_config(project_root: Path, xjtu_root: Path | None, output_dir: Path | No
         random seeds
     downsample_points : int
         downsampled series length
+    tsfresh_configs : list[str] | None
+        tsfresh calculator configurations
 
     Returns
     -------
@@ -1179,12 +1441,14 @@ def cli_config(project_root: Path, xjtu_root: Path | None, output_dir: Path | No
 
     if not seeds:
         raise ValueError("at least one seed is required")
+    config_keys = DEFAULT_TSFRESH_CONFIG_KEYS if tsfresh_configs is None else tuple(tsfresh_configs)
     return XjtuMetricBaselineConfig(
         project_root=project_root.resolve(),
         xjtu_root=xjtu_root.resolve() if xjtu_root is not None else None,
         output_dir=output_dir.resolve() if output_dir is not None else None,
         seeds=tuple(int(seed) for seed in seeds),
         downsample_points=downsample_points,
+        tsfresh_config_keys=tuple(_normalize_tsfresh_config_key(config_key) for config_key in config_keys),
     )
 
 
