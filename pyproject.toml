@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 advanced = [
+    "sktime>=0.35.0",
     "tsfresh>=0.21.0",
     "xgboost>=2.1.4",
 ]

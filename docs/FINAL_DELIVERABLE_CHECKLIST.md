@@ -31,7 +31,7 @@
 | 模型与实验设计说明 | `docx/final/25_模型与实验设计说明.pdf` | 已完成 |
 | 验证证据与追踪矩阵 | `docx/final/26_验证证据与追踪矩阵.pdf` | 已完成 |
 | 生存分析与失效概率范围说明 | `docx/final/27_生存分析与失效概率范围说明.pdf` | 已完成 |
-| 指标驱动实验结果说明与 Open-Source SOTA 对照 | `docs/project-owner/08_指标驱动实验结果说明.md`、`docs/reproduction-evidence/open_source_sota_*.csv` | SOTA target 与 gap 证据已建立；RULSurv RSF port 已完成，AutoRUL/GNN/Weibull 仍需独立环境 |
+| 指标驱动实验结果说明与 Open-Source SOTA 对照 | `docs/project-owner/08_指标驱动实验结果说明.md`、`docs/reproduction-evidence/open_source_sota_*.csv` | SOTA target 与 gap 证据已建立；RULSurv RSF port 原协议与本项目 held-out migration 已分开达标；AutoRUL/GNN/Weibull 仍需独立环境 |
 | 结题答辩 PPT（推荐） | `docx/final/web-ppt/index.html` | 已完成 |
 | 结题答辩 PPT（备用） | `docx/final/工业轴承设备剩余寿命预测系统的实现-结题答辩.pptx` | 已完成 |
 | 用户示例 | `examples/*.ipynb` | 已完成 |
@@ -61,7 +61,7 @@ uv run python scripts/generate_final_ppt.py
 | 网页 PPT 校验 | `Swiss deck validation passed: 16 slide(s)` |
 | 文档导出 | `bash scripts/export_course_docs.sh` 完成，结题阶段 17 份 PDF + 17 份 DOCX |
 | 论文复现证据 | 真实训练输出位于本机 `tmp/`，提交包保留 `docs/reproduction-evidence` 摘要 |
-| Open-Source SOTA 对照 | target/gap 表已生成；RULSurv RSF port 原协议 row-level CV mean true MAE `10.244649` min，低于 target `12.6` min，状态 `PROTOCOL_PASS`；该结果不等价于 held-out-bearing 泛化，AutoRUL/GNN/Weibull 仍为后续硬门槛 |
+| Open-Source SOTA 对照 | target/gap 表已生成；RULSurv RSF port 原协议 row-level CV mean true MAE `6.926416` min，状态 `PROTOCOL_PASS`；本项目 Bearing1_3 held-out migration mean true MAE `14.307856` min，状态 `MIGRATION_PASS`；AutoRUL/GNN/Weibull 仍为后续硬门槛 |
 
 ## 归档建议
 

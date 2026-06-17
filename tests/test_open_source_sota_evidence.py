@@ -163,7 +163,8 @@ def test_evidence_builder_includes_rulsurv_rsf_port_reproduction() -> None:
     ].iloc[0]
     assert project_holdout["run_count"] >= 3
     assert project_holdout["prediction_count"] == 157
-    assert project_holdout["status"] == "NEEDS_OPTIMIZATION"
+    assert project_holdout["local_mean"] <= 15.75
+    assert project_holdout["status"] == "MIGRATION_PASS"
 
     blocked_rows = reproduction_frame.loc[reproduction_frame["status"].astype(str).str.startswith("BLOCKED")]
     assert (blocked_rows["run_count"] == 0).all()

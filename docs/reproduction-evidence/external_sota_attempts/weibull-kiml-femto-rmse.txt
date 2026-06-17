@@ -1,0 +1,18 @@
+source_pin_command: git ls-remote https://github.com/tvhahn/weibull-knowledge-informed-ml HEAD
+source_pin_exit_code: 0
+source_pin_stdout:
+c430d4b710450a1661e528675a6c1ccc64bc98e2	HEAD
+
+source_pin_stderr:
+
+environment_probe_command: /Users/nev8r/Desktop/phm/.venv/bin/python3 -c 'import sksurv; import pycox; print('"'"'Weibull KIML runtime dependencies available'"'"')'
+environment_probe_exit_code: 1
+environment_probe_stdout:
+
+environment_probe_stderr:
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'sksurv'
+
+failure_reason: Full rerun requires the repository make workflow, FEMTO data layout, and survival/deep-learning dependencies; the dependency probe fails in the project environment, so no local metric is claimed.
+next_step: Create the repo environment, stage FEMTO data, then run make train_femto and make summarize_femto_models.

@@ -1,0 +1,18 @@
+source_pin_command: git ls-remote https://github.com/Frank-Wang-oss/GNN_RUL_Benchmarking HEAD
+source_pin_exit_code: 0
+source_pin_stdout:
+9325667ed34976452e9323728e33a29fe0f98b5e	HEAD
+
+source_pin_stderr:
+
+environment_probe_command: /Users/nev8r/Desktop/phm/.venv/bin/python3 -c 'import torch; import torch_geometric; print('"'"'GNN benchmark runtime dependencies available'"'"')'
+environment_probe_exit_code: 1
+environment_probe_stdout:
+
+environment_probe_stderr:
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'torch_geometric'
+
+failure_reason: Full rerun needs repository-specific PHM2012 preprocessing and the PyTorch Geometric training stack; the dependency probe fails in the project environment, so no local metric is claimed.
+next_step: Build the repo environment, generate its PHM2012 preprocessed split, then run main.py with --GNN_method FC_STGNN --num_runs 5.

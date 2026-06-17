@@ -7,7 +7,7 @@
 | 候选 | 数据集 | 可核验内容 | 代码与许可 | 本项目裁定 |
 | --- | --- | --- | --- | --- |
 | [AutoRUL / auto-sktime](https://github.com/Ennosigaeon/auto-sktime) | PRONOSTIA/FEMTO | AutoRUL 论文表 I 报告 PRONOSTIA RMSE `22.52 ± 5.68`，README 给出 `remaining_useful_lifetime.py femto_bearing` 复现命令 | MIT，tag `v0.1.0` commit `fe277d21104be8d2e4bd34db7ed995547007e55b` | 推荐作为 tsfresh/sklearn/sktime 路线的开源可复现强基线 target；当前未重跑 |
-| [RULSurv](https://github.com/thecml/rulsurv) | XJTU-SY | README 给出数据构建、交叉验证、ISD 预测命令；论文报告 RSF 在高载荷 25% censoring 下 true MAE 为 `12.6 ± 0.8` 分钟 | MIT，commit `6365e0832de9724a5bcbbac4557c6643dfb78d91` | 已完成 Python 3.11 本地 port：RULSurv-style 特征 + scikit-survival RSF + 25% censoring + row-level 5-fold CV，读取 `35Hz12kN` 工况 616 个原始 csv 快照、入模 611 个正 RUL 快照样本，3 seeds mean true MAE `10.2446` min，低于 target，状态 `PROTOCOL_PASS`；row-level CV 不等价于 held-out-bearing 泛化，本项目 Bearing1_3 holdout migration mean `19.2442` min，仍需优化 |
+| [RULSurv](https://github.com/thecml/rulsurv) | XJTU-SY | README 给出数据构建、交叉验证、ISD 预测命令；论文报告 RSF 在高载荷 25% censoring 下 true MAE 为 `12.6 ± 0.8` 分钟 | MIT，commit `6365e0832de9724a5bcbbac4557c6643dfb78d91` | 已完成 Python 3.11 本地 port：RULSurv-style 特征 + scikit-survival RSF + 25% censoring + row-level 5-fold CV，读取 `35Hz12kN` 工况 616 个原始 csv 快照、入模 611 个正 RUL 快照样本，3 seeds row-level mean true MAE `6.9264` min，状态 `PROTOCOL_PASS`；row-level CV 与 held-out-bearing 泛化分开报告，本项目 Bearing1_3 holdout migration mean `14.3079` min，状态 `MIGRATION_PASS` |
 | [GNN_RUL_Benchmarking](https://github.com/Frank-Wang-oss/GNN_RUL_Benchmarking) | PHM2012、XJTU-SY 等 | README 给出 `main.py` 训练命令，并提供 PHM2012/XJTU-SY 预处理入口 | GitHub 页面未显示明确 license，commit `9325667ed34976452e9323728e33a29fe0f98b5e` | 开源强基线候选；需独立环境重跑后才能作为完成证据 |
 | [rul-datasets](https://github.com/tilman151/rul-datasets) | FEMTO、XJTU-SY 等 | 提供统一 RUL 数据集 LightningDataModule，支持 FEMTO/PRONOSTIA 和 XJTU-SY | pip installable，commit `f0ac3142f2fe6340e53e6158dc4f9f0ba979277a` | 数据协议候选，不是模型 SOTA |
 | [rul-adapt](https://github.com/tilman151/rul-adapt) | FEMTO、XJTU-SY 等 | 提供 LSTM-DANN、ADARUL、LatentAlign、TBiGRU 等 RUL 域自适应方法 | pip installable，commit `628b6e06c99a5580f690bfad7961d4131964bbe9` | 后续迁移学习扩展候选，本轮未作为 target |
@@ -31,7 +31,7 @@
 | --- | --- |
 | `jiang-xjtu-c1-feature-transformer-rmse` | 5 个 formal evidence 来源的 repeated mean `normalized_rmse=0.096967`，相对目标 `0.0885` 的 mean gap 为 `9.57%`，达到“接近”门槛 |
 | `jiang-xjtu-c1-xlstm-rmse` | best observed `0.064558` 离目标 `0.0583` 的 gap 为 `10.73%`，但 repeated mean gap 为 `73.40%`，稳定性不足，状态为 `NEEDS_OPTIMIZATION` |
-| `rulsurv-xjtu-high-rsf-true-mae` | RULSurv-compatible 25% censored row-level 5-fold CV port 已完成，3 seeds mean true MAE `10.2446` min，低于 target `12.6` min，状态 `PROTOCOL_PASS`；本项目 Bearing1_3 holdout migration mean `19.2442` min，状态 `NEEDS_OPTIMIZATION` |
+| `rulsurv-xjtu-high-rsf-true-mae` | RULSurv-compatible 25% censored row-level 5-fold CV port 已完成，3 seeds row-level mean true MAE `6.9264` min，低于 target `12.6` min，状态 `PROTOCOL_PASS`；本项目 Bearing1_3 holdout migration mean `14.3079` min，进入 target 的 25% gap，状态 `MIGRATION_PASS` |
 | `gnn-benchmark-phm2012-fc-stgnn` | 已锁定开源强基线路线，但未重跑；不能算完成 |
 | `autorul-pronostia-femto-rmse` | 已锁定 MIT 许可 AutoRUL target；需独立重跑 `femto_bearing` 后才能算完成 |
 | `weibull-kiml-femto-rmse` | 已锁定 MIT 许可可靠性先验 target；需独立重跑 FEMTO 流程后才能算完成 |
@@ -41,5 +41,5 @@
 
 1. 对 xLSTM-Transformer 固定同一配置做至少 3 个 seed 的 50 epoch 重复训练，用 repeated mean 而非 best run 判定是否接近 `0.0583`。
 2. 为 AutoRUL 建独立环境或容器，重跑 `femto_bearing`，把 `22.52 ± 5.68` 的 PRONOSTIA target 转成真实本地复现行。
-3. 继续优化 RULSurv RSF port 的本项目 Bearing1_3 holdout split，目标从 mean true MAE `19.2442` min 降到 `15.75` min 以下，进入相对 RSF target 的 25% gap。
+3. 将 RULSurv RSF port 的 conservative survival quantile 解码扩展到更多 XJTU 工况，检查 held-out-bearing 迁移稳定性。
 4. 若 xLSTM repeated mean gap 仍大于 25%，继续调 `sequence_length`、时间索引、loss、batch size、hidden size 和样本数；不得停留在“已经跑通”。

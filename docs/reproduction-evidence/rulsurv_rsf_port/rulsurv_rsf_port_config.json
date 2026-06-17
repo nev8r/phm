@@ -13,9 +13,11 @@
     1,
     2
   ],
-  "n_estimators": 200,
-  "min_samples_leaf": 20,
+  "n_estimators": 300,
+  "min_samples_leaf": 5,
   "max_depth": 7,
+  "original_protocol_survival_probability": 0.5,
+  "project_holdout_survival_probability": 0.25,
   "train_bearings": [
     "Bearing1_1",
     "Bearing1_2",

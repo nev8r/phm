@@ -43,8 +43,8 @@ def parse_args() -> argparse.Namespace:
         help="Evidence output directory; defaults to docs/reproduction-evidence/rulsurv_rsf_port.",
     )
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
-    parser.add_argument("--n-estimators", type=int, default=200)
-    parser.add_argument("--min-samples-leaf", type=int, default=20)
+    parser.add_argument("--n-estimators", type=int, default=300)
+    parser.add_argument("--min-samples-leaf", type=int, default=5)
     parser.add_argument("--max-depth", type=int, default=7)
     return parser.parse_args()
 

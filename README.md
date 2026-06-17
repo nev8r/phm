@@ -29,7 +29,7 @@
 - 滑动窗口：`SlidingWindowSegmenter`
 - 特征提取：14 个时域特征 + 5 个频域特征，共 19 维，包括均值、方差、RMS、峰值、峰峰值、峭度、偏度、峰值因子、脉冲因子、主频、谱能量、谱质心、谱均方根频率、谱熵等
 
-特征由 `SignalFeatureExtractor` 使用 NumPy/FFT 计算，不依赖自动特征提取工具生成；`tsfresh` 和 `xgboost` 仅作为可选扩展依赖。
+特征由 `SignalFeatureExtractor` 使用 NumPy/FFT 计算；`tsfresh`、`sktime` 和 `xgboost` 作为 `advanced` 可选扩展，用于指标驱动的自动特征与时间序列 baseline 对照。
 
 ### 3. 退化阶段划分
 
@@ -140,10 +140,20 @@ uv venv --python 3.11
 uv sync --extra dev
 ```
 
-如果还希望安装 `xgboost` 和 `tsfresh`：
+如果还希望安装 `tsfresh`、`sktime` 和 `xgboost` 等指标实验扩展：
 
 ```bash
 uv sync --extra dev --extra advanced
+```
+
+指标驱动 RUL 对照实验可使用：
+
+```bash
+uv run --extra advanced python scripts/run_tsfresh_feature_analysis.py
+uv run --extra advanced python scripts/run_tsfresh_rul_baseline.py
+uv run --extra advanced python scripts/run_sktime_rul_baseline.py
+uv run python scripts/build_strict_repeated_seed_summary.py
+uv run python scripts/run_open_source_sota_evidence.py
 ```
 
 ### 2. 运行示例实验

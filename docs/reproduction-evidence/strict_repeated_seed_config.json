@@ -1,0 +1,40 @@
+{
+  "dataset_name": "XJTU-SY",
+  "condition_name": "condition_1_35Hz12kN",
+  "split_name": "train_Bearing1_1_1_2_1_4_1_5_test_Bearing1_3",
+  "train_bearings": [
+    "Bearing1_1",
+    "Bearing1_2",
+    "Bearing1_4",
+    "Bearing1_5"
+  ],
+  "test_bearing": "Bearing1_3",
+  "models": [
+    "XLSTM-Transformer",
+    "Feature-Transformer"
+  ],
+  "seeds": [
+    202601,
+    202602,
+    202603
+  ],
+  "epochs": 50,
+  "batch_size": 64,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "loss_name": "mse",
+  "target_scaling": "train_min_max",
+  "target_min": 0.0,
+  "target_max": 9060.0,
+  "sequence_length": 10,
+  "window_size": 1024,
+  "stride": 1024,
+  "hidden_size": 16,
+  "num_heads": 2,
+  "num_layers": 1,
+  "dropout": 0.1,
+  "max_samples_per_entity": "all_positive_rul_snapshots",
+  "train_sequence_count": 422,
+  "test_sequence_count": 149,
+  "config_hash": "7ee11220b98a7cc1"
+}

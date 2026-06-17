@@ -1,0 +1,18 @@
+source_pin_command: git ls-remote --tags https://github.com/Ennosigaeon/auto-sktime v0.1.0
+source_pin_exit_code: 0
+source_pin_stdout:
+fe277d21104be8d2e4bd34db7ed995547007e55b	refs/tags/v0.1.0
+
+source_pin_stderr:
+
+environment_probe_command: /Users/nev8r/Desktop/phm/.venv/bin/python3 -c 'import autosklearn; import sktime; print('"'"'AutoRUL runtime dependencies available'"'"')'
+environment_probe_exit_code: 1
+environment_probe_stdout:
+
+environment_probe_stderr:
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'autosklearn'
+
+failure_reason: Full AutoRUL rerun requires the external AutoML dependency stack and PRONOSTIA benchmark layout; the dependency probe fails in the project environment, so no local metric is claimed.
+next_step: Create an isolated AutoRUL environment, materialize the femto_bearing data layout, then run scripts/remaining_useful_lifetime.py femto_bearing for ten repetitions.

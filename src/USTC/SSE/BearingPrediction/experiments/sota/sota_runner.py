@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from USTC.SSE.BearingPrediction.experiments.metric_rul_baselines import build_external_sota_attempt_evidence
 from USTC.SSE.BearingPrediction.experiments.sota.sota_protocol import (
     REPRODUCTION_COLUMNS,
     TARGET_COLUMNS,
@@ -209,10 +210,12 @@ class SotaEvidenceBuilder:
         records.extend(self._build_jiang_records(targets))
         rulsurv_records = self._load_rulsurv_port_records(targets)
         records.extend(rulsurv_records)
+        external_attempts = self._load_external_attempt_records()
         records.extend(
             self._build_external_pending_records(
                 targets,
                 reproduced_target_ids={record.target_id for record in rulsurv_records},
+                external_attempts=external_attempts,
             )
         )
         reproduction_frame = pd.DataFrame([record.to_dict() for record in records], columns=REPRODUCTION_COLUMNS)
@@ -271,6 +274,7 @@ class SotaEvidenceBuilder:
         """
 
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
+        build_external_sota_attempt_evidence(self.project_root, self.evidence_dir)
         targets = self.default_targets()
         reproduction = self.build_reproduction_summary(targets)
         metric_driven = self.build_metric_driven_summary(reproduction)
@@ -289,7 +293,7 @@ class SotaEvidenceBuilder:
             "metric_driven_path": self._display_path(metric_driven_path),
             "pass_count": int(reproduction["status"].astype(str).str.endswith("PASS").sum()),
             "needs_optimization_count": int((reproduction["status"] == "NEEDS_OPTIMIZATION").sum()),
-            "blocked_count": int(reproduction["status"].astype(str).str.startswith("BLOCKED").sum()),
+            "blocked_count": int(reproduction["status"].astype(str).str.contains("BLOCKED", na=False).sum()),
         }
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         manifest["manifest_path"] = self._display_path(manifest_path)
@@ -389,8 +393,10 @@ class SotaEvidenceBuilder:
         targets: dict[str, SotaTargetRecord],
         *,
         reproduced_target_ids: set[str] | None = None,
+        external_attempts: dict[str, dict[str, object]] | None = None,
     ) -> list[SotaReproductionRecord]:
         reproduced_target_ids = reproduced_target_ids or set()
+        external_attempts = external_attempts or {}
         records: list[SotaReproductionRecord] = []
         for target_id in [
             "autorul-pronostia-femto-rmse",
@@ -405,17 +411,25 @@ class SotaEvidenceBuilder:
             status = (
                 "REFERENCE_ONLY"
                 if target.source_type == "paper_reference_only" or target.reproducibility_status.startswith("reference_only")
-                else "BLOCKED_EXTERNAL_ENV"
+                else "ATTEMPTED_EXTERNAL_ENV_BLOCKED"
+            )
+            attempt = external_attempts.get(target_id, {})
+            evidence_path = str(attempt.get("log_path", "not_available"))
+            notes = (
+                f"{attempt.get('failure_reason')} Next step: {attempt.get('next_step')}"
+                if attempt
+                else (
+                    "Target locked for SOTA evidence. Local reproduction is not claimed because the external "
+                    "environment, dependency stack, or metric protocol differs from this project."
+                )
             )
             records.append(
                 self._blocked_record(
                     target,
                     local_method_name="not_run_in_project_environment",
-                    notes=(
-                        "Target locked for SOTA evidence. Local reproduction is not claimed because the external "
-                        "environment, dependency stack, or metric protocol differs from this project."
-                    ),
+                    notes=notes,
                     status=status,
+                    evidence_path=evidence_path,
                 )
             )
         return records
@@ -427,6 +441,7 @@ class SotaEvidenceBuilder:
         local_method_name: str,
         notes: str,
         status: str = "BLOCKED",
+        evidence_path: str = "not_available",
     ) -> SotaReproductionRecord:
         return SotaReproductionRecord.from_target(
             target,
@@ -438,7 +453,7 @@ class SotaEvidenceBuilder:
             run_count=0,
             seeds="not_run",
             prediction_count=0,
-            evidence_path="not_available",
+            evidence_path=evidence_path,
             status=status,
             notes=notes,
         )
@@ -469,11 +484,18 @@ class SotaEvidenceBuilder:
     @staticmethod
     def _feature_backend_for_row(row: dict[str, object]) -> str:
         status = str(row["status"])
-        if status.startswith("BLOCKED") or status == "REFERENCE_ONLY":
+        if status.startswith("BLOCKED") or "EXTERNAL_ENV" in status or status == "REFERENCE_ONLY":
             return "not_run"
         if str(row["local_method_name"]) == "RULSurv RSF port":
             return "rulsurv_two_channel_time_frequency_elapsed"
         return "formal_19_feature_sequence"
+
+    def _load_external_attempt_records(self) -> dict[str, dict[str, object]]:
+        attempts_path = self.evidence_dir / "external_sota_attempts.csv"
+        if not attempts_path.exists():
+            return {}
+        attempts_frame = pd.read_csv(attempts_path)
+        return {str(row["target_id"]): row for row in attempts_frame.to_dict("records")}
 
     def _display_path(self, path: Path) -> str:
         try:

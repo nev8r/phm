@@ -319,9 +319,11 @@ def validate_reproduction_frame(reproduction_frame: pd.DataFrame, *, min_run_cou
         if int(row["prediction_count"]) < 0:
             raise ValueError(f"prediction_count must be non-negative for reproduction row {row_index}")
         status = str(row["status"])
-        if status.startswith("BLOCKED") or status == "REFERENCE_ONLY":
+        if status.startswith("BLOCKED") or "EXTERNAL_ENV" in status or status == "REFERENCE_ONLY":
             if int(row["run_count"]) != 0:
                 raise ValueError(f"run_count must be 0 for non-run reproduction row {row_index}")
+            if "EXTERNAL_ENV" in status and str(row["evidence_path"]) == "not_available":
+                raise ValueError(f"external environment row {row_index} must include attempt evidence_path")
             continue
         if int(row["run_count"]) < min_run_count:
             raise ValueError(f"run_count must be at least {min_run_count} for reproduction row {row_index}")
