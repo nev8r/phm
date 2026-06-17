@@ -164,7 +164,6 @@ def _extract_feature_summary(entity, *, channel_name: str) -> pd.DataFrame:
             "rms": features["rms"].to_numpy(dtype=float),
             "peak": features["peak"].to_numpy(dtype=float),
             "kurtosis": features["kurtosis"].to_numpy(dtype=float),
-            "health": extractor.build_health_indicator(features),
         }
     )
     return summary
@@ -195,7 +194,6 @@ def _plot_normalized_curve(summary: pd.DataFrame, *, time_unit: str, output_path
     ax.set_facecolor("#fafaf8")
     ax.plot(x_values, _normalize(summary["rms"]), color="#002FA7", linewidth=2.6, label="RMS")
     ax.plot(x_values, _normalize(summary["peak"]), color="#0a0a0a", linewidth=2.0, label="Peak")
-    ax.plot(x_values, summary["health"], color="#737373", linewidth=2.0, linestyle="--", label="Health indicator")
     ax.fill_between(x_values, _normalize(summary["rms"]), color="#002FA7", alpha=0.08)
     ax.set_xlabel(xlabel, fontsize=11)
     ax.set_ylabel("Normalized value", fontsize=11)
@@ -203,7 +201,7 @@ def _plot_normalized_curve(summary: pd.DataFrame, *, time_unit: str, output_path
     ax.grid(False, axis="x")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(loc="upper left", frameon=False, ncol=3, fontsize=10)
+    ax.legend(loc="upper left", frameon=False, ncol=2, fontsize=10)
     ax.text(
         0.995,
         0.03,
@@ -296,20 +294,20 @@ SLIDES = f"""
 <section class="slide" data-layout="S04" data-animate="grid-reveal">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">项目目标和交付内容</div>
+      <div class="l">项目目标和完成内容</div>
       <div class="r">02 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">本次答辩重点：需求分析、数据集介绍、项目架构、特征分析、训练展示和不足边界</div>
-      <h2 class="page-title">项目目标和交付内容</h2>
+      <div class="t-meta">本次答辩重点：需求分析、数据集介绍、流程架构、特征分析、训练展示和不足边界</div>
+      <h2 class="page-title">项目目标和完成内容</h2>
     </div>
     <div class="course-grid-6" data-anim="up">
-      <article class="course-cell accent"><div class="num">01</div><div class="ttl">任务定义</div><p class="desc">估计设备还能稳定运行多久，输出连续剩余寿命。</p></article>
+      <article class="course-cell accent"><div class="num">01</div><div class="ttl">需求分析</div><p class="desc">明确预测性维护场景、输入输出和两类目标：RUL 数值与失效风险概率。</p></article>
       <article class="course-cell"><div class="num">02</div><div class="ttl">真实退化数据</div><p class="desc">XJTU-SY 与 PHM2012，覆盖不同工况、快照长度和时间间隔。</p></article>
       <article class="course-cell"><div class="num">03</div><div class="ttl">特征分析</div><p class="desc">19 维时频域特征，解释振动强度、冲击变化和频谱变化。</p></article>
-      <article class="course-cell"><div class="num">04</div><div class="ttl">系统实现</div><p class="desc">数据、特征、标签、模型、训练、评价分层，核心逻辑在 src 包内。</p></article>
+      <article class="course-cell"><div class="num">04</div><div class="ttl">流程实现</div><p class="desc">数据、特征、标签、模型、训练、评价分层，核心逻辑在 src 包内。</p></article>
       <article class="course-cell"><div class="num">05</div><div class="ttl">复现实验</div><p class="desc">CNN-LSTM-AM 与 xLSTM-Transformer 均读取真实数据训练。</p></article>
-      <article class="course-cell ink"><div class="num">06</div><div class="ttl">测试交付</div><p class="desc">59 个全量测试、8 个 notebook 示例和结题文档材料。</p></article>
+      <article class="course-cell ink"><div class="num">06</div><div class="ttl">测试与材料</div><p class="desc">59 个全量测试、8 个 notebook 示例和结题文档材料。</p></article>
     </div>
   </div>
 </section>
@@ -330,8 +328,8 @@ SLIDES = f"""
           <p class="lead" style="font-weight:300;color:var(--text-primary);max-width:38ch">预测性维护最关心的是设备还能稳定运行多久，而不是只看某一个瞬间的状态。</p>
           <div class="mini-ledger">
             <div><b>输入</b><span>轴承运行过程中的水平、垂直振动快照。</span></div>
-            <div><b>输出</b><span>连续 RUL 数值、健康趋势曲线和误差指标。</span></div>
-            <div><b>边界</b><span>本次答辩主线是 RUL 回归预测；生存分析和失效概率保留为扩展接口。</span></div>
+            <div><b>输出</b><span>连续 RUL 数值、健康趋势曲线和误差指标；概率输出用于失效风险补充说明。</span></div>
+            <div><b>边界</b><span>开题提出 RUL 回归和生存分析两条路线；结题主线收敛为 RUL 回归，失效概率保留为扩展能力。</span></div>
           </div>
         </div>
       </div>
@@ -380,14 +378,14 @@ SLIDES = f"""
 <section class="slide" data-layout="S22" data-animate="image-hero">
   <div class="canvas-card" style="padding:0;display:flex;flex-direction:column;overflow:hidden">
     <div data-anim="img" style="position:relative;flex:0 0 58%;overflow:hidden;background:var(--paper)">
-      <img src="images/05-xjtu-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="XJTU-SY Bearing1_1 RMS and health trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
+      <img src="images/05-xjtu-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="XJTU-SY Bearing1_1 RMS and peak trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
       <div class="chrome-min" style="position:absolute;top:0;left:0;right:0;padding:5.6vh 5vw 0">
         <div class="l">XJTU-SY 特征观察</div>
         <div class="r">05 / {TOTAL_SLIDES:02d}</div>
       </div>
     </div>
     <div data-anim="kpi" class="image-hero-body course">
-      <p class="evidence-caption">以 Bearing1_1 为例，前期 RMS 和峰值较平稳，寿命后段明显抬升。Health indicator 由 RMS、峭度、峰值因子、谱能量标准化后合成，用于辅助观察整体变化。</p>
+      <p class="evidence-caption">以 Bearing1_1 为例，前期 RMS 和峰值较平稳，寿命后段明显抬升。这里优先展示物理含义明确的单项特征，不把临时合成指标作为退化结论。</p>
       <div class="image-hero-stats course">
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Bearing</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">1_1</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">35Hz12kN 工况</p></div>
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Snapshots</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">80</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">从 123 个快照均匀抽样</p></div>
@@ -400,14 +398,14 @@ SLIDES = f"""
 <section class="slide" data-layout="S22" data-animate="image-hero">
   <div class="canvas-card" style="padding:0;display:flex;flex-direction:column;overflow:hidden">
     <div data-anim="img" style="position:relative;flex:0 0 58%;overflow:hidden;background:var(--paper)">
-      <img src="images/06-phm2012-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="PHM2012 Bearing1_1 RMS and health trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
+      <img src="images/06-phm2012-bearing1-1-rms-health.png" data-image-slot="s22-hero-21x9" alt="PHM2012 Bearing1_1 RMS and peak trend" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center">
       <div class="chrome-min" style="position:absolute;top:0;left:0;right:0;padding:5.6vh 5vw 0">
         <div class="l">PHM2012 特征观察</div>
         <div class="r">06 / {TOTAL_SLIDES:02d}</div>
       </div>
     </div>
     <div data-anim="kpi" class="image-hero-body course">
-      <p class="evidence-caption">PHM2012 的单个加速度文件约 0.1 秒，相邻文件约 10 秒，记录更密。Health indicator 同样由强度、冲击和频谱相关特征合成，温度文件由 loader 对齐并保留。</p>
+      <p class="evidence-caption">PHM2012 的单个加速度文件约 0.1 秒，相邻文件约 10 秒，记录更密。图中只展示 RMS 和峰值，温度文件由 loader 对齐并保留为后续多源融合输入。</p>
       <div class="image-hero-stats course">
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Bearing</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">1_1</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">Condition 1，Learning_set</p></div>
         <div class="course-stat"><div style="height:1px;background:var(--ink)"></div><div class="t-meta">Snapshots</div><div class="kpi-hero" style="font-size:min(4.6vw,7.5vh);font-weight:200;line-height:.96;letter-spacing:-.04em">80</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="body-sm">从 2803 个快照均匀抽样</p></div>
@@ -459,7 +457,7 @@ SLIDES = f"""
       </div>
       <div class="feature-compact">
         <div class="t-meta" style="color:var(--accent);margin-bottom:2vh">Labeling</div>
-        <div class="mono">snapshot → 14 time + 5 frequency features<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>Health indicator = RMS + kurtosis + crest + energy</div>
+        <div class="mono">snapshot → 14 time + 5 frequency features<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>feature backend = manual_19 / tsfresh</div>
         <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">tsfresh 已完成 Minimal/Efficient train-only 筛选、held-out baseline 和 manual+tsfresh 融合验证；RF 仍弱于 Rocket，只作为自动特征分析旁证。</p>
       </div>
     </div>
@@ -474,7 +472,7 @@ SLIDES = f"""
     </div>
     <div class="head-stack" data-anim="line">
       <div class="t-meta">从原始数据到预测文件，每一步都有明确模块负责</div>
-      <h2 class="page-title small">系统从读取数据开始，到输出预测文件结束。</h2>
+      <h2 class="page-title small">流程从读取数据开始，到输出预测文件结束。</h2>
     </div>
     <div class="figure-board" data-anim="up">
       <div class="figure-frame">
@@ -658,7 +656,7 @@ SLIDES = f"""
       </div>
       <div class="ledger-row course">
         <div class="ledger-num">DOC</div>
-        <div class="ledger-label"><div class="t-meta">课程交付</div><div class="lead" style="font-weight:300">结题报告、测试报告、用户/安装手册、技术论文、PPT、讲稿和提纲均可导出归档。</div></div>
+        <div class="ledger-label"><div class="t-meta">课程材料</div><div class="lead" style="font-weight:300">结题报告、测试报告、用户/安装手册、技术论文、PPT、讲稿和提纲均可导出归档。</div></div>
         <div class="ledger-icon t-meta" style="text-align:right">PDF</div>
       </div>
     </div>
@@ -677,7 +675,7 @@ SLIDES = f"""
         <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.18em;margin-bottom:1.6vh">结题结论</div>
           <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.1vw,10.6vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">完成内容、限制和下一步。</h2>
-          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">系统链路已经跑通；正式复现完成 50 epoch，并补充 tsfresh/sktime/RULSurv 证据，但外部 SOTA 尚未本地重跑。</div>
+          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">端到端流程已经跑通；正式复现完成 50 epoch，并补充 tsfresh/sktime/RULSurv 证据，但外部 SOTA 尚未本地重跑。</div>
         </div>
         <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.62)">谢谢老师和同学</div>

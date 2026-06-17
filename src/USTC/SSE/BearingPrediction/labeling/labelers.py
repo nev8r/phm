@@ -18,7 +18,12 @@ import numpy as np
 import pandas as pd
 
 from USTC.SSE.BearingPrediction.data.entities import BearingEntity, BearingWindowDataset
-from USTC.SSE.BearingPrediction.feature import FeatureConfig, SignalFeatureExtractor
+from USTC.SSE.BearingPrediction.feature import (
+    FeatureBackendInput,
+    FeatureConfig,
+    SignalFeatureExtractor,
+    create_feature_backend,
+)
 from USTC.SSE.BearingPrediction.preprocess import (
     DegradationStageResult,
     PREPROCESSOR_REGISTRY,
@@ -62,9 +67,11 @@ class BearingRulLabeler:
         stride: int = 256,
         input_representation: str = "raw_signal",
         normalization: str = "zscore",
+        feature_backend: FeatureBackendInput = "manual_19",
     ) -> None:
         self.config = LabelerConfig(window_size=window_size, stride=stride, normalization=normalization)
         self.input_representation = input_representation
+        self.feature_backend = feature_backend
 
     def _build_pipeline(self) -> PreprocessingPipeline:
         normalization_transform = PREPROCESSOR_REGISTRY.create(self.config.normalization)
@@ -89,7 +96,7 @@ class BearingRulLabeler:
 
         segmenter = SlidingWindowSegmenter(SlidingWindowConfig(self.config.window_size, self.config.stride))
         pipeline = self._build_pipeline()
-        feature_extractor = SignalFeatureExtractor(FeatureConfig(sample_rate=entity.sample_rate))
+        feature_backend = create_feature_backend(self.feature_backend, sample_rate=entity.sample_rate)
 
         input_windows: list[np.ndarray] = []
         target_values: list[float] = []
@@ -99,7 +106,7 @@ class BearingRulLabeler:
         for sample_row in entity.samples.to_dict("records"):
             processed_signal = pipeline.apply(np.asarray(sample_row[channel_name], dtype=float))
             signal_windows = segmenter.segment(processed_signal)
-            window_features = feature_extractor.extract(signal_windows)
+            window_features = feature_backend.extract(signal_windows)
             for window_index, signal_window in enumerate(signal_windows):
                 input_windows.append(signal_window if self.input_representation == "raw_signal" else window_features.iloc[window_index].to_numpy(dtype=np.float32))
                 target_values.append(float(sample_row["rul"]))
@@ -227,11 +234,13 @@ class FeatureSequenceRulLabeler:
         window_size: int,
         stride: int = 256,
         normalization: str = "zscore",
+        feature_backend: FeatureBackendInput = "manual_19",
     ) -> None:
         if sequence_length <= 0:
             raise ValueError("sequence_length must be positive")
         self.sequence_length = sequence_length
         self.config = LabelerConfig(window_size=window_size, stride=stride, normalization=normalization)
+        self.feature_backend = feature_backend
 
     def _build_pipeline(self) -> PreprocessingPipeline:
         normalization_transform = PREPROCESSOR_REGISTRY.create(self.config.normalization)
@@ -256,14 +265,14 @@ class FeatureSequenceRulLabeler:
 
         segmenter = SlidingWindowSegmenter(SlidingWindowConfig(self.config.window_size, self.config.stride))
         pipeline = self._build_pipeline()
-        feature_extractor = SignalFeatureExtractor(FeatureConfig(sample_rate=entity.sample_rate))
+        feature_backend = create_feature_backend(self.feature_backend, sample_rate=entity.sample_rate)
 
         snapshot_features: list[np.ndarray] = []
         sample_rows = entity.samples.to_dict("records")
         for sample_row in sample_rows:
             processed_signal = pipeline.apply(np.asarray(sample_row[channel_name], dtype=float))
             signal_windows = segmenter.segment(processed_signal)
-            feature_table = feature_extractor.extract(signal_windows)
+            feature_table = feature_backend.extract(signal_windows)
             snapshot_features.append(feature_table.mean(axis=0).to_numpy(dtype=np.float32))
 
         if len(snapshot_features) < self.sequence_length:

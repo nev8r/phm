@@ -10,7 +10,6 @@ copyright USTC
 2026
 """
 
-from USTC.SSE.BearingPrediction.preprocess.signal_processor import BearingSignalPreprocessor
 from USTC.SSE.BearingPrediction.preprocess.pipeline import (
     PREPROCESSOR_REGISTRY,
     MinMaxNormalize,
@@ -28,7 +27,6 @@ from USTC.SSE.BearingPrediction.preprocess.stage import (
 )
 
 __all__ = [
-    "BearingSignalPreprocessor",
     "DegradationStageResult",
     "FPTStageStrategy",
     "MinMaxNormalize",
@@ -41,4 +39,3 @@ __all__ = [
     "ThreeSigmaStageStrategy",
     "ZScoreNormalize",
 ]
-
