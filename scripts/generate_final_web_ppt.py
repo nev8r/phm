@@ -24,7 +24,7 @@ from USTC.SSE.BearingPrediction.feature.engineering import FeatureConfig, Signal
 
 
 PROJECT_TITLE = "工业轴承设备剩余寿命预测系统的实现"
-TOTAL_SLIDES = 16
+TOTAL_SLIDES = 17
 SKILL_ROOT = Path(".agents/skills/guizang-ppt-skill")
 SKILL_TEMPLATE = SKILL_ROOT / "assets/template-swiss.html"
 SKILL_MOTION = SKILL_ROOT / "assets/motion.min.js"
@@ -300,7 +300,7 @@ SLIDES = f"""
       <div class="r">02 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div class="head-stack" data-anim="line">
-      <div class="t-meta">本次答辩重点：数据理解、系统实现、论文复现和验收证据</div>
+      <div class="t-meta">本次答辩重点：需求分析、数据集介绍、项目架构、特征分析、训练展示和不足边界</div>
       <h2 class="page-title">项目交付了一条可复查的 RUL 流程。</h2>
     </div>
     <div class="course-grid-6" data-anim="up">
@@ -309,7 +309,7 @@ SLIDES = f"""
       <article class="course-cell"><div class="num">03</div><div class="ttl">特征分析</div><p class="desc">19 维时频域特征，解释振动强度、冲击变化和频谱变化。</p></article>
       <article class="course-cell"><div class="num">04</div><div class="ttl">系统实现</div><p class="desc">数据、特征、标签、模型、训练、评价分层，核心逻辑在 src 包内。</p></article>
       <article class="course-cell"><div class="num">05</div><div class="ttl">复现实验</div><p class="desc">CNN-LSTM-AM 与 xLSTM-Transformer 均读取真实数据训练。</p></article>
-      <article class="course-cell ink"><div class="num">06</div><div class="ttl">测试交付</div><p class="desc">39 个全量测试、8 个 notebook 示例和结题文档材料。</p></article>
+      <article class="course-cell ink"><div class="num">06</div><div class="ttl">测试交付</div><p class="desc">59 个全量测试、8 个 notebook 示例和结题文档材料。</p></article>
     </div>
   </div>
 </section>
@@ -460,7 +460,7 @@ SLIDES = f"""
       <div class="feature-compact">
         <div class="t-meta" style="color:var(--accent);margin-bottom:2vh">Labeling</div>
         <div class="mono">snapshot → 14 time + 5 frequency features<br/>feature[t:t+sequence_length] → sequence<br/>rul = max(elapsed_seconds) - elapsed_seconds<br/>Health indicator = RMS + kurtosis + crest + energy</div>
-        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">特征由项目代码使用 NumPy/FFT 计算；tsfresh 仅作为可选扩展依赖，不是本轮主输入。</p>
+        <p class="body-sm" style="margin-top:auto;color:var(--text-secondary)">tsfresh 已完成 train-only 筛选，但相关性整体偏弱；top correlation 约 0.200994，只作为自动特征分析旁证。</p>
       </div>
     </div>
   </div>
@@ -609,8 +609,30 @@ SLIDES = f"""
 <section class="slide" data-layout="S20" data-animate="stacked-ledger">
   <div class="canvas-card">
     <div class="chrome-min">
-      <div class="l">验收依据：测试、输出和文档</div>
+      <div class="l">指标驱动补充实验与边界</div>
       <div class="r">15 / {TOTAL_SLIDES:02d}</div>
+    </div>
+    <div class="head-stack" data-anim="line">
+      <div class="t-meta">external SOTA / tsfresh / sktime / RULSurv 统一口径</div>
+      <h2 class="page-title small">新增证据要讲清楚完成度，也要讲清楚边界。</h2>
+    </div>
+    <div class="result-table" data-anim="up">
+      <div class="head">路线</div><div class="head">当前结果</div><div class="head">状态</div><div class="head">边界</div><div class="head">答辩口径</div>
+      <div>tsfresh</div><div>selected RF NRMSE 0.315629</div><div class="accent">RUN_RECORDED</div><div>相关性整体偏弱</div><div>自动特征分析旁证</div>
+      <div>sktime RocketRegressor</div><div>held-out NRMSE 0.263706</div><div>RUN_RECORDED</div><div>项目 split baseline</div><div>优于 tsfresh RF</div>
+      <div>RULSurv row-level</div><div>true MAE 6.926416 min</div><div>PROTOCOL_PASS</div><div>非 held-out bearing</div><div>原协议近似复现</div>
+      <div>RULSurv held-out</div><div>true MAE 14.307856 min</div><div>MIGRATION_PASS</div><div>survival_probability=0.25 保守解码</div><div>项目迁移策略</div>
+      <div>外部 SOTA</div><div>AutoRUL / GNN / Weibull source pin + 依赖 probe</div><div>未重跑</div><div>尚未在本地跑出指标</div><div>后续强基线目标</div>
+    </div>
+    <div class="difficulty-card accent" data-anim="foot" style="margin-top:3vh"><h3>一句话底线</h3><p>外部 SOTA 未本地重跑；tsfresh 相关性整体偏弱；RULSurv held-out pass 是 survival_probability=0.25 的保守解码迁移结果。</p></div>
+  </div>
+</section>
+
+<section class="slide" data-layout="S20" data-animate="stacked-ledger">
+  <div class="canvas-card">
+    <div class="chrome-min">
+      <div class="l">验收依据：测试、输出和文档</div>
+      <div class="r">16 / {TOTAL_SLIDES:02d}</div>
     </div>
     <div data-anim="ledger" class="ledger-list">
       <div class="ledger-row course">
@@ -624,8 +646,8 @@ SLIDES = f"""
         <div class="ledger-icon t-meta" style="text-align:right">ipynb</div>
       </div>
       <div class="ledger-row course">
-        <div class="ledger-num">39</div>
-        <div class="ledger-label"><div class="t-meta">自动化测试</div><div class="lead" style="font-weight:300">全量 pytest 覆盖 loader、特征、标签、指标、训练 workflow 和复现流程。</div></div>
+        <div class="ledger-num">59</div>
+        <div class="ledger-label"><div class="t-meta">自动化测试</div><div class="lead" style="font-weight:300">全量 pytest 覆盖 loader、特征、标签、指标、训练 workflow、metric-driven evidence 和 final materials alignment。</div></div>
         <div class="ledger-icon t-meta" style="text-align:right">pytest</div>
       </div>
       <div class="ledger-row course">
@@ -649,12 +671,12 @@ SLIDES = f"""
         <canvas class="ascii-bg" aria-hidden="true"></canvas>
         <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1">
           <div class="l">完成了什么，边界在哪里</div>
-          <div class="r">16 / {TOTAL_SLIDES:02d}</div>
+          <div class="r">17 / {TOTAL_SLIDES:02d}</div>
         </div>
         <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.18em;margin-bottom:1.6vh">结题结论</div>
           <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6.1vw,10.6vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:#fff">完成内容、限制和下一步。</h2>
-          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">系统链路已经跑通；正式复现完成 50 epoch，但仍受抽样规模和单次实验限制。</div>
+          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(16px,.98vw);line-height:1.6;color:rgba(255,255,255,.84);font-weight:400;max-width:39ch;margin-top:1.4vh">系统链路已经跑通；正式复现完成 50 epoch，并补充 tsfresh/sktime/RULSurv 证据，但外部 SOTA 尚未本地重跑。</div>
         </div>
         <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh;position:relative;z-index:1">
           <div class="t-meta" style="color:rgba(255,255,255,.62)">谢谢老师和同学</div>
@@ -671,7 +693,7 @@ SLIDES = f"""
           <div class="closing-item"><div class="n">25%</div><div><h3>cyy：数据处理与特征工程</h3><p>两个数据集 loader、时频域特征、样本组织和数据文档。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zdh：分析与评价支持</h3><p>概率分析基础能力、评价支持、测试报告和确认测试材料。</p></div></div>
           <div class="closing-item"><div class="n">20%</div><div><h3>zy：可视化与文档</h3><p>可视化页面、用户手册、安装手册和答辩材料。</p></div></div>
-          <div class="closing-item accent"><div class="n">Next</div><div><h3>边界与后续</h3><p>当前复现是 50 epoch 抽样训练；后续扩大到全量样本，补充多随机种子和温度特征融合。</p></div></div>
+          <div class="closing-item accent"><div class="n">Next</div><div><h3>边界与后续</h3><p>外部 SOTA 未重跑；tsfresh 弱相关；RULSurv held-out 是 0.25 保守解码迁移。后续做容器化复现、更多工况和温度融合。</p></div></div>
         </div>
         <div data-anim="foot" class="t-meta" style="color:var(--text-helper);text-align:right">复查入口：notebook、pytest、comparison_metrics.csv、predictions.csv</div>
       </div>

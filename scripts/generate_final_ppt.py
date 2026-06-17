@@ -166,13 +166,13 @@ def build_presentation() -> Presentation:
     text_box(slide, 0.7, 1.0, 9.8, 0.72, "工业轴承设备剩余寿命预测系统的实现", size=38, color=RGBColor(255, 255, 255), bold=True)
     text_box(slide, 0.76, 2.0, 9.7, 0.36, "从真实退化数据到 RUL 预测、论文复现与工程闭环", size=20, color=RGBColor(226, 232, 240))
     text_box(slide, 0.78, 5.55, 10.8, 0.32, "中国科学技术大学 软件学院《软件工程》 | 指导老师：zjf", size=14, color=RGBColor(226, 232, 240))
-    text_box(slide, 0.78, 5.96, 10.8, 0.32, "小组成员：zyj、cyj、zdh、zy | 2026-06-14", size=14, color=RGBColor(226, 232, 240))
+    text_box(slide, 0.78, 5.96, 10.8, 0.32, "小组成员：zyj、cyj、zdh、zy | 2026-06-17", size=14, color=RGBColor(226, 232, 240))
 
-    slide = add_slide(prs, "答辩主线")
+    slide = add_slide(prs, "答辩主线：需求、数据、架构、特征、训练、边界")
     add_metric(slide, 0.8, 1.25, "2", "真实数据集", BLUE)
     add_metric(slide, 3.4, 1.25, "19", "时频域特征", GREEN)
-    add_metric(slide, 6.0, 1.25, "2", "RUL 论文复现", ORANGE)
-    add_metric(slide, 8.6, 1.25, "39", "全量测试通过", PURPLE)
+    add_metric(slide, 6.0, 1.25, "4", "补充实验路线", ORANGE)
+    add_metric(slide, 8.6, 1.25, "59", "全量测试通过", PURPLE)
     add_bullets(
         slide,
         1.0,
@@ -180,8 +180,9 @@ def build_presentation() -> Presentation:
         11.0,
         [
             "项目定位为面向预测性维护的轴承剩余寿命预测系统。",
-            "核心价值是把真实数据、特征工程、训练评估、实验记录和课程文档做成一个可运行工程。",
-            "答辩重点：我理解数据的时间语义，也能解释模型输入、指标口径和复现边界。",
+            "汇报顺序按老师认知组织：需求分析 -> 数据集介绍 -> 项目架构 -> 特征分析 -> 训练展示 -> 不足边界。",
+            "新增证据包括 tsfresh/sktime baseline、RULSurv RSF port、strict repeated seed 和 external SOTA probe。",
+            "答辩重点：讲清完成证据，也讲清 external SOTA 未重跑、tsfresh 弱相关、RULSurv 0.25 保守解码边界。",
         ],
         size=17,
     )
@@ -221,7 +222,7 @@ def build_presentation() -> Presentation:
         [
             "RMS、峰值和谱能量通常随退化增强而上升，是健康指标构造的重要基础。",
             "峭度、脉冲因子对冲击性退化或失效更敏感，适合捕捉早期异常波动。",
-            "频域特征补充“能量集中在哪些频率”，避免只看振幅大小。",
+            "tsfresh 已完成 train-only 筛选，但相关性整体偏弱：top correlation 约 0.200994，只作为自动特征分析旁证。",
         ],
         size=16,
     )
@@ -291,6 +292,32 @@ def build_presentation() -> Presentation:
         row_height=0.52,
     )
 
+    slide = add_slide(prs, "指标驱动补充实验：结果和边界")
+    add_rows(
+        slide,
+        0.75,
+        1.02,
+        [
+            ("tsfresh", "selected features + RandomForest mean NRMSE 0.315629", "相关性整体偏弱，不是核心性能突破"),
+            ("sktime RocketRegressor", "held-out Bearing1_3 mean NRMSE 0.263706", "当前优于 tsfresh RF，是补充 baseline"),
+            ("RULSurv row-level", "25% censored CV mean true MAE 6.926416 min", "PROTOCOL_PASS，但不是 held-out 泛化"),
+            ("RULSurv held-out", "Bearing1_3 mean true MAE 14.307856 min", "MIGRATION_PASS，survival_probability=0.25 保守解码"),
+            ("外部 SOTA", "AutoRUL / GNN / Weibull 完成 source pin 与依赖 probe", "尚未在本地跑出指标，不能说已复现"),
+        ],
+        row_height=0.65,
+    )
+    add_card(
+        slide,
+        0.9,
+        5.45,
+        11.5,
+        0.72,
+        "答辩底线",
+        "外部 SOTA 未重跑；tsfresh 相关性整体偏弱；RULSurv held-out pass 是 0.25 survival probability 的项目迁移策略。",
+        RED,
+        body_size=13,
+    )
+
     slide = add_slide(prs, "评价指标：不混淆 Score 口径")
     add_card(slide, 0.75, 1.05, 3.65, 1.9, "普通误差", "MAE、RMSE、NormalizedRMSE、SMAPE、R2：回答预测偏差有多大。", BLUE, fill=SOFT_BLUE)
     add_card(slide, 4.8, 1.05, 3.65, 1.9, "论文 Score", "HuangRulScore 按 Er_i = 100*(target-prediction)/target 分段指数公式。", GREEN, fill=SOFT_GREEN)
@@ -309,8 +336,8 @@ def build_presentation() -> Presentation:
     )
 
     slide = add_slide(prs, "测试验收：用证据说话")
-    add_metric(slide, 0.85, 1.05, "39", "pytest 全量通过", GREEN)
-    add_metric(slide, 3.45, 1.05, "20", "论文与 notebook focused", BLUE)
+    add_metric(slide, 0.85, 1.05, "59", "pytest 全量通过", GREEN)
+    add_metric(slide, 3.45, 1.05, "15", "Issue/SOTA focused", BLUE)
     add_metric(slide, 6.05, 1.05, "18", "xLSTM 真实训练结果行", ORANGE)
     add_metric(slide, 8.65, 1.05, "50", "正式训练 epoch", PURPLE)
     add_bullets(
@@ -320,6 +347,7 @@ def build_presentation() -> Presentation:
         11.0,
         [
             "notebook 测试直接执行 examples/*.ipynb，而非只检查文件存在。",
+            "新增 final materials alignment 测试，防止 PPT、web PPT 和讲稿回退到旧口径。",
             "真实训练输出 history.csv、metrics.json、predictions.csv、comparison_metrics.csv。",
             "tmp/、outputs/、真实数据和模型产物不提交；文档只记录命令和指标摘要。",
             "四轮提交保存阶段成果，远端 main 已推送，便于回溯。",
@@ -350,19 +378,21 @@ def build_presentation() -> Presentation:
         1.05,
         [
             ("任务边界？", "数据是 run-to-failure 退化序列", "主任务是 RUL 和预测性维护"),
-            ("为什么与论文数值存在差异？", "96 快照抽样、单次训练、本机算力约束", "验证流程，不冒充作者全量训练"),
+            ("外部 SOTA？", "AutoRUL/GNN/Weibull 只有 source pin 和依赖 probe", "尚未在本地跑出指标"),
+            ("tsfresh 强吗？", "已做 train-only baseline，但相关性整体偏弱", "旁证，不是核心突破"),
+            ("RULSurv 泛化？", "row-level 与 held-out 分开解释", "held-out 是 survival_probability=0.25 保守解码"),
+            ("为什么与论文数值存在差异？", "96 快照抽样、作者源码不可得、协议差异", "验证流程，不冒充作者全量训练"),
             ("如何避免数据泄漏？", "按时间或轴承划分，notebook 不随机混相邻窗口", "真实复现按论文工况划分"),
-            ("xLSTM 是否完全复刻？", "论文无源码，本项目做结构复现", "已在文档说明复现边界"),
             ("工程价值是什么？", "统一数据抽象、训练接口、实验记录、测试文档", "可扩展而非一次性脚本"),
-            ("不足与改进？", "96 快照抽样，未做多随机种子统计", "后续做全量训练和更强泛化"),
         ],
+        row_height=0.62,
     )
 
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     set_background(slide, NAVY)
     text_box(slide, 0.85, 1.2, 10.8, 0.62, "谢谢老师和同学", size=38, color=RGBColor(255, 255, 255), bold=True)
     text_box(slide, 0.9, 2.25, 10.4, 0.36, "欢迎提问：数据语义、特征工程、模型复现、指标口径、工程交付", size=18, color=RGBColor(226, 232, 240))
-    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "我们完成的是课程项目级真实训练复现和工程闭环，不把 96 快照抽样结果包装成作者全量训练。", ORANGE, body_size=15, fill=CARD_BG)
+    add_card(slide, 0.95, 4.5, 10.8, 0.92, "备答底线", "外部 SOTA 未重跑；tsfresh 相关性整体偏弱；RULSurv held-out 是 survival_probability=0.25 的保守解码迁移结果。", ORANGE, body_size=15, fill=CARD_BG)
 
     return prs
 
