@@ -497,6 +497,48 @@ def _render_job_panel(st, job: dict[str, Any] | None) -> None:
         st.rerun()
 
 
+def _render_sidebar_summary(st, job: dict[str, Any] | None) -> None:
+    st.markdown("### 全局状态")
+    status = str(job.get("status", "idle")) if job else "idle"
+    kind = str(job.get("kind", "-")) if job else "-"
+    task = str(job.get("task", "-") or "-") if job else "-"
+    st.metric("后台任务", status)
+    st.caption(f"{kind} / {task}")
+    if st.button("刷新", width="stretch"):
+        st.rerun()
+    selected_run = st.session_state.get("selected_model_run")
+    if selected_run:
+        st.caption(f"模型 run：{Path(selected_run).name}")
+
+
+def _render_last_output(st, job_dir: str | Path | None) -> None:
+    if not job_dir:
+        st.info("暂无最近输出。")
+        return
+    job = poll_job(job_dir)
+    run_dir = job.get("run_dir")
+    if not run_dir or not Path(run_dir).exists():
+        st.info("最近任务还没有可读输出目录。")
+        return
+    if job.get("status") != "succeeded":
+        st.info("最近任务尚未成功结束。")
+        return
+    st.markdown("**最近输出**")
+    if (Path(run_dir) / "config.json").exists():
+        _render_run_summary(st, run_dir)
+    elif (Path(run_dir) / "metrics.json").exists():
+        _render_artifact_dir(st, run_dir)
+    else:
+        st.caption(str(run_dir))
+
+
+def _render_main_status_area(st, active: dict[str, Any] | None) -> None:
+    st.subheader("运行状态")
+    _render_job_panel(st, active)
+    st.divider()
+    _render_last_output(st, st.session_state.get("last_job_dir"))
+
+
 def _dataframe_status(st, status: dict[str, dict[str, Any]]) -> None:
     rows = []
     for name, item in status.items():
@@ -713,13 +755,13 @@ def main() -> None:
     st.set_page_config(
         page_title="轴承 PHM 实验工作台",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
     st.markdown(
         """
         <style>
         .block-container { padding-top: 1rem; padding-bottom: 1.2rem; }
-        section[data-testid="stSidebar"] { min-width: 330px; }
+        section[data-testid="stSidebar"] { min-width: 250px; }
         div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d8dee9; padding: 0.65rem; border-radius: 6px; }
         .stTabs [data-baseweb="tab-list"] { gap: 0.75rem; }
         </style>
@@ -731,32 +773,25 @@ def main() -> None:
 
     active = _active_job(st)
     with st.sidebar:
-        _render_job_panel(st, active)
-        if st.button("刷新状态", width="stretch"):
-            st.rerun()
-        last_job_dir = st.session_state.get("last_job_dir")
-        if last_job_dir:
-            job = poll_job(last_job_dir)
-            if job.get("run_dir") and Path(job["run_dir"]).exists() and job.get("status") == "succeeded":
-                st.markdown("**最近输出**")
-                if (Path(job["run_dir"]) / "config.json").exists():
-                    _render_run_summary(st, job["run_dir"])
-                elif (Path(job["run_dir"]) / "metrics.json").exists():
-                    _render_artifact_dir(st, job["run_dir"])
+        _render_sidebar_summary(st, active)
 
-    data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
-        ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
-    )
-    with data_tab:
-        _render_data_tab(st, active)
-    with train_tab:
-        _render_training_tab(st, active)
-    with model_tab:
-        _render_model_tab(st)
-    with inference_tab:
-        _render_inference_tab(st, active)
-    with benchmark_tab:
-        _render_benchmark_tab(st, active)
+    status_area, workspace_area = st.columns([0.8, 1.8], gap="large")
+    with status_area:
+        _render_main_status_area(st, active)
+    with workspace_area:
+        data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
+            ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
+        )
+        with data_tab:
+            _render_data_tab(st, active)
+        with train_tab:
+            _render_training_tab(st, active)
+        with model_tab:
+            _render_model_tab(st)
+        with inference_tab:
+            _render_inference_tab(st, active)
+        with benchmark_tab:
+            _render_benchmark_tab(st, active)
 
 
 if __name__ == "__main__":

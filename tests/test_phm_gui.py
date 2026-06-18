@@ -70,6 +70,19 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertNotIn("课堂展示入口", source)
         self.assertNotIn("训练 Demo", source)
 
+    def test_gui_keeps_work_controls_in_main_canvas(self):
+        source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
+
+        self.assertIn('initial_sidebar_state="collapsed"', source)
+        self.assertIn("status_area, workspace_area = st.columns([0.8, 1.8]", source)
+        self.assertIn("def _render_sidebar_summary", source)
+        self.assertIn("def _render_main_status_area", source)
+        sidebar_block = source.split("with st.sidebar:", maxsplit=1)[1].split(
+            "status_area, workspace_area", maxsplit=1
+        )[0]
+        self.assertNotIn("_render_job_panel", sidebar_block)
+        self.assertNotIn("_render_run_summary", sidebar_block)
+
     def test_dataset_root_inspection_reports_local_roots_and_cache_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
