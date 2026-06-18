@@ -92,6 +92,8 @@ class PhmAnalysisCliTest(unittest.TestCase):
         audit = compute_tsfresh_audit(features, target, ["rms", "entropy"], ids=ids, mode="minimal")
 
         self.assertEqual(audit["mode"], "minimal")
+        self.assertGreater(audit["default_fc_parameter_count"], 0)
+        self.assertIn("sum_values", audit["default_fc_parameter_names"])
         self.assertGreater(audit["extracted_feature_count"], 0)
         self.assertIn("top_correlated_tsfresh_features", audit)
         self.assertIn("domain_overlap", audit)
@@ -155,6 +157,7 @@ class PhmAnalysisCliTest(unittest.TestCase):
                 "extracted_feature_count": 42,
                 "elapsed_seconds": 1.25,
                 "estimated_input_memory_mb": 0.5,
+                "default_fc_parameter_count": 42,
                 "top_correlated_tsfresh_features": [
                     {"feature": "rms__mean", "abs_pearson": 0.91},
                     {"feature": "entropy__variance", "abs_pearson": 0.76},

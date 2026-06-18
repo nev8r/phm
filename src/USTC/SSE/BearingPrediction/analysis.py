@@ -325,6 +325,7 @@ def compute_tsfresh_audit(
         )
     long_frame = pd.concat(frames, ignore_index=True)
     fc_parameters = MinimalFCParameters() if mode == "minimal" else EfficientFCParameters()
+    fc_parameter_names = sorted(str(name) for name in fc_parameters.keys())
 
     start = perf_counter()
     extracted = extract_features(
@@ -365,6 +366,8 @@ def compute_tsfresh_audit(
         "mode": mode,
         "scope": "tsfresh audit over selected domain feature trajectories",
         "series_count": int(extracted.shape[0]),
+        "default_fc_parameter_count": int(len(fc_parameter_names)),
+        "default_fc_parameter_names": fc_parameter_names,
         "selected_domain_feature_count": len(selected_names),
         "selected_domain_features": selected_names,
         "extracted_feature_count": int(extracted.shape[1]),
@@ -514,6 +517,7 @@ def render_tsfresh_audit_figures(
 
     profile_path = out / f"{prefix}_tsfresh_{mode}_profile.png"
     profile = {
+        "default params": float(audit.get("default_fc_parameter_count", 0)),
         "selected domain": float(audit.get("selected_domain_feature_count", 0)),
         "extracted tsfresh": float(audit.get("extracted_feature_count", 0)),
         "series": float(audit.get("series_count", 0)),
