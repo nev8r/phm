@@ -11,7 +11,7 @@
 
 ## 总体架构
 
-系统采用分层设计：`data` 负责数据读取、实体抽象和标签；`data.process` 负责信号特征工程；`model` 负责神经网络结构；`engine` 负责训练、评估、指标和回调；`util` 负责日志、设备、缓存和图表辅助；`examples` 负责 Notebook 复现实验。
+系统采用分层设计：`data` 负责数据读取、实体抽象和标签；`data.process` 负责信号特征工程；`model` 负责神经网络结构；`engine` 负责训练、评估、指标和回调；`util` 负责日志、设备、缓存和图表辅助；CLI 负责统一组织分析、训练、benchmark 与报告输出。
 
 ![系统 UML 架构图](../img/uml_architecture.png)
 
@@ -33,4 +33,4 @@ CBAM-CNN-LSTM 使用卷积抽取局部频域形态，CBAM 对通道和时间位�
 | 特征 | Processor | 所有处理器暴露 `run` 风格方法 |
 | 模型 | `forward(x)` | 保持 PyTorch 标准接口 |
 | 训练 | Trainer/Tester | 接收模型、数据、损失、指标和回调 |
-| 示例 | Notebook | 使用 `from phm...` 作为公开导入方式 |
+| CLI | `phm analyze/train/benchmark/report` | 统一运行数据分析、训练和评估 |

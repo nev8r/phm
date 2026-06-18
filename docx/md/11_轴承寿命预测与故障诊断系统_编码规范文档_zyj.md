@@ -11,11 +11,11 @@
 
 ## 目录与命名规范
 
-源码放在 `src/USTC/SSE/BearingPrediction`，示例中通过 `phm` 导入。模块按职责分为 `data`、`model`、`engine`、`util`，测试放在 `tests`，Notebook 放在 `examples`，课程文档放在 `docx`。
+源码放在 `src/USTC/SSE/BearingPrediction`，示例中通过 `phm` 导入。模块按职责分为 `data`、`model`、`engine`、`util`，测试放在 `tests`，示例放在 `examples`，课程文档放在 `docx`。
 
 ## 导入规范
 
-Notebook、用户手册和演示代码推荐使用：
+CLI、用户手册和演示代码推荐使用：
 
 ```python
 from phm.data.loader.PHM2012Loader import PHM2012Loader
@@ -33,5 +33,5 @@ from phm.model.paper import PaperCBAMCNNLSTMRegressor
 - Python 版本固定为 3.11。
 - 包管理使用 uv，不再混用 pipenv、poetry 或 requirements 手工安装流程。
 - 路径使用 `pathlib.Path`，不得硬编码个人磁盘路径。
-- 设备选择通过工具函数或显式配置处理，Notebook 中需说明 CPU/MPS/CUDA 的差异。
+- 设备选择通过工具函数或显式配置处理，CLI 或示例中需说明 CPU/MPS/CUDA 的差异。
 - 大数据、缓存、训练产物不进入源码包；文档只引用必要指标和图表。

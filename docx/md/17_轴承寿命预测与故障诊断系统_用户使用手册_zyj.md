@@ -14,16 +14,19 @@
 1. 准备 Python 3.11 与 uv。
 2. 在项目根目录执行 `uv sync`。
 3. 确认 `data/loader_roots/phm2012` 和 `data/loader_roots/xjtu` 能访问真实数据。
-4. 启动 Jupyter 或 IDE，打开 `examples/3-papers` 下的 Notebook。
-5. 先运行 PHM2012 RUL 主线，再运行 XJTU-SY 故障诊断主线。
-6. 查看 Notebook 输出的指标表、特征图、训练曲线和混淆矩阵。
+4. 使用 `phm` 命令先运行数据分析，再运行 PHM2012 RUL 和 XJTU-SY Fault 主线训练。
+5. 运行 benchmark，检查传统 baseline、sktime baseline 和深度模型的统一指标。
+6. 查看 `outputs/runs/<timestamp>_<task>/` 下的指标表、预测 CSV、特征图、训练曲线和混淆矩阵。
 
 ## 常用入口
 
 | 入口 | 用途 |
 |---|---|
-| `examples/3-papers/PHM2012_RUL_CBAM_CNN_LSTM.ipynb` | PHM2012 RUL 论文主线复现 |
-| `examples/3-papers/XJTU_Fault_CNN_LSTM.ipynb` | XJTU-SY 故障诊断论文主线复现 |
+| `uv run phm analyze --task all --full` | 生成数据集卡片、特征分析、模型架构图 |
+| `uv run phm train --task rul --preset paper --full --device auto` | PHM2012 RUL 论文主线复现 |
+| `uv run phm train --task fault --preset paper --full --device auto` | XJTU-SY 故障诊断论文主线复现 |
+| `uv run phm benchmark --task all --baselines all --full` | 统一 baseline 对比 |
+| `examples/3-papers/` | 辅助查看复现实验过程 |
 | `tests/` | 单元与集成测试 |
 | `docx/` | 课程材料目录 |
 

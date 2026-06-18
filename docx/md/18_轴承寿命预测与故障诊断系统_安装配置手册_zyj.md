@@ -17,13 +17,14 @@
 | Python | 3.11 |
 | 包管理 | uv |
 | 深度学习 | PyTorch 2.10 依赖范围，Mac 可使用 MPS |
-| Notebook | Jupyter / ipykernel |
+| 交互环境 | Jupyter / ipykernel，可选 |
 
 ## 安装步骤
 
 ```bash
-cd /Users/nev8r/Desktop/phm2
+cd /Users/nev8r/Desktop/main
 uv sync
+uv run phm --help
 uv run python -m unittest discover -v
 ```
 
@@ -36,7 +37,7 @@ uv run python -m unittest discover -v
 | PHM2012 | `data/loader_roots/phm2012` |
 | XJTU-SY | `data/loader_roots/xjtu` |
 
-如需重新映射，使用软链接指向本机外部数据目录，并保持 Notebook 中仍访问 `data/loader_roots`。
+如需重新映射，使用软链接指向本机外部数据目录，并保持 CLI、示例和测试脚本都访问 `data/loader_roots`。
 
 ## 常见问题
 

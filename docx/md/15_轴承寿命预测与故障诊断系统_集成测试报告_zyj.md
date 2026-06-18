@@ -15,17 +15,22 @@
 |---|---|---|---|
 | PHM2012 RUL | 原始振动 CSV | `[B,32,276]`、RUL 标签、MSE/RMSE/MAE/R2 | 通过 |
 | XJTU-SY 故障诊断 | 原始振动 CSV | `[B,8,552]`、二分类标签、accuracy/F1/混淆矩阵 | 通过 |
+| Benchmark | 统一 split 与特征缓存 | baseline 指标表和对比图 | 通过 |
 | 文档生成 | Markdown 与图表 | Word/PDF 文档 | 通过导出检查 |
 
 ## RUL 集成结果
 
-![PHM2012 RUL 指标图](../img/phm2012_rul_metrics.png)
+![PHM2012 RUL 预测曲线](../img/phm2012_rul_prediction_curves.png)
 
 ![训练/验证指标图](../img/training_validation.png)
+
+![RUL Baseline 对比](../img/rul_benchmark.png)
 
 ## 故障诊断集成结果
 
 ![XJTU-SY 混淆矩阵热力图](../img/xjtu_confusion_matrix.png)
+
+![Fault Baseline 对比](../img/fault_benchmark.png)
 
 ## 结论
 

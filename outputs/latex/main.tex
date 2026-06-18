@@ -120,7 +120,7 @@
           \item 训练评估层：训练、指标计算、曲线和结果输出
         \end{enumerate}
       \end{block}
-      \takeaway{两个实验不是零散脚本，而是同一套 PHM 数据流的两条任务分支。}
+      \takeaway{两条任务共享同一套 PHM 数据流。}
     \end{column}
     \begin{column}{0.61\textwidth}
       \centering
@@ -253,6 +253,29 @@
 
 \section{训练复现}
 
+\begin{frame}[t]{模型架构与选型}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.50\textheight,keepaspectratio]{rul_model_architecture.png}
+      \smallcap{CBAM-CNN-LSTM：局部频谱模式 + 注意力加权 + 退化时序依赖}
+      \begin{block}{RUL 选型}
+        \footnotesize
+        相比 Transformer，参数和训练成本更低；相比传统回归，能利用 32 个连续快照的退化过程。
+      \end{block}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.50\textheight,keepaspectratio]{fault_model_architecture.png}
+      \smallcap{ResCNN-LSTM：残差卷积稳定特征提取，LSTM 聚合状态变化}
+      \begin{block}{Fault 选型}
+        \footnotesize
+        任务是 Healthy/Faulty 二分类，ResCNN-LSTM 在速度、参数量和可解释展示之间比较均衡。
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 \begin{frame}[t]{RUL 训练配置与指标}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.40\textwidth}
@@ -265,7 +288,7 @@
         \end{itemize}
       \end{block}
       \begin{block}{训练设置}
-        200 个最大 epoch，best epoch = 124，设备使用 Mac MPS。
+        200 个最大 epoch，best epoch = 194，设备使用 Mac MPS。
       \end{block}
     \end{column}
     \begin{column}{0.57\textwidth}
@@ -273,7 +296,7 @@
       \hfill
       \metricbox{0.31\linewidth}{1102}{验证窗口}
       \hfill
-      \metricbox{0.31\linewidth}{17014}{测试窗口}
+      \metricbox{0.31\linewidth}{10995}{测试窗口}
       \vspace{0.6em}
       \begin{table}
         \footnotesize
@@ -282,13 +305,12 @@
           指标 & 数值 \\
           \midrule
           输入形状 & [B, 32, 276] \\
-          Validation MSE / RMSE / MAE & 0.002183 / 0.0467 / 0.0216 \\
-          Test MSE / RMSE / MAE & 0.040336 / 0.2008 / 0.1550 \\
-          输出文件 & JSON + CSV + 图表 \\
+          Validation MSE / RMSE / MAE & 0.000098 / 0.0099 / 0.0077 \\
+          Test MSE / RMSE / MAE & 0.021532 / 0.1467 / 0.1050 \\
+          输出目录 & train\_rul run \\
           \bottomrule
         \end{tabularx}
       \end{table}
-      \takeaway{RUL 训练已经跑完全量数据，核心展示指标是 MSE、RMSE、MAE 和预测曲线。}
     \end{column}
   \end{columns}
 \end{frame}
@@ -298,15 +320,14 @@
     \begin{column}{0.48\textwidth}
       \centering
       \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{training_validation.png}
-      \smallcap{训练曲线：前期快速下降，best epoch = 124}
+      \smallcap{训练曲线：前期快速下降，best epoch = 194}
     \end{column}
     \begin{column}{0.49\textwidth}
       \centering
       \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{phm2012_rul_prediction_curves.png}
-      \smallcap{预测曲线：整体跟随 RUL 下降趋势}
+      \smallcap{预测曲线：按 6 个论文主线测试轴承展示}
     \end{column}
   \end{columns}
-  \takeaway{当前结果能展示主线复现闭环；进一步追论文最优时，需要继续对齐跨轴承划分、随机种子和训练参数。}
 \end{frame}
 
 \begin{frame}[t]{Fault 训练配置与指标}
@@ -327,11 +348,11 @@
       \metricbox{0.31\linewidth}{0.001}{LR}
     \end{column}
     \begin{column}{0.54\textwidth}
-      \metricbox{0.31\linewidth}{0.9963}{Accuracy}
+      \metricbox{0.31\linewidth}{0.9971}{Accuracy}
       \hfill
-      \metricbox{0.31\linewidth}{0.9949}{Macro-F1}
+      \metricbox{0.31\linewidth}{0.9959}{Macro-F1}
       \hfill
-      \metricbox{0.31\linewidth}{0.9922}{Fault-F1}
+      \metricbox{0.31\linewidth}{0.9938}{Fault-F1}
       \vspace{0.6em}
       \begin{table}
         \footnotesize
@@ -341,8 +362,8 @@
           \midrule
           输入形状 & [B, 8, 552] \\
           损失与优化器 & CrossEntropyLoss / AdamW \\
-          Test loss & 0.0214 \\
-          Weighted-F1 & 0.9963 \\
+          Test loss & 0.0117 \\
+          Weighted-F1 & 0.9971 \\
           论文主线 Acc / F1 & 0.9639 / 0.9640 \\
           \bottomrule
         \end{tabularx}
@@ -356,13 +377,13 @@
     \begin{column}{0.52\textwidth}
       \centering
       \includegraphics[width=\linewidth,height=0.70\textheight,keepaspectratio]{xjtu_confusion_matrix.png}
-      \smallcap{混淆矩阵：[[1043, 3], [2, 318]]}
+      \smallcap{混淆矩阵：[[1044, 2], [2, 318]]}
     \end{column}
     \begin{column}{0.44\textwidth}
       \begin{block}{读图方式}
         \begin{itemize}
-          \item Healthy 正确：1043
-          \item Healthy 误判为 Faulty：3
+          \item Healthy 正确：1044
+          \item Healthy 误判为 Faulty：2
           \item Faulty 正确：318
           \item Faulty 误判为 Healthy：2
         \end{itemize}
@@ -375,7 +396,75 @@
   \takeaway{这张图说明故障检测闭环有效，但不能夸大为多类型故障识别。}
 \end{frame}
 
-\section{交付与总结}
+\begin{frame}[t]{Baseline 公平对比}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{rul_benchmark.png}
+      \begin{table}
+        \scriptsize
+        \begin{tabularx}{\linewidth}{lY}
+          \toprule
+          RUL 模型 & Test RMSE \\
+          \midrule
+          Ridge & 0.5367 \\
+          RandomForest & 0.2762 \\
+          RocketRegressor & 0.3040 \\
+          CBAM-CNN-LSTM & \textbf{0.1467} \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{fault_benchmark.png}
+      \begin{table}
+        \scriptsize
+        \begin{tabularx}{\linewidth}{lY}
+          \toprule
+          Fault 模型 & Weighted-F1 \\
+          \midrule
+          LogisticRegression & \textbf{0.9971} \\
+          RandomForest & 0.9963 \\
+          RocketClassifier & 0.7702 \\
+          ResCNN-LSTM & 0.9971 \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{统一 CLI 与任务关系}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \begin{block}{工程入口}
+        \scriptsize
+        \texttt{uv run phm analyze --task all --full}\\
+        \texttt{uv run phm train --task rul --full}\\
+        \texttt{uv run phm train --task fault --full}\\
+        \texttt{uv run phm benchmark --task all --full}
+      \end{block}
+      \begin{block}{输出内容}
+        \footnotesize
+        每次运行进入 \texttt{outputs/runs/<timestamp>\_<task>/}，包含配置、指标、预测 CSV、图表和模型摘要。
+      \end{block}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{block}{共同数学流程}
+        \footnotesize
+        原始振动信号 $x(t,c)$ 经特征映射 $\phi(x)$ 得到序列样本 $X_i$，再由模型 $f_\theta(X_i)$ 输出任务结果。
+      \end{block}
+      \begin{block}{任务区别}
+        \footnotesize
+        RUL 输出连续寿命 $y_t=1-t/(T-1)$；Fault 根据 RMS 3$\sigma$ 首次故障点 FOT 将状态离散为 Healthy/Faulty。
+      \end{block}
+      \takeaway{Fault 是退化状态的离散阈值判断，RUL 是退化过程的连续寿命估计。}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{分工与总结}
 
 \begin{frame}[t]{成员分工}
   \begin{table}
@@ -387,7 +476,7 @@
       蔡祎珏 & 25\% & 数据 & 数据加载、数据实体、PHM2012/XJTU-SY 数据适配、标签构造 \\
       朱德豪 & 25\% & 训练 & Trainer/Evaluator、实验运行、指标记录、训练流程整理 \\
       周逸进 & 25\% & 模型 & 模型结构、论文主线复现、项目整合、答辩材料组织 \\
-      邹扬 & 25\% & 工具与测试 & 工具函数、可视化图表、测试用例、Notebook 示例、实验结果整理和交付检查 \\
+      邹扬 & 25\% & 工具与测试 & CLI 工程入口、工具函数、可视化图表、测试用例、实验结果整理和交付检查 \\
       \bottomrule
     \end{tabularx}
   \end{table}

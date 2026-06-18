@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-<h3>🔍 A Unified Framework for Bearing Prognostics and Health Management</h3>
+<h3>Bearing RUL Prediction and Fault Diagnosis System</h3>
 </div>
 
 <div align="center">
@@ -36,7 +36,7 @@ uv sync
 ```
 
 ## 🚀     Feature Overview
-- ✅ **Compatible with Multiple Deep Learning Frameworks**: Supports model development using PyTorch(primary), TensorFlow, and Pyro
+- ✅ **PyTorch-based Training Workflow**: Supports bearing RUL prediction and fault diagnosis experiments with PyTorch.
 
 - 📦 **Automatic Bearing Dataset Import**: Built-in support for XJTU-SY and PHM2012 bearing datasets
 
@@ -60,37 +60,15 @@ uv sync
 
 - 🔧 **Modular and Extensible Design**: Add custom algorithms or components with minimal effort
 
-## 💻    Experiment Example
+## 💻    Unified CLI Example
 
-The following is a **minimal working example** for completing a bearing PHM experiment (RUL prediction), containing only the **basic steps** of data loading, model training, and evaluation — perfect for quick start.
+The `phm` command provides one entry point for data analysis, paper reproduction training, baseline benchmarking, and run summaries:
 
-> This example focuses on the minimum runnable workflow. More complete demos are available under `examples/2-demo`.
-
-Just a few lines of code are enough to complete an end-to-end experiment workflow:
-
-```python
-# Step 1: Load raw data
-data_loader = XJTULoader('data/loader_roots/xjtu')
-bearing = data_loader.load_entity('Bearing1_1')
-
-# Step 2: Construct dataset
-labeler = BearingRulLabeler(2048)
-dataset = labeler.label(bearing, 'Horizontal Vibration')
-train_set, test_set = dataset.split_by_ratio(0.7)
-
-# Step 3: Train model
-model = CNN(input_size=2048, output_size=1)
-trainer = BaseTrainer()
-trainer.train(model, train_set)
-
-# Step 4: Test model
-tester = BaseTester()
-result = tester.test(model, test_set)
-
-# Step 5: Evaluate results
-evaluator = Evaluator()
-evaluator.add(MAE(), MSE(), RMSE(), PercentError(), PHM2012Score())
-evaluator(test_set, result)
+```bash
+uv run phm analyze --task all --full
+uv run phm train --task rul --preset paper --full --device auto
+uv run phm train --task fault --preset paper --full --device auto
+uv run phm benchmark --task all --baselines all --full
 ```
 
 
@@ -99,12 +77,14 @@ evaluator(test_set, result)
 > The original contributions are treated with full respect. If the reproduced results deviate from the originals, it may be due to differences in implementation or experimental setup, or potentially due to oversights during reproduction.
 
 ### ✅ Reproduced Papers Overview
-coming soon
+- PHM2012 RUL: CBAM-CNN-LSTM with Hann-windowed rFFT features and degradation statistics.
+- XJTU-SY Fault: ResCNN-LSTM with dual-channel time-frequency features for Healthy/Faulty classification.
+- Benchmark: Ridge, RandomForest, sktime Rocket baselines, and deep models compared under shared splits and feature caches.
 
 ## 📂    File Structure
 - src/USTC/SSE/BearingPrediction – Core framework code.
 - doc – Detailed documentation (recommended for writing custom components).
-- examples – Notebook examples and demos.
+- examples – Supporting examples and paper reproduction experiments.
 
 ### 📦 Dataset Sources
 

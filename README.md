@@ -3,7 +3,7 @@
 </div>
 
 <div align="center">
-<h3>🔍 A Unified Framework for Bearing Prognostics and Health Management</h3>
+<h3>轴承寿命预测与故障诊断系统</h3>
 </div>
 
 <div align="center">
@@ -53,37 +53,15 @@ uv sync
 - 🔧 **灵活组件化设计**：支持用户快速扩展和接入自定义算法模块
 
 
-## 💻    实验示例
+## 💻    统一 CLI 示例
 
-以下是完成一次 PHM 实验（RUL预测）的**极简流程示例**，仅包含**数据加载、模型训练与评估**的最基本步骤，便于快速上手。
+系统提供 `phm` 命令入口，统一运行数据分析、论文主线训练、baseline 对比和报告输出：
 
-> 本示例专注于最小可运行流程，框架还支持更强大的功能，详见 `examples/2-demo` 下的 Demo 示例。
-
-只需十几行代码，即可完成端到端实验流程：
-
-```python
-# Step 1: Load raw data
-data_loader = XJTULoader('data/loader_roots/xjtu')
-bearing = data_loader.load_entity('Bearing1_1')
-
-# Step 2: Construct dataset
-labeler = BearingRulLabeler(2048)
-dataset = labeler.label(bearing, 'Horizontal Vibration')
-train_set, test_set = dataset.split_by_ratio(0.7)
-
-# Step 3: Train model
-model = CNN(input_size=2048, output_size=1)
-trainer = BaseTrainer()
-trainer.train(model, train_set)
-
-# Step 4: Test model
-tester = BaseTester()
-result = tester.test(model, test_set)
-
-# Step 5: Evaluate results
-evaluator = Evaluator()
-evaluator.add(MAE(), MSE(), RMSE(), PercentError(), PHM2012Score())
-evaluator(test_set, result)
+```bash
+uv run phm analyze --task all --full
+uv run phm train --task rul --preset paper --full --device auto
+uv run phm train --task fault --preset paper --full --device auto
+uv run phm benchmark --task all --baselines all --full
 ```
 
 
@@ -94,12 +72,14 @@ evaluator(test_set, result)
 
 ### ✅ 已复现论文示例
 
-整理中
+- PHM2012 RUL：CBAM-CNN-LSTM，输入为 Hann window + rFFT 频域特征与退化统计特征。
+- XJTU-SY Fault：ResCNN-LSTM，输入为双通道时频特征，任务为 Healthy/Faulty 二分类。
+- Benchmark：Ridge、RandomForest、sktime Rocket baseline 与深度模型在同一 split、同一特征缓存下比较。
 
 ## 📂    文件结构说明
 - src/USTC/SSE/BearingPrediction —— 框架代码
 - doc —— 框架详细说明文档（编写自定义组件时建议查看）
-- examples —— Notebook 示例与 Demo
+- examples —— 辅助示例与论文复现实验
 
 ### 📦 数据集来源
 

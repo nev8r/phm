@@ -13,14 +13,14 @@
 
 根据《工程实践各阶段要求》和《工程实践管理规范2025》，本项目按开题、中期、结题三个阶段组织材料。开题阶段需要完成技术预研、需求分析、SRS、确认测试计划和项目管理计划；中期阶段需要提交设计文档、单元测试计划、集成测试计划、编码规范、UML 设计和核心代码；结题阶段需要提交结题报告、测试报告、用户手册、安装配置手册、项目技术论文、源码和成员贡献说明。答辩材料需要服务于演示，不替代正文文档。
 
-本仓库当前交付采用 `docx/md`、`docx/word`、`docx/pdf`、`docx/img` 四类目录保存源文档、Word、PDF 和图表。代码托管使用 GitHub 仓库 `nev8r/phm` 的 `phm2` 分支，依赖与环境通过 `uv`、`.python-version`、`pyproject.toml` 和 `uv.lock` 固化。
+本仓库当前交付采用 `docx/md`、`docx/word`、`docx/pdf`、`docx/img` 四类目录保存源文档、Word、PDF 和图表。代码托管使用 GitHub 仓库 `nev8r/phm` 的 `main` 分支，依赖与环境通过 `uv`、`.python-version`、`pyproject.toml` 和 `uv.lock` 固化。
 
 
 ## 项目概述
 
 本项目面向轴承预测性维护课程场景，建设一个可运行、可测试、可复查的轴承寿命预测与故障诊断系统。系统围绕两个公开数据集展开：PHM2012 用于剩余寿命 RUL 回归复现，XJTU-SY 用于健康/故障诊断复现。项目重点不是搭建在线工业平台，而是在本地工程环境中形成从数据接入、特征工程、模型训练到评估输出的闭环证据链。
 
-当前代码采用 Python 3.11、uv 包管理和 PyTorch 2.10 依赖范围。源码物理路径为 `src/USTC/SSE/BearingPrediction`，示例和 Notebook 中推荐通过 `from phm...` 导入。数据路径通过 `data/loader_roots/phm2012` 与 `data/loader_roots/xjtu` 映射到本地外部数据集，避免硬编码个人磁盘路径。
+当前代码采用 Python 3.11、uv 包管理和 PyTorch 2.10 依赖范围。系统通过 `phm` 命令运行分析、训练和 benchmark，示例代码推荐通过 `from phm...` 导入。数据路径通过 `data/loader_roots/phm2012` 与 `data/loader_roots/xjtu` 映射到本地外部数据集，避免硬编码个人磁盘路径。
 
 ## 研究背景与问题定义
 
@@ -32,7 +32,7 @@
 
 - 数据可行：PHM2012 与 XJTU-SY 已通过本地外部数据目录接入，仓库只保存映射与加载逻辑。
 - 技术可行：NumPy、Pandas、SciPy、scikit-learn 和 PyTorch 足够支撑特征工程、训练和评估。
-- 工程可行：系统已有 loader、processor、labeler、model、trainer、tester 和 notebook 示例，适合按课程阶段输出证据。
+- 工程可行：系统已有 loader、processor、labeler、model、trainer、tester 和 CLI 示例，适合按课程阶段输出证据。
 - 算力可行：RUL 先跑 PHM2012 主线，故障诊断后跑 XJTU-SY 主线；本地 Mac 可使用 CPU/MPS，根据训练日志保留 epoch 与指标。
 
 ## 预期成果
@@ -40,6 +40,6 @@
 | 类别 | 成果 |
 |---|---|
 | 代码 | `phm` 包、数据加载、特征工程、模型、训练器、测试器 |
-| 示例 | RUL 与故障诊断 Notebook，展示特征图、热力图和指标表 |
+| 示例 | RUL 与故障诊断 CLI 流程，展示特征图、热力图和指标表 |
 | 文档 | 开题、中期、结题所需 Word/PDF/Markdown 文档 |
 | 证据 | 单元测试、集成测试、确认测试、论文复现指标和图表 |

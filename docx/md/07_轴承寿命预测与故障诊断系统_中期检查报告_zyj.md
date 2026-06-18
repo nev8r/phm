@@ -13,7 +13,7 @@
 
 本项目面向轴承预测性维护课程场景，建设一个可运行、可测试、可复查的轴承寿命预测与故障诊断系统。系统围绕两个公开数据集展开：PHM2012 用于剩余寿命 RUL 回归复现，XJTU-SY 用于健康/故障诊断复现。项目重点不是搭建在线工业平台，而是在本地工程环境中形成从数据接入、特征工程、模型训练到评估输出的闭环证据链。
 
-当前代码采用 Python 3.11、uv 包管理和 PyTorch 2.10 依赖范围。源码物理路径为 `src/USTC/SSE/BearingPrediction`，示例和 Notebook 中推荐通过 `from phm...` 导入。数据路径通过 `data/loader_roots/phm2012` 与 `data/loader_roots/xjtu` 映射到本地外部数据集，避免硬编码个人磁盘路径。
+当前代码采用 Python 3.11、uv 包管理和 PyTorch 2.10 依赖范围。系统通过 `phm` 命令运行分析、训练和 benchmark，示例代码推荐通过 `from phm...` 导入。数据路径通过 `data/loader_roots/phm2012` 与 `data/loader_roots/xjtu` 映射到本地外部数据集，避免硬编码个人磁盘路径。
 
 ## 已完成工作
 
@@ -22,7 +22,7 @@
 | 仓库结构 | 已统一为 `src/USTC/SSE/BearingPrediction`，通过 `phm` 暴露导入入口 |
 | 环境管理 | 已切换 Python 3.11 与 uv，依赖包含 PyTorch 2.10、scikit-learn、TensorBoard、Jupyter |
 | 数据接入 | 已保留 PHM2012 与 XJTU-SY 两类轴承数据入口 |
-| 示例迁移 | demo 已迁移到 `examples`，以 Notebook 为主 |
+| 示例迁移 | demo 已迁移到 `examples`，主流程以 CLI 为准 |
 | 主线模型 | 已实现 CBAM-CNN-LSTM 与 ResCNN-LSTM |
 | 测试基础 | 已建立特征、数据集、模型、trainer 和训练产物测试 |
 

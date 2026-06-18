@@ -11,7 +11,7 @@
 
 ## 摘要
 
-本文设计并实现了一个面向课程实践的轴承寿命预测与故障诊断系统。系统以 PHM2012 和 XJTU-SY 为实验对象，建立统一的数据加载、特征工程、模型训练和评估输出流程。RUL 主线采用 Hann window、rFFT 频域输入与退化统计特征，复现 CBAM-CNN-LSTM 结构；故障诊断主线采用双通道时频特征与 ResCNN-LSTM 结构，实现健康/故障二分类。实验表明，系统能够在本地环境完成两条主线训练和可视化输出，满足课程工程实践对可运行、可测试、可复查的要求。
+本文设计并实现了一个面向课程实践的轴承寿命预测与故障诊断系统。系统以 PHM2012 和 XJTU-SY 为实验对象，建立统一的数据加载、特征工程、模型训练和评估输出流程。RUL 主线采用 Hann window、rFFT 频域输入与退化统计特征，复现 CBAM-CNN-LSTM 结构；故障诊断主线采用双通道时频特征与 ResCNN-LSTM 结构，实现健康/故障二分类。系统补充 tsfresh 特征审计和 sktime baseline 对比，用统一 CLI 运行分析、训练和 benchmark。实验表明，系统能够在本地环境完成两条主线训练和可视化输出，满足课程工程实践对可运行、可测试、可复查的要求。
 
 ## 方法
 
@@ -21,18 +21,23 @@ PHM2012 RUL 方法将每个振动快照转换为 256 维频域向量，并补充
 
 | 任务 | 主指标 | 本地复现结果 |
 |---|---|---|
-| PHM2012 RUL | Validation MSE | 0.002183 |
-| PHM2012 RUL | Test MSE | 0.040336 |
-| PHM2012 RUL | Test RMSE | 0.2008 |
-| PHM2012 RUL | Test MAE | 0.1550 |
-| XJTU-SY 故障诊断 | Accuracy | 0.9963 |
-| XJTU-SY 故障诊断 | Macro-F1 | 0.9949 |
+| PHM2012 RUL | Validation MSE | 0.000098 |
+| PHM2012 RUL | Test MSE | 0.021532 |
+| PHM2012 RUL | Test RMSE | 0.1467 |
+| PHM2012 RUL | Test MAE | 0.1050 |
+| XJTU-SY 故障诊断 | Accuracy | 0.9971 |
+| XJTU-SY 故障诊断 | Macro-F1 | 0.9959 |
+| XJTU-SY 故障诊断 | Fault-F1 | 0.9938 |
 
-![PHM2012 RUL 指标图](../img/phm2012_rul_metrics.png)
+![PHM2012 RUL 预测曲线](../img/phm2012_rul_prediction_curves.png)
 
 ![训练/验证指标图](../img/training_validation.png)
 
 ![XJTU-SY 混淆矩阵热力图](../img/xjtu_confusion_matrix.png)
+
+![RUL Baseline 对比](../img/rul_benchmark.png)
+
+![Fault Baseline 对比](../img/fault_benchmark.png)
 
 ## 讨论
 
