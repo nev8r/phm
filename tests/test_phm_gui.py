@@ -95,6 +95,14 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertIn("font-size: 1.38rem", source)
         self.assertIn("padding: 0.35rem 1.1rem 0.9rem", source)
 
+    def test_gui_source_displays_model_parameters(self):
+        source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
+
+        self.assertIn("def _render_model_parameter_panel", source)
+        self.assertIn("模型参数", source)
+        self.assertIn("参数量", source)
+        self.assertIn("Learning Rate", source)
+
     def test_feature_gallery_discovers_latest_analysis_figures(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -188,6 +196,52 @@ class PhmGuiSupportTest(unittest.TestCase):
             self.assertTrue(validation["task_mismatch"])
             self.assertIn("model_state.pt", validation["missing"])
             self.assertIn("standardizer.npz", validation["missing"])
+
+    def test_validate_training_run_reports_model_parameters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "20260618_120000_train_rul"
+            run_dir.mkdir()
+            (run_dir / "config.json").write_text(
+                json.dumps({
+                    "command": "train",
+                    "task": "rul",
+                    "sample": False,
+                    "epochs": 200,
+                    "batch_size": 128,
+                    "learning_rate": 7e-4,
+                    "weight_decay": 1e-4,
+                    "device": "mps",
+                }),
+                encoding="utf-8",
+            )
+            (run_dir / "metrics.json").write_text(json.dumps({"test": {"mse": 0.1}}), encoding="utf-8")
+            (run_dir / "model_summary.json").write_text(
+                json.dumps({
+                    "model": "PaperCBAMCNNLSTMRegressor",
+                    "task": "rul",
+                    "parameter_count": 390724,
+                    "model_state_size_bytes": 1600000,
+                    "input_dim": 276,
+                    "sequence_length": 32,
+                    "architecture_config": {
+                        "lstm_hidden": 160,
+                        "lstm_layers": 2,
+                        "dropout": 0.15,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            (run_dir / "model_state.pt").write_bytes(b"model")
+            (run_dir / "standardizer.npz").write_bytes(b"npz")
+
+            validation = validate_training_run(run_dir, expected_task="rul")
+
+            self.assertTrue(validation["valid"])
+            self.assertEqual(validation["parameter_count"], 390724)
+            self.assertEqual(validation["model_state_size_bytes"], 1600000)
+            self.assertEqual(validation["training_config"]["epochs"], 200)
+            self.assertEqual(validation["training_config"]["batch_size"], 128)
+            self.assertEqual(validation["architecture_config"]["lstm_hidden"], 160)
 
     def test_background_job_records_success_and_failure(self):
         with tempfile.TemporaryDirectory() as tmp:

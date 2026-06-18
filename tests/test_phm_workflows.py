@@ -64,6 +64,8 @@ class PhmWorkflowTest(unittest.TestCase):
             self.assertEqual(metrics["task"], "rul")
             self.assertIn("mse", metrics["test"])
             self.assertGreater(summary["parameter_count"], 0)
+            self.assertIn("architecture_config", summary)
+            self.assertEqual(summary["architecture_config"]["lstm_hidden"], 32)
             self.assertTrue((run_dir / "predictions.csv").exists())
             self.assertTrue((run_dir / "figures" / "rul_prediction_curve.png").exists())
 

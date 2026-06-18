@@ -432,26 +432,33 @@ def _preset_config(task: str, preset: str, sample: bool) -> dict[str, Any]:
     return config
 
 
-def _build_model(task: str, input_dim: int, *, smoke: bool) -> torch.nn.Module:
+def _model_architecture_config(task: str, *, smoke: bool) -> dict[str, Any]:
     if task == "rul":
-        return PaperCBAMCNNLSTMRegressor(
-            input_dim=input_dim,
-            lstm_hidden=32 if smoke else 160,
-            lstm_layers=1 if smoke else 2,
-            cbam_reduction=8 if smoke else 16,
-            cbam_kernel_size=7,
-            dropout=0.10 if smoke else 0.15,
-        )
+        return {
+            "lstm_hidden": 32 if smoke else 160,
+            "lstm_layers": 1 if smoke else 2,
+            "cbam_reduction": 8 if smoke else 16,
+            "cbam_kernel_size": 7,
+            "dropout": 0.10 if smoke else 0.15,
+        }
     if task == "fault":
-        return ResCNNLSTMClassifier(
-            input_dim=input_dim,
-            num_classes=len(XJTU_HEALTH_STATES),
-            hidden_dim=24 if smoke else 64,
-            conv_channels=24 if smoke else 64,
-            lstm_layers=1,
-            residual_blocks=1 if smoke else 2,
-            dropout=0.10 if smoke else 0.20,
-        )
+        return {
+            "num_classes": len(XJTU_HEALTH_STATES),
+            "hidden_dim": 24 if smoke else 64,
+            "conv_channels": 24 if smoke else 64,
+            "lstm_layers": 1,
+            "residual_blocks": 1 if smoke else 2,
+            "dropout": 0.10 if smoke else 0.20,
+        }
+    raise ValueError(f"unsupported task: {task}")
+
+
+def _build_model(task: str, input_dim: int, *, smoke: bool) -> torch.nn.Module:
+    architecture = _model_architecture_config(task, smoke=smoke)
+    if task == "rul":
+        return PaperCBAMCNNLSTMRegressor(input_dim=input_dim, **architecture)
+    if task == "fault":
+        return ResCNNLSTMClassifier(input_dim=input_dim, **architecture)
     raise ValueError(f"unsupported task: {task}")
 
 
@@ -1157,6 +1164,7 @@ def run_paper_training(
         "model": model_name,
         "task": task,
         "parameter_count": count_parameters(model),
+        "architecture_config": _model_architecture_config(task, smoke=sample or preset == "smoke"),
         "model_state_path": str(checkpoint),
         "model_state_size_bytes": checkpoint.stat().st_size,
         "standardizer_path": str(standardizer_path),

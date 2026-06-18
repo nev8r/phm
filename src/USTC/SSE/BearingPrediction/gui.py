@@ -85,6 +85,28 @@ def _format_float(value: Any, digits: int = 6) -> str:
         return "-"
 
 
+def _format_count(value: Any) -> str:
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return "-"
+
+
+def _format_bytes(value: Any) -> str:
+    try:
+        size = float(value)
+    except (TypeError, ValueError):
+        return "-"
+    if size <= 0:
+        return "-"
+    units = ["B", "KB", "MB", "GB"]
+    unit_index = 0
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+    return f"{size:.2f} {units[unit_index]}" if unit_index else f"{int(size)} {units[unit_index]}"
+
+
 def _new_run_dir(output_root: Path | str, command: str, task: str) -> Path:
     root = Path(output_root)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -428,6 +450,32 @@ def validate_training_run(run_dir: Path | str, expected_task: str | None = None)
     summary = _load_json(path / "model_summary.json")
     task = str(config.get("task", summary.get("task", "")))
     task_mismatch = bool(expected_task and task and expected_task != task)
+    model_state_path = path / "model_state.pt"
+    standardizer_path = path / "standardizer.npz"
+    model_state_size = summary.get("model_state_size_bytes")
+    if not isinstance(model_state_size, (int, float)):
+        model_state_size = model_state_path.stat().st_size if model_state_path.exists() else 0
+    standardizer_size = summary.get("standardizer_size_bytes")
+    if not isinstance(standardizer_size, (int, float)):
+        standardizer_size = standardizer_path.stat().st_size if standardizer_path.exists() else 0
+    training_config = {
+        key: config[key]
+        for key in [
+            "preset",
+            "sample",
+            "device",
+            "epochs",
+            "sequence_length",
+            "batch_size",
+            "learning_rate",
+            "weight_decay",
+            "seed",
+        ]
+        if key in config
+    }
+    architecture_config = summary.get("architecture_config", {})
+    if not isinstance(architecture_config, dict):
+        architecture_config = {}
     return {
         "path": str(path),
         "valid": not missing and not task_mismatch and config.get("command") == "train",
@@ -440,6 +488,10 @@ def validate_training_run(run_dir: Path | str, expected_task: str | None = None)
         "input_dim": summary.get("input_dim", ""),
         "sequence_length": summary.get("sequence_length", ""),
         "parameter_count": summary.get("parameter_count", ""),
+        "model_state_size_bytes": model_state_size,
+        "standardizer_size_bytes": standardizer_size,
+        "training_config": training_config,
+        "architecture_config": architecture_config,
         "metrics": metrics.get("test", {}),
         "summary": summary,
     }
@@ -515,11 +567,48 @@ def _show_figures(st, figures: dict[str, Path | str]) -> None:
         columns[index % 2].image(str(path), caption=name, width="stretch")
 
 
-def _render_run_summary(st, run_dir: Path | str) -> None:
+def _render_model_parameter_panel(st, validation: dict[str, Any]) -> None:
+    st.markdown("**模型参数**")
+    columns = st.columns(5)
+    columns[0].metric("参数量", _format_count(validation.get("parameter_count")))
+    columns[1].metric("Checkpoint", _format_bytes(validation.get("model_state_size_bytes")))
+    columns[2].metric("标准化器", _format_bytes(validation.get("standardizer_size_bytes")))
+    columns[3].metric("输入维度", str(validation.get("input_dim") or "-"))
+    columns[4].metric("序列长度", str(validation.get("sequence_length") or "-"))
+
+    training_config = validation.get("training_config", {})
+    architecture_config = validation.get("architecture_config", {})
+    train_rows = []
+    if "epochs" in training_config:
+        train_rows.append({"参数": "Epochs", "值": training_config["epochs"]})
+    if "batch_size" in training_config:
+        train_rows.append({"参数": "Batch Size", "值": training_config["batch_size"]})
+    if "learning_rate" in training_config:
+        train_rows.append({"参数": "Learning Rate", "值": training_config["learning_rate"]})
+    if "weight_decay" in training_config:
+        train_rows.append({"参数": "Weight Decay", "值": training_config["weight_decay"]})
+    if "device" in training_config:
+        train_rows.append({"参数": "Device", "值": training_config["device"]})
+    if "preset" in training_config:
+        train_rows.append({"参数": "Preset", "值": training_config["preset"]})
+    arch_rows = [{"参数": key, "值": value} for key, value in architecture_config.items()]
+    if train_rows or arch_rows:
+        left, right = st.columns(2)
+        if train_rows:
+            left.caption("训练配置")
+            left.dataframe(pd.DataFrame(train_rows), width="stretch", hide_index=True)
+        if arch_rows:
+            right.caption("结构配置")
+            right.dataframe(pd.DataFrame(arch_rows), width="stretch", hide_index=True)
+
+
+def _render_run_summary(st, run_dir: Path | str, *, show_model_parameters: bool = True) -> None:
     path = Path(run_dir)
     summary = summarize_run(path)
     st.caption(str(path))
     _show_metrics(st, summary.get("raw_metrics", {}).get("test", {}))
+    if show_model_parameters and summary.get("command") == "train":
+        _render_model_parameter_panel(st, validate_training_run(path))
     if summary.get("command") == "benchmark" and summary.get("benchmark_rows"):
         st.dataframe(pd.DataFrame(summary["benchmark_rows"]), width="stretch", hide_index=True)
     _show_figures(st, summary.get("figures", {}))
@@ -785,7 +874,8 @@ def _render_model_tab(st) -> None:
         st.error(f"缺少文件：{', '.join(validation['missing'])}")
     if validation["task_mismatch"]:
         st.error(f"任务不匹配：期望 {validation['expected_task']}，实际 {validation['task']}")
-    _render_run_summary(st, selected)
+    _render_model_parameter_panel(st, validation)
+    _render_run_summary(st, selected, show_model_parameters=False)
 
 
 def _save_uploaded_csv(uploaded) -> Path:
