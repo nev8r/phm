@@ -865,14 +865,27 @@ def main() -> None:
     st.markdown(
         """
         <style>
-        .block-container { max-width: none; padding: 0.7rem 1.25rem 1rem; }
+        header[data-testid="stHeader"] { display: none; }
+        div[data-testid="collapsedControl"] { display: none; }
+        div[data-testid="stToolbar"] { display: none; }
+        div[data-testid="stDecoration"] { display: none; }
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        .block-container { max-width: none; padding: 0.35rem 1.1rem 0.9rem; }
         section[data-testid="stSidebar"] { min-width: 250px; }
         div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d8dee9; padding: 0.65rem; border-radius: 6px; }
         .stTabs [data-baseweb="tab-list"] { gap: 0.75rem; }
-        .phm-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 0.6rem; }
-        .phm-header h1 { font-size: 2.05rem; line-height: 1.1; margin: 0; letter-spacing: 0; }
-        .phm-header p { margin: 0.25rem 0 0; color: #667085; }
-        .phm-status-chip { color: #344054; border: 1px solid #d0d5dd; border-radius: 6px; padding: 0.35rem 0.55rem; white-space: nowrap; }
+        .phm-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.35rem; }
+        .phm-header h1 {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            font-size: 1.38rem;
+            line-height: 1.15;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0;
+        }
+        .phm-header p { margin: 0.15rem 0 0; color: #667085; font-size: 0.86rem; }
+        .phm-status-chip { color: #344054; border: 1px solid #d0d5dd; border-radius: 6px; padding: 0.28rem 0.5rem; white-space: nowrap; font-size: 0.9rem; }
         </style>
         """,
         unsafe_allow_html=True,

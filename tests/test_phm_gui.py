@@ -86,6 +86,15 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertNotIn("_render_job_panel", sidebar_block)
         self.assertNotIn("_render_run_summary", sidebar_block)
 
+    def test_gui_header_is_compact_and_hides_streamlit_chrome(self):
+        source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
+
+        self.assertIn('header[data-testid="stHeader"] { display: none; }', source)
+        self.assertIn('div[data-testid="collapsedControl"] { display: none; }', source)
+        self.assertIn("font-family: -apple-system", source)
+        self.assertIn("font-size: 1.38rem", source)
+        self.assertIn("padding: 0.35rem 1.1rem 0.9rem", source)
+
     def test_feature_gallery_discovers_latest_analysis_figures(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
