@@ -112,6 +112,7 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertIn("模型架构", source)
         self.assertIn("数据划分", source)
         self.assertIn("def _render_eval_tab", source)
+        self.assertNotIn("最近可用训练结果", source)
 
     def test_feature_gallery_discovers_latest_analysis_figures(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -980,11 +980,6 @@ def _render_training_tab(st, active: dict[str, Any] | None) -> None:
             _render_training_request_preview(st, request)
         else:
             st.info("选择或上传训练配置 YAML 后，这里会显示数据集、trainer、模型架构和训练参数。")
-    latest = _default_train_run("rul") or _default_train_run("fault")
-    if latest:
-        st.divider()
-        st.markdown("**最近可用训练结果**")
-        _render_run_summary(st, latest)
 
 
 def _render_model_tab(st) -> None:
