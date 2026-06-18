@@ -21,7 +21,7 @@
 | AT-02 | 数据路径 | 通过 | `data/loader_roots/phm2012`、`data/loader_roots/xjtu` |
 | AT-03 | RUL 主线 | 通过 | MSE/RMSE/MAE/R2 指标图 |
 | AT-04 | 故障诊断主线 | 通过 | Accuracy/F1/混淆矩阵 |
-| AT-05 | 文档交付 | 通过 | `docx/md`、`docx/word`、`docx/pdf`、`docx/img` |
+| AT-05 | 材料归档 | 通过 | `docx/md`、`docx/word`、`docx/pdf`、`docx/img` |
 
 ## 遗留限制
 

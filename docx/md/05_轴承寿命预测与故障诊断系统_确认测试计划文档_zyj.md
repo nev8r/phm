@@ -21,7 +21,7 @@
 | AT-02 | 数据路径 | `data/loader_roots` 指向真实数据 | Loader 能发现样本文件 |
 | AT-03 | RUL 主线 | PHM2012 数据可用 | Notebook 输出 MSE/RMSE/MAE/R2 和 RUL 图 |
 | AT-04 | 故障诊断主线 | XJTU-SY 数据可用 | Notebook 输出 accuracy/F1/混淆矩阵 |
-| AT-05 | 文档交付 | `docx/md` 源文件存在 | Word/PDF 数量与 Markdown 一致 |
+| AT-05 | 材料归档 | `docx/md` 源文件存在 | Word/PDF 数量与 Markdown 一致 |
 
 ## 缺陷处理
 

@@ -25,7 +25,7 @@
 | `examples/3-papers/PHM2012_RUL_CBAM_CNN_LSTM.ipynb` | PHM2012 RUL 论文主线复现 |
 | `examples/3-papers/XJTU_Fault_CNN_LSTM.ipynb` | XJTU-SY 故障诊断论文主线复现 |
 | `tests/` | 单元与集成测试 |
-| `docx/` | 课程交付文档 |
+| `docx/` | 课程材料目录 |
 
 ## 输出解读
 
