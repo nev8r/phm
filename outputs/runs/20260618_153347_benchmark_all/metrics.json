@@ -1,0 +1,153 @@
+{
+  "command": "benchmark",
+  "task": "all",
+  "baselines": "all",
+  "results": {
+    "rul": [
+      {
+        "baseline": "linear",
+        "model": "Ridge",
+        "fit_seconds": 0.1003591250628233,
+        "inference_seconds": 0.18368654197547585,
+        "model_size_bytes": 3752,
+        "rocket_channel_count": "",
+        "mse": 0.28801040592894245,
+        "rmse": 0.536666009664244,
+        "mae": 0.2618137708247586,
+        "r2": -2.5689614021845286,
+        "phm2012_score": 0.3809891187183418
+      },
+      {
+        "baseline": "forest",
+        "model": "RandomForestRegressor",
+        "fit_seconds": 56.81461229210254,
+        "inference_seconds": 0.20011987502221018,
+        "model_size_bytes": 29244100,
+        "rocket_channel_count": "",
+        "mse": 0.0763060221975914,
+        "rmse": 0.2762354470331268,
+        "mae": 0.20495001424386736,
+        "r2": 0.054432609477904514,
+        "phm2012_score": 0.2269228615071236
+      },
+      {
+        "baseline": "rocket",
+        "model": "RocketRegressor",
+        "fit_seconds": 15.65115099994,
+        "inference_seconds": 12.598594333045185,
+        "model_size_bytes": 235229,
+        "rocket_channel_count": 96,
+        "mse": 0.09241976125118022,
+        "rmse": 0.30400618620544584,
+        "mae": 0.2523313575704379,
+        "r2": -0.1452452894564853,
+        "phm2012_score": 0.2220857988168677
+      },
+      {
+        "baseline": "deep",
+        "model": "PaperCBAMCNNLSTMRegressor",
+        "fit_seconds": 3490.589920166065,
+        "inference_seconds": 8.535216541029513,
+        "model_size_bytes": 1577122,
+        "source_run": "outputs/runs/20260618_143026_train_rul",
+        "mse": 0.021531801964187434,
+        "rmse": 0.14673718671211955,
+        "mae": 0.10500660271060834,
+        "r2": 0.7331826609465446,
+        "phm2012_score": 0.3711769376256935,
+        "loss": 0.02153180231623565
+      }
+    ],
+    "fault": [
+      {
+        "baseline": "linear",
+        "model": "LogisticRegression",
+        "fit_seconds": 0.305973417009227,
+        "inference_seconds": 0.02766837493982166,
+        "model_size_bytes": 13969,
+        "rocket_channel_count": "",
+        "accuracy": 0.9970717423133236,
+        "macro_f1": 0.9959277974034492,
+        "weighted_f1": 0.9970749023821354,
+        "fault_f1": 0.9937694704049844,
+        "confusion_matrix": [
+          [
+            1043,
+            3
+          ],
+          [
+            1,
+            319
+          ]
+        ]
+      },
+      {
+        "baseline": "forest",
+        "model": "RandomForestClassifier",
+        "fit_seconds": 3.081884416984394,
+        "inference_seconds": 0.029990667011588812,
+        "model_size_bytes": 1029895,
+        "rocket_channel_count": "",
+        "accuracy": 0.9963396778916545,
+        "macro_f1": 0.9949152302626436,
+        "weighted_f1": 0.9963455884627292,
+        "fault_f1": 0.9922239502332815,
+        "confusion_matrix": [
+          [
+            1042,
+            4
+          ],
+          [
+            1,
+            319
+          ]
+        ]
+      },
+      {
+        "baseline": "rocket",
+        "model": "RocketClassifier",
+        "fit_seconds": 7.176552291959524,
+        "inference_seconds": 0.6231869589537382,
+        "model_size_bytes": 235725,
+        "rocket_channel_count": 96,
+        "accuracy": 0.7994143484626647,
+        "macro_f1": 0.6467525897737912,
+        "weighted_f1": 0.7701740116091166,
+        "fault_f1": 0.41452991452991456,
+        "confusion_matrix": [
+          [
+            995,
+            51
+          ],
+          [
+            223,
+            97
+          ]
+        ]
+      },
+      {
+        "baseline": "deep",
+        "model": "ResCNNLSTMClassifier",
+        "fit_seconds": 25.946027750032954,
+        "inference_seconds": 0.08977845800109208,
+        "model_size_bytes": 783782,
+        "source_run": "outputs/runs/20260618_153012_train_fault",
+        "accuracy": 0.9970717423133236,
+        "macro_f1": 0.9959189770554493,
+        "weighted_f1": 0.9970717423133236,
+        "fault_f1": 0.99375,
+        "confusion_matrix": [
+          [
+            1044,
+            2
+          ],
+          [
+            2,
+            318
+          ]
+        ],
+        "loss": 0.011735495700862936
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "command": "train",
+  "task": "fault",
+  "preset": "paper",
+  "sample": false,
+  "device": "mps",
+  "seed": 42,
+  "trainer": "BaseTrainer",
+  "model": "ResCNNLSTMClassifier",
+  "epochs": 35,
+  "sequence_length": 8,
+  "batch_size": 100,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "feature_source": {
+    "dataset": "XJTU-SY",
+    "task": "binary_fault_diagnosis",
+    "sampling_rate": 25600,
+    "fft_bins": 256,
+    "include_handcrafted": true,
+    "target_names": [
+      "Healthy",
+      "Faulty"
+    ],
+    "feature_count": 552,
+    "ranges": {
+      "Bearing1_1": [
+        0,
+        123
+      ],
+      "Bearing1_2": [
+        123,
+        284
+      ],
+      "Bearing1_3": [
+        284,
+        442
+      ],
+      "Bearing1_4": [
+        442,
+        564
+      ],
+      "Bearing1_5": [
+        564,
+        616
+      ],
+      "Bearing2_1": [
+        616,
+        1107
+      ],
+      "Bearing2_2": [
+        1107,
+        1268
+      ],
+      "Bearing2_3": [
+        1268,
+        1801
+      ],
+      "Bearing2_4": [
+        1801,
+        1843
+      ],
+      "Bearing2_5": [
+        1843,
+        2182
+      ],
+      "Bearing3_1": [
+        2182,
+        4720
+      ],
+      "Bearing3_2": [
+        4720,
+        7216
+      ],
+      "Bearing3_3": [
+        7216,
+        7587
+      ],
+      "Bearing3_4": [
+        7587,
+        9102
+      ],
+      "Bearing3_5": [
+        9102,
+        9216
+      ]
+    },
+    "fot_indices": {
+      "Bearing1_1": 75,
+      "Bearing1_2": 55,
+      "Bearing1_3": 74,
+      "Bearing1_4": 121,
+      "Bearing1_5": 34,
+      "Bearing2_1": 454,
+      "Bearing2_2": 52,
+      "Bearing2_3": 314,
+      "Bearing2_4": 30,
+      "Bearing2_5": 132,
+      "Bearing3_1": 2386,
+      "Bearing3_2": 1629,
+      "Bearing3_3": 342,
+      "Bearing3_4": 1418,
+      "Bearing3_5": 10
+    },
+    "source": "/Users/nev8r/Desktop/phm2/cache/paper_features/xjtu_binary_fault_diagnosis_fft256_full.npz",
+    "mode": "full-cache"
+  },
+  "split_sizes": {
+    "train": 6379,
+    "val": 1366,
+    "test": 1366
+  }
+}

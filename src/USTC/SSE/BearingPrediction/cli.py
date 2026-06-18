@@ -31,6 +31,8 @@ from .analysis import (
     task_relationship_summary,
     write_json,
 )
+from .workflow import run_benchmark as run_benchmark_workflow
+from .workflow import run_paper_training
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -204,40 +206,24 @@ def _run_analyze(args: argparse.Namespace) -> int:
 
 def _run_train(args: argparse.Namespace) -> int:
     run_dir = _new_run_dir(args.output_dir, "train", args.task)
-    config = {
-        "command": "train",
-        "task": args.task,
-        "preset": args.preset,
-        "full": bool(args.full),
-        "sample": bool(args.sample),
-        "device": args.device,
-        "status": "not_implemented_yet",
-    }
-    metrics = {
-        "status": "not_implemented_yet",
-        "message": "training CLI placeholder is reserved for the paper trainer integration stage",
-    }
-    write_json(run_dir / "config.json", config)
-    write_json(run_dir / "metrics.json", metrics)
+    run_paper_training(
+        task=args.task,
+        preset=args.preset,
+        sample=bool(args.sample or not args.full),
+        device_name=args.device,
+        run_dir=run_dir,
+    )
     return 0
 
 
 def _run_benchmark(args: argparse.Namespace) -> int:
     run_dir = _new_run_dir(args.output_dir, "benchmark", args.task)
-    config = {
-        "command": "benchmark",
-        "task": args.task,
-        "baselines": args.baselines,
-        "full": bool(args.full),
-        "sample": bool(args.sample),
-        "status": "not_implemented_yet",
-    }
-    metrics = {
-        "status": "not_implemented_yet",
-        "message": "benchmark CLI placeholder is reserved for the baseline matrix stage",
-    }
-    write_json(run_dir / "config.json", config)
-    write_json(run_dir / "metrics.json", metrics)
+    run_benchmark_workflow(
+        task=args.task,
+        baselines=args.baselines,
+        sample=bool(args.sample or not args.full),
+        run_dir=run_dir,
+    )
     return 0
 
 

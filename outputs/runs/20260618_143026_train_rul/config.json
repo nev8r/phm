@@ -1,0 +1,109 @@
+{
+  "command": "train",
+  "task": "rul",
+  "preset": "paper",
+  "sample": false,
+  "device": "mps",
+  "seed": 42,
+  "trainer": "BaseTrainer",
+  "model": "PaperCBAMCNNLSTMRegressor",
+  "epochs": 200,
+  "sequence_length": 32,
+  "batch_size": 128,
+  "learning_rate": 0.0007,
+  "weight_decay": 0.0001,
+  "feature_source": {
+    "dataset": "PHM2012",
+    "task": "RUL",
+    "sampling_rate": 25600,
+    "fft_bins": 256,
+    "include_handcrafted": true,
+    "feature_count": 276,
+    "ranges": {
+      "Bearing1_1": [
+        0,
+        2803
+      ],
+      "Bearing1_2": [
+        2803,
+        3674
+      ],
+      "Bearing2_1": [
+        3674,
+        4585
+      ],
+      "Bearing2_2": [
+        4585,
+        5382
+      ],
+      "Bearing3_1": [
+        5382,
+        5897
+      ],
+      "Bearing3_2": [
+        5897,
+        7534
+      ],
+      "Bearing1_3": [
+        7534,
+        9909
+      ],
+      "Bearing1_4": [
+        9909,
+        11337
+      ],
+      "Bearing1_5": [
+        11337,
+        13800
+      ],
+      "Bearing1_6": [
+        13800,
+        16248
+      ],
+      "Bearing1_7": [
+        16248,
+        18507
+      ],
+      "Bearing2_3": [
+        18507,
+        20462
+      ],
+      "Bearing2_4": [
+        20462,
+        21213
+      ],
+      "Bearing2_5": [
+        21213,
+        23524
+      ],
+      "Bearing2_6": [
+        23524,
+        24225
+      ],
+      "Bearing2_7": [
+        24225,
+        24455
+      ],
+      "Bearing3_3": [
+        24455,
+        24889
+      ]
+    },
+    "source": "/Users/nev8r/Desktop/phm2/cache/paper_features/phm2012_rul_fft256_full.npz",
+    "mode": "full-cache"
+  },
+  "split_sizes": {
+    "train": 6246,
+    "val": 1102,
+    "test": 10995
+  },
+  "test_scope": "paper_mainline_bearings",
+  "test_bearings": [
+    "Bearing1_3",
+    "Bearing1_4",
+    "Bearing1_5",
+    "Bearing1_7",
+    "Bearing2_3",
+    "Bearing2_6"
+  ]
+}

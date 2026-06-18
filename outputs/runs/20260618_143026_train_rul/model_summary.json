@@ -1,0 +1,11 @@
+{
+  "model": "PaperCBAMCNNLSTMRegressor",
+  "task": "rul",
+  "parameter_count": 390724,
+  "model_state_path": "outputs/runs/20260618_143026_train_rul/model_state.pt",
+  "model_state_size_bytes": 1577122,
+  "standardizer_path": "outputs/runs/20260618_143026_train_rul/standardizer.npz",
+  "standardizer_size_bytes": 2471,
+  "input_dim": 276,
+  "sequence_length": 32
+}

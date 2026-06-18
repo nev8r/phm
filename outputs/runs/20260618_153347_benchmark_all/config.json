@@ -1,0 +1,7 @@
+{
+  "command": "benchmark",
+  "task": "all",
+  "baselines": "all",
+  "sample": false,
+  "seed": 42
+}

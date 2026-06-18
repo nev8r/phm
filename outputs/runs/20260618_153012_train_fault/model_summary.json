@@ -1,0 +1,11 @@
+{
+  "model": "ResCNNLSTMClassifier",
+  "task": "fault",
+  "parameter_count": 191522,
+  "model_state_path": "outputs/runs/20260618_153012_train_fault/model_state.pt",
+  "model_state_size_bytes": 783782,
+  "standardizer_path": "outputs/runs/20260618_153012_train_fault/standardizer.npz",
+  "standardizer_size_bytes": 4560,
+  "input_dim": 552,
+  "sequence_length": 8
+}
