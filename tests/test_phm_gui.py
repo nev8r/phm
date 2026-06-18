@@ -76,15 +76,11 @@ class PhmGuiSupportTest(unittest.TestCase):
 
         self.assertIn('initial_sidebar_state="collapsed"', source)
         self.assertNotIn("status_area, workspace_area", source)
-        self.assertIn("def _render_runtime_drawer", source)
         self.assertIn("_render_feature_gallery", source)
         self.assertIn('max-width: none;', source)
-        self.assertIn("def _render_sidebar_summary", source)
-        sidebar_block = source.split("with st.sidebar:", maxsplit=1)[1].split(
-            "data_tab, train_tab", maxsplit=1
-        )[0]
-        self.assertNotIn("_render_job_panel", sidebar_block)
-        self.assertNotIn("_render_run_summary", sidebar_block)
+        self.assertNotIn("with st.sidebar:", source)
+        self.assertNotIn("def _render_runtime_drawer", source)
+        self.assertNotIn("运行状态、日志与最近输出", source)
 
     def test_gui_header_is_compact_and_hides_streamlit_chrome(self):
         source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
@@ -113,6 +109,19 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertIn("数据划分", source)
         self.assertIn("def _render_eval_tab", source)
         self.assertNotIn("最近可用训练结果", source)
+
+    def test_gui_train_eval_are_not_split_into_model_or_global_log_pages(self):
+        source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
+
+        self.assertIn("def _render_training_log_panel", source)
+        self.assertIn("训练日志", source)
+        self.assertIn("模型路径", source)
+        self.assertIn("评测数据集", source)
+        self.assertIn('_phm_command("evaluate"', source)
+        self.assertNotIn("def _render_model_tab", source)
+        self.assertNotIn("模型加载", source)
+        self.assertNotIn("Benchmark 与运行记录", source)
+        self.assertNotIn("统一运行日志", source)
 
     def test_feature_gallery_discovers_latest_analysis_figures(self):
         with tempfile.TemporaryDirectory() as tmp:
