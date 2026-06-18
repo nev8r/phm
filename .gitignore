@@ -9,6 +9,7 @@ examples/data/
 *.pt
 *.pth
 cache/
+artifacts/
 runs/
 tb_logs/
 Cora/

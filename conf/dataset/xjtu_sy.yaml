@@ -1,0 +1,6 @@
+name: XJTU-SY
+root: ${oc.env:XJTU_SY_ROOT,""}
+sampling_rate: 25600
+channels:
+  - Horizontal Vibration
+  - Vertical Vibration

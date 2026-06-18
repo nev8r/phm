@@ -1,0 +1,6 @@
+name: PHM2012
+root: ${oc.env:PHM2012_ROOT,""}
+sampling_rate: 25600
+channels:
+  - Horizontal Vibration
+  - Vertical Vibration
