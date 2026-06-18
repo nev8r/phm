@@ -1,21 +1,12 @@
 """
-Streamlit GUI support module
-
-this file is for serving an operational bearing PHM workbench
-
-created by zy
-
-copyright USTC
-
-2026
+Streamlit GUI for the bearing PHM workbench.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import sys
-import time
-import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from USTC.SSE.BearingPrediction.gui_jobs import (
+    list_jobs,
     poll_job,
     read_job_log,
     start_cli_job,
@@ -37,37 +29,9 @@ from USTC.SSE.BearingPrediction.training_config import (
 
 DEFAULT_PHM_ROOT = Path("data/loader_roots/phm2012")
 DEFAULT_XJTU_ROOT = Path("data/loader_roots/xjtu")
-DEFAULT_TRAIN_RUNS = {
-    "rul": Path("outputs/runs/20260618_143026_train_rul"),
-    "fault": Path("outputs/runs/20260618_153012_train_fault"),
-}
+DEFAULT_CACHE_ROOT = Path("cache/paper_features")
 GUI_OUTPUT_ROOT = Path("outputs/gui")
-FEATURE_GALLERY_SPECS = [
-    ("rul_feature_heatmap.png", "PHM2012 RUL 特征相关性热力图", "PHM2012"),
-    ("rul_feature_rank.png", "PHM2012 RUL 特征排序", "PHM2012"),
-    ("fault_feature_heatmap.png", "XJTU-SY Fault 特征相关性热力图", "XJTU-SY"),
-    ("fault_feature_rank.png", "XJTU-SY Fault 特征排序", "XJTU-SY"),
-]
-TSFRESH_GALLERY_SPECS = {
-    "tsfresh": [
-        ("rul_tsfresh_minimal_rank.png", "PHM2012 RUL tsfresh Minimal 自动特征排序", "PHM2012"),
-        ("rul_tsfresh_minimal_profile.png", "PHM2012 RUL tsfresh Minimal 审计规模", "PHM2012"),
-        ("fault_tsfresh_minimal_rank.png", "XJTU-SY Fault tsfresh Minimal 自动特征排序", "XJTU-SY"),
-        ("fault_tsfresh_minimal_profile.png", "XJTU-SY Fault tsfresh Minimal 审计规模", "XJTU-SY"),
-    ],
-    "advanced": [
-        ("rul_tsfresh_efficient_rank.png", "PHM2012 RUL tsfresh Efficient 自动特征排序", "PHM2012"),
-        ("rul_tsfresh_efficient_profile.png", "PHM2012 RUL tsfresh Efficient 审计规模", "PHM2012"),
-        ("fault_tsfresh_efficient_rank.png", "XJTU-SY Fault tsfresh Efficient 自动特征排序", "XJTU-SY"),
-        ("fault_tsfresh_efficient_profile.png", "XJTU-SY Fault tsfresh Efficient 审计规模", "XJTU-SY"),
-    ],
-}
-FALLBACK_FEATURE_GALLERY_SPECS = [
-    ("feature_analysis.png", "PHM2012 RUL 特征分析", "PHM2012"),
-    ("xjtu_feature_analysis.png", "XJTU-SY Fault 特征分析", "XJTU-SY"),
-    ("phm2012_dataset_overview.png", "PHM2012 数据概览", "PHM2012"),
-    ("xjtu_dataset_overview.png", "XJTU-SY 数据概览", "XJTU-SY"),
-]
+RUN_OUTPUT_ROOT = Path("outputs/runs")
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -75,22 +39,20 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return {}
 
 
-def _format_float(value: Any, digits: int = 6) -> str:
+def _format_number(value: Any, digits: int = 4) -> str:
     try:
-        return f"{float(value):.{digits}f}"
+        number = float(value)
     except (TypeError, ValueError):
         return "-"
-
-
-def _format_count(value: Any) -> str:
-    try:
-        return f"{int(value):,}"
-    except (TypeError, ValueError):
+    if np.isnan(number) or np.isinf(number):
         return "-"
+    if abs(number) >= 1000:
+        return f"{number:,.2f}"
+    return f"{number:.{digits}g}"
 
 
 def _format_bytes(value: Any) -> str:
@@ -100,423 +62,29 @@ def _format_bytes(value: Any) -> str:
         return "-"
     if size <= 0:
         return "-"
-    units = ["B", "KB", "MB", "GB"]
-    unit_index = 0
-    while size >= 1024 and unit_index < len(units) - 1:
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size < 1024 or unit == "GB":
+            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
         size /= 1024
-        unit_index += 1
-    return f"{size:.2f} {units[unit_index]}" if unit_index else f"{int(size)} {units[unit_index]}"
+    return "-"
 
 
-def _new_run_dir(output_root: Path | str, command: str, task: str) -> Path:
-    root = Path(output_root)
+def _new_run_dir(root: Path | str, command: str, task: str) -> Path:
+    output_root = Path(root)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = root / f"{timestamp}_{command}_{task}"
-    counter = 1
-    while run_dir.exists():
-        run_dir = root / f"{timestamp}_{command}_{task}_{counter}"
-        counter += 1
-    return run_dir
-
-
-def _mtime(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def _cache_status(cache_dir: Path | str, task: str) -> dict[str, Any]:
-    cache_dir = Path(cache_dir)
-    filename = {
-        "rul": "phm2012_rul_fft256_full.npz",
-        "fault": "xjtu_binary_fault_diagnosis_fft256_full.npz",
-    }[task]
-    path = cache_dir / filename
-    status: dict[str, Any] = {
-        "path": str(path),
-        "exists": path.exists(),
-        "mtime": _mtime(path),
-        "size_bytes": path.stat().st_size if path.exists() else 0,
-        "feature_shape": [],
-        "target_shape": [],
-    }
-    if path.exists():
-        try:
-            with np.load(path, allow_pickle=False) as cache:
-                status["feature_shape"] = list(cache["features"].shape) if "features" in cache.files else []
-                targets_key = "targets" if "targets" in cache.files else "labels"
-                status["target_shape"] = list(cache[targets_key].shape) if targets_key in cache.files else []
-        except (OSError, KeyError, ValueError):
-            status["read_error"] = True
-    return status
-
-
-def _inspect_phm2012_root(root: Path, cache_dir: Path | str) -> dict[str, Any]:
-    learning_dir = root / "Learning_set"
-    test_dir = root / "Full_Test_Set"
-    files = list(root.glob("Learning_set/Bearing*/acc_*.csv")) + list(root.glob("Full_Test_Set/Bearing*/acc_*.csv"))
-    bearing_dirs = {item.parent.name for item in files}
-    checks = {
-        "root_exists": root.exists(),
-        "Learning_set": learning_dir.exists(),
-        "Full_Test_Set": test_dir.exists(),
-        "acc_files": bool(files),
-        "bearing_folders": bool(bearing_dirs),
-    }
-    return {
-        "dataset": "PHM2012",
-        "task": "rul",
-        "root": str(root),
-        "valid": all(checks.values()),
-        "checks": checks,
-        "missing": [key for key, ok in checks.items() if not ok],
-        "bearing_count": len(bearing_dirs),
-        "file_count": len(files),
-        "split_count": int(learning_dir.exists()) + int(test_dir.exists()),
-        "cache": _cache_status(cache_dir, "rul"),
-    }
-
-
-def _inspect_xjtu_root(root: Path, cache_dir: Path | str) -> dict[str, Any]:
-    known_conditions = ("35Hz12kN", "37.5Hz11kN", "40Hz10kN")
-    condition_dirs = [root / name for name in known_conditions if (root / name).exists()]
-    files = []
-    for condition_dir in condition_dirs:
-        files.extend(condition_dir.glob("Bearing*/*.csv"))
-    bearing_dirs = {item.parent.name for item in files}
-    checks = {
-        "root_exists": root.exists(),
-        "condition_folders": bool(condition_dirs),
-        "bearing_folders": bool(bearing_dirs),
-        "csv_files": bool(files),
-    }
-    return {
-        "dataset": "XJTU-SY",
-        "task": "fault",
-        "root": str(root),
-        "valid": all(checks.values()),
-        "checks": checks,
-        "missing": [key for key, ok in checks.items() if not ok],
-        "bearing_count": len(bearing_dirs),
-        "file_count": len(files),
-        "condition_count": len(condition_dirs),
-        "cache": _cache_status(cache_dir, "fault"),
-    }
-
-
-def inspect_dataset_roots(
-    phm_root: Path | str = DEFAULT_PHM_ROOT,
-    xjtu_root: Path | str = DEFAULT_XJTU_ROOT,
-    *,
-    cache_dir: Path | str = Path("cache/paper_features"),
-) -> dict[str, dict[str, Any]]:
-    return {
-        "PHM2012": _inspect_phm2012_root(Path(phm_root), cache_dir),
-        "XJTU-SY": _inspect_xjtu_root(Path(xjtu_root), cache_dir),
-    }
-
-
-def _dataset_detection_from_names(names: list[str]) -> dict[str, Any]:
-    normalized = [name.replace("\\", "/").strip("/") for name in names if name and not name.endswith("/")]
-    lower = [name.lower() for name in normalized]
-    phm_checks = {
-        "Learning_set": any("learning_set/" in name for name in lower),
-        "Full_Test_Set": any("full_test_set/" in name for name in lower),
-        "acc_*.csv": any(Path(name).name.startswith("acc_") and name.endswith(".csv") for name in lower),
-        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
-    }
-    xjtu_conditions = ("35hz12kn", "37.5hz11kn", "40hz10kn")
-    xjtu_checks = {
-        "Condition folders": any(condition in name for condition in xjtu_conditions for name in lower),
-        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
-        "*.csv": any(name.endswith(".csv") for name in lower),
-    }
-    if all(phm_checks.values()):
-        return {
-            "valid": True,
-            "dataset": "PHM2012",
-            "message": "识别为 PHM2012 标准目录结构，可用于 RUL 特征缓存与训练。",
-            "evidence": [key for key, ok in phm_checks.items() if ok],
-            "missing": [],
-            "file_count": len(normalized),
-        }
-    if all(xjtu_checks.values()):
-        return {
-            "valid": True,
-            "dataset": "XJTU-SY",
-            "message": "识别为 XJTU-SY 标准目录结构，可用于故障诊断特征缓存与训练。",
-            "evidence": [key for key, ok in xjtu_checks.items() if ok],
-            "missing": [],
-            "file_count": len(normalized),
-        }
-    missing = [f"PHM2012:{key}" for key, ok in phm_checks.items() if not ok]
-    missing.extend([f"XJTU-SY:{key}" for key, ok in xjtu_checks.items() if not ok])
-    return {
-        "valid": False,
-        "dataset": "unknown",
-        "message": "未识别为当前支持的数据集结构；可上传 PHM2012/XJTU-SY zip，或上传特征 CSV 做推理。",
-        "evidence": [key for key, ok in {**phm_checks, **xjtu_checks}.items() if ok],
-        "missing": missing,
-        "file_count": len(normalized),
-    }
-
-
-def _inspect_single_csv(path: Path) -> dict[str, Any]:
-    try:
-        preview = pd.read_csv(path, nrows=256)
-    except Exception as exc:
-        return {
-            "valid": False,
-            "dataset": "single_csv",
-            "message": f"CSV 读取失败：{exc}",
-            "evidence": [],
-            "missing": ["readable CSV"],
-            "numeric_columns": 0,
-            "row_preview": 0,
-        }
-    numeric = preview.select_dtypes(include=[np.number])
-    valid = numeric.shape[1] > 0 and len(preview) > 0
-    return {
-        "valid": valid,
-        "dataset": "single_csv",
-        "message": "识别为特征 CSV；数值列数量需等于所选模型输入维度。" if valid else "CSV 中没有可用的数值特征列。",
-        "evidence": [f"{numeric.shape[1]} numeric columns", f"{len(preview)} preview rows"] if valid else [],
-        "missing": [] if valid else ["numeric feature columns"],
-        "numeric_columns": int(numeric.shape[1]),
-        "row_preview": int(len(preview)),
-    }
-
-
-def inspect_uploaded_dataset(path: Path | str) -> dict[str, Any]:
-    upload_path = Path(path)
-    if upload_path.is_dir():
-        names = [str(item.relative_to(upload_path)) for item in upload_path.rglob("*") if item.is_file()]
-        return _dataset_detection_from_names(names)
-    if upload_path.suffix.lower() == ".zip":
-        try:
-            with zipfile.ZipFile(upload_path) as archive:
-                return _dataset_detection_from_names(archive.namelist())
-        except zipfile.BadZipFile:
-            return {
-                "valid": False,
-                "dataset": "unknown",
-                "message": "zip 文件无法解压或格式损坏。",
-                "evidence": [],
-                "missing": ["valid zip archive"],
-                "file_count": 0,
-            }
-    if upload_path.suffix.lower() == ".csv":
-        return _inspect_single_csv(upload_path)
-    return {
-        "valid": False,
-        "dataset": "unknown",
-        "message": "当前仅支持 zip、目录或特征 CSV。",
-        "evidence": [],
-        "missing": ["zip", "directory", "csv"],
-        "file_count": 0,
-    }
-
-
-def list_run_directories(
-    output_root: Path | str = Path("outputs/runs"),
-    *,
-    command: str | None = None,
-    task: str | None = None,
-) -> list[dict[str, Any]]:
-    root = Path(output_root)
-    if not root.exists():
-        return []
-    runs = []
-    for child in root.iterdir():
-        if not child.is_dir():
-            continue
-        config = _load_json(child / "config.json")
-        if not config:
-            continue
-        if command is not None and config.get("command") != command:
-            continue
-        if task is not None and config.get("task") != task:
-            continue
-        runs.append(
-            {
-                "name": child.name,
-                "path": child,
-                "command": config.get("command", ""),
-                "task": config.get("task", ""),
-                "sample": bool(config.get("sample", False)),
-                "mtime": child.stat().st_mtime,
-            }
-        )
-    return sorted(runs, key=lambda item: item["mtime"], reverse=True)
-
-
-def collect_feature_gallery(
-    output_root: Path | str = Path("outputs/runs"),
-    *,
-    fallback_root: Path | str = Path("outputs/latex/figures/project"),
-) -> dict[str, Any]:
-    """Collect feature-analysis figures for the GUI data workspace."""
-    figures: list[dict[str, str]] = []
-    source_run = ""
-    for run in list_run_directories(output_root, command="analyze"):
-        run_dir = Path(run["path"])
-        figure_dir = run_dir / "figures"
-        config = _load_json(run_dir / "config.json")
-        feature_set = str(config.get("feature_set", "domain"))
-        specs = TSFRESH_GALLERY_SPECS.get(feature_set, FEATURE_GALLERY_SPECS)
-        current = []
-        for filename, title, dataset in specs:
-            path = figure_dir / filename
-            if path.exists():
-                current.append({"title": title, "dataset": dataset, "path": str(path)})
-        if current:
-            figures = current
-            source_run = str(run_dir)
-            break
-    if not figures:
-        fallback = Path(fallback_root)
-        for filename, title, dataset in FALLBACK_FEATURE_GALLERY_SPECS:
-            path = fallback / filename
-            if path.exists():
-                figures.append({"title": title, "dataset": dataset, "path": str(path)})
-        source_run = str(fallback) if figures else ""
-    return {"source_run": source_run, "figures": figures}
-
-
-def summarize_run(run_dir: Path | str) -> dict[str, Any]:
-    path = Path(run_dir)
-    config = _load_json(path / "config.json")
-    metrics = _load_json(path / "metrics.json")
-    model_summary = _load_json(path / "model_summary.json")
-    task = str(config.get("task", metrics.get("task", "")))
-    command = str(config.get("command", metrics.get("command", "")))
-    figure_dir = path / "figures"
-    summary: dict[str, Any] = {
-        "path": path,
-        "name": path.name,
-        "command": command,
-        "task": task,
-        "sample": bool(config.get("sample", False)),
-        "metrics": {},
-        "figures": {},
-        "raw_config": config,
-        "raw_metrics": metrics,
-        "model_summary": model_summary,
-    }
-    if command == "train":
-        test = metrics.get("test", {})
-        if task == "rul":
-            summary["metrics"] = {
-                "MSE": _format_float(test.get("mse")),
-                "RMSE": _format_float(test.get("rmse")),
-                "MAE": _format_float(test.get("mae")),
-                "R2": _format_float(test.get("r2")),
-                "PHM Score": _format_float(test.get("phm2012_score")),
-            }
-            summary["figures"] = {
-                "训练曲线": figure_dir / "training_curve.png",
-                "RUL 预测曲线": figure_dir / "rul_prediction_curve.png",
-                "分轴承 RUL 曲线": figure_dir / "rul_prediction_by_bearing.png",
-            }
-        elif task == "fault":
-            summary["metrics"] = {
-                "Accuracy": _format_float(test.get("accuracy")),
-                "Macro F1": _format_float(test.get("macro_f1")),
-                "Weighted F1": _format_float(test.get("weighted_f1")),
-                "Fault F1": _format_float(test.get("fault_f1")),
-            }
-            summary["figures"] = {
-                "训练曲线": figure_dir / "training_curve.png",
-                "混淆矩阵": figure_dir / "fault_confusion_matrix.png",
-            }
-    elif command == "benchmark":
-        csv_path = path / "benchmark_results.csv"
-        rows = []
-        if csv_path.exists():
-            rows = pd.read_csv(csv_path).to_dict(orient="records")
-        summary["benchmark_rows"] = rows
-        summary["figures"] = {
-            "RUL baseline": figure_dir / "rul_benchmark.png",
-            "Fault baseline": figure_dir / "fault_benchmark.png",
-        }
-    return summary
-
-
-def validate_training_run(run_dir: Path | str, expected_task: str | None = None) -> dict[str, Any]:
-    path = Path(run_dir)
-    required = ["config.json", "metrics.json", "model_summary.json", "model_state.pt", "standardizer.npz"]
-    missing = [filename for filename in required if not (path / filename).exists()]
-    config = _load_json(path / "config.json")
-    metrics = _load_json(path / "metrics.json")
-    summary = _load_json(path / "model_summary.json")
-    task = str(config.get("task", summary.get("task", "")))
-    task_mismatch = bool(expected_task and task and expected_task != task)
-    model_state_path = path / "model_state.pt"
-    standardizer_path = path / "standardizer.npz"
-    model_state_size = summary.get("model_state_size_bytes")
-    if not isinstance(model_state_size, (int, float)):
-        model_state_size = model_state_path.stat().st_size if model_state_path.exists() else 0
-    standardizer_size = summary.get("standardizer_size_bytes")
-    if not isinstance(standardizer_size, (int, float)):
-        standardizer_size = standardizer_path.stat().st_size if standardizer_path.exists() else 0
-    training_config = dict(config.get("training_config", {})) if isinstance(config.get("training_config"), dict) else {}
-    training_config.update({
-        key: config[key]
-        for key in [
-            "preset",
-            "sample",
-            "device",
-            "epochs",
-            "sequence_length",
-            "batch_size",
-            "learning_rate",
-            "weight_decay",
-            "seed",
-        ]
-        if key in config
-    })
-    architecture_config = summary.get("architecture_config", {})
-    if not isinstance(architecture_config, dict):
-        architecture_config = {}
-    return {
-        "path": str(path),
-        "valid": not missing and not task_mismatch and config.get("command") == "train",
-        "task": task,
-        "expected_task": expected_task or "",
-        "task_mismatch": task_mismatch,
-        "missing": missing,
-        "command": config.get("command", ""),
-        "model": summary.get("model", ""),
-        "input_dim": summary.get("input_dim", ""),
-        "sequence_length": summary.get("sequence_length", ""),
-        "parameter_count": summary.get("parameter_count", ""),
-        "model_state_size_bytes": model_state_size,
-        "standardizer_size_bytes": standardizer_size,
-        "training_config": training_config,
-        "architecture_config": architecture_config,
-        "dataset_config": config.get("dataset_config", {}),
-        "trainer_config": config.get("trainer_config", {}),
-        "model_config": config.get("model_config", {}),
-        "split_sizes": config.get("split_sizes", {}),
-        "split_details": config.get("split_details", {}),
-        "metrics": metrics.get("test", {}),
-        "summary": summary,
-    }
-
-
-def _default_train_run(task: str) -> Path | None:
-    preferred = DEFAULT_TRAIN_RUNS.get(task)
-    if preferred and preferred.exists():
-        return preferred
-    runs = list_run_directories(command="train", task=task)
-    return runs[0]["path"] if runs else None
+    path = output_root / f"{timestamp}_{command}_{task}"
+    index = 1
+    while path.exists():
+        path = output_root / f"{timestamp}_{command}_{task}_{index}"
+        index += 1
+    return path
 
 
 def _phm_command(*args: str | Path) -> list[str]:
     return [sys.executable, "-m", "USTC.SSE.BearingPrediction.cli", *[str(arg) for arg in args]]
 
 
-def _has_running_job(job: dict[str, Any] | None) -> bool:
+def _is_running(job: dict[str, Any] | None) -> bool:
     return bool(job and job.get("status") in {"queued", "running"})
 
 
@@ -529,317 +97,337 @@ def _active_job(st) -> dict[str, Any] | None:
     except FileNotFoundError:
         st.session_state.pop("active_job_dir", None)
         return None
-    return {**job, "job_dir": job_dir}
+    if not _is_running(job):
+        st.session_state.pop("active_job_dir", None)
+    return {**job, "job_dir": str(job_dir)}
 
 
-def _session_job(st, key: str) -> dict[str, Any] | None:
-    job_dir = st.session_state.get(key)
-    if not job_dir:
-        return None
-    try:
-        job = poll_job(job_dir)
-    except FileNotFoundError:
-        st.session_state.pop(key, None)
-        return None
-    return {**job, "job_dir": job_dir}
-
-
-def _start_job(st, command: list[str], *, kind: str, task: str | None, run_dir: Path | str | None) -> None:
-    active = _active_job(st)
-    if _has_running_job(active):
-        st.warning("已有任务正在运行，请等待结束后再启动新任务。")
+def _start_job(st, command: list[str], *, kind: str, task: str, run_dir: Path | str) -> None:
+    if _is_running(_active_job(st)):
+        st.warning("已有任务正在运行，请等待任务结束。")
         return
-    job = start_cli_job(command, kind=kind, task=task, run_dir=run_dir)
-    job_dir = str(job["job_dir"])
-    st.session_state["active_job_dir"] = job_dir
-    if kind == "train":
-        st.session_state["train_job_dir"] = job_dir
-        if run_dir is not None:
-            st.session_state[f"eval_model_path_{task}"] = str(run_dir)
-    elif kind in {"evaluate", "predict"}:
-        st.session_state["eval_job_dir"] = job_dir
-    elif kind in {"cache", "analyze"}:
-        st.session_state["data_job_dir"] = job_dir
+    job = start_cli_job(command, kind=kind, task=task, run_dir=run_dir, cwd=Path.cwd())
+    st.session_state["active_job_dir"] = str(job["job_dir"])
+    st.session_state["selected_job_dir"] = str(job["job_dir"])
+    st.session_state[f"last_{kind}_run_dir"] = str(run_dir)
+    st.session_state[f"pending_{kind}_run_dir"] = str(run_dir)
     st.rerun()
 
 
-def _show_metrics(st, metrics: dict[str, Any]) -> None:
-    numeric = {key: value for key, value in metrics.items() if isinstance(value, (int, float))}
-    if not numeric:
-        st.info("暂无指标。")
-        return
-    columns = st.columns(min(len(numeric), 5))
-    for column, (name, value) in zip(columns, numeric.items()):
-        column.metric(name, _format_float(value))
+def _cache_status(task: str, cache_root: Path = DEFAULT_CACHE_ROOT) -> dict[str, Any]:
+    filename = {
+        "rul": "phm2012_rul_fft256_full.npz",
+        "fault": "xjtu_binary_fault_diagnosis_fft256_full.npz",
+    }[task]
+    path = cache_root / filename
+    result: dict[str, Any] = {
+        "task": task.upper(),
+        "path": str(path),
+        "exists": path.exists(),
+        "size": _format_bytes(path.stat().st_size) if path.exists() else "-",
+        "features": "-",
+        "targets": "-",
+        "updated": "-",
+    }
+    if not path.exists():
+        return result
+    result["updated"] = datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+    try:
+        with np.load(path, allow_pickle=False) as data:
+            if "features" in data.files:
+                result["features"] = " x ".join(str(item) for item in data["features"].shape)
+            target_key = "targets" if "targets" in data.files else "labels"
+            if target_key in data.files:
+                result["targets"] = " x ".join(str(item) for item in data[target_key].shape)
+    except (OSError, KeyError, ValueError):
+        result["features"] = "读取失败"
+    return result
 
 
-def _show_figures(st, figures: dict[str, Path | str]) -> None:
-    visible = [(name, Path(path)) for name, path in figures.items() if Path(path).exists()]
-    if not visible:
-        st.info("暂无图表。")
-        return
-    columns = st.columns(2)
-    for index, (name, path) in enumerate(visible):
-        columns[index % 2].image(str(path), caption=name, width="stretch")
-
-
-def _render_model_parameter_panel(st, validation: dict[str, Any]) -> None:
-    st.markdown("**模型架构与参数**")
-    st.caption("模型参数")
-    columns = st.columns(5)
-    columns[0].metric("参数量", _format_count(validation.get("parameter_count")))
-    columns[1].metric("Checkpoint", _format_bytes(validation.get("model_state_size_bytes")))
-    columns[2].metric("标准化器", _format_bytes(validation.get("standardizer_size_bytes")))
-    columns[3].metric("输入维度", str(validation.get("input_dim") or "-"))
-    columns[4].metric("序列长度", str(validation.get("sequence_length") or "-"))
-
-    training_config = validation.get("training_config", {})
-    architecture_config = validation.get("architecture_config", {})
-    train_rows = []
-    if "epochs" in training_config:
-        train_rows.append({"参数": "Epochs", "值": training_config["epochs"]})
-    if "batch_size" in training_config:
-        train_rows.append({"参数": "Batch Size", "值": training_config["batch_size"]})
-    if "learning_rate" in training_config:
-        train_rows.append({"参数": "Learning Rate", "值": training_config["learning_rate"]})
-    if "weight_decay" in training_config:
-        train_rows.append({"参数": "Weight Decay", "值": training_config["weight_decay"]})
-    if "device" in training_config:
-        train_rows.append({"参数": "Device", "值": training_config["device"]})
-    if "preset" in training_config:
-        train_rows.append({"参数": "Preset", "值": training_config["preset"]})
-    arch_rows = [{"参数": key, "值": value} for key, value in architecture_config.items()]
-    if train_rows or arch_rows:
-        left, right = st.columns(2)
-        if train_rows:
-            left.caption("训练配置")
-            left.dataframe(pd.DataFrame(train_rows), width="stretch", hide_index=True)
-        if arch_rows:
-            right.caption("结构配置")
-            right.dataframe(pd.DataFrame(arch_rows), width="stretch", hide_index=True)
-
-
-def _render_split_panel(st, validation: dict[str, Any]) -> None:
-    split_sizes = validation.get("split_sizes", {})
-    split_details = validation.get("split_details", {})
-    split_sizes = split_sizes if isinstance(split_sizes, dict) else {}
-    split_details = split_details if isinstance(split_details, dict) else {}
-    if not split_sizes and not split_details:
-        return
-    st.markdown("**数据划分**")
-    sizes = split_sizes
-    columns = st.columns(4)
-    columns[0].metric("训练集", _format_count(sizes.get("train", split_details.get("train_windows"))))
-    columns[1].metric("验证集", _format_count(sizes.get("val", split_details.get("val_windows"))))
-    columns[2].metric("测试集", _format_count(sizes.get("test", split_details.get("test_windows"))))
-    columns[3].metric("划分策略", str(split_details.get("strategy", "-")))
-    entity_rows = []
-    for key, label in [
-        ("train_entities", "训练集轴承"),
-        ("val_entities", "验证集轴承"),
-        ("test_entities", "测试集轴承"),
-    ]:
-        values = split_details.get(key, [])
-        if values:
-            entity_rows.append({"集合": label, "轴承/对象": ", ".join(str(item) for item in values)})
-    if entity_rows:
-        st.dataframe(pd.DataFrame(entity_rows), width="stretch", hide_index=True)
-
-
-def _render_training_request_preview(st, request: dict[str, Any]) -> None:
-    st.markdown("**配置预览**")
-    dataset = request.get("dataset_config", {})
-    trainer = request.get("trainer_config", {})
-    training = request.get("training_overrides", {})
-    model = request.get("model_config", {})
-    columns = st.columns(4)
-    columns[0].metric("任务", str(request.get("task", "-")).upper())
-    columns[1].metric("数据集", str(dataset.get("dataset", "-")))
-    columns[2].metric("数据规模", str(dataset.get("mode", "-")))
-    columns[3].metric("Trainer", str(trainer.get("name", "-")))
-    left, right = st.columns(2)
-    left.caption("训练配置")
-    train_rows = [
-        {"参数": "preset", "值": request.get("preset", "-")},
-        {"参数": "device", "值": request.get("device", "-")},
-        {"参数": "seed", "值": request.get("seed", "-")},
+def _inspect_roots(phm_root: Path, xjtu_root: Path) -> pd.DataFrame:
+    phm_files = list(phm_root.glob("Learning_set/Bearing*/acc_*.csv")) + list(
+        phm_root.glob("Full_Test_Set/Bearing*/acc_*.csv")
+    )
+    xjtu_conditions = ["35Hz12kN", "37.5Hz11kN", "40Hz10kN"]
+    xjtu_files: list[Path] = []
+    for condition in xjtu_conditions:
+        xjtu_files.extend((xjtu_root / condition).glob("Bearing*/*.csv"))
+    rows = [
+        {
+            "数据集": "PHM2012",
+            "任务": "RUL",
+            "目录存在": phm_root.exists(),
+            "文件数": len(phm_files),
+            "轴承数": len({item.parent.name for item in phm_files}),
+            "缓存": "ready" if _cache_status("rul")["exists"] else "missing",
+            "路径": str(phm_root),
+        },
+        {
+            "数据集": "XJTU-SY",
+            "任务": "Fault",
+            "目录存在": xjtu_root.exists(),
+            "文件数": len(xjtu_files),
+            "轴承数": len({item.parent.name for item in xjtu_files}),
+            "缓存": "ready" if _cache_status("fault")["exists"] else "missing",
+            "路径": str(xjtu_root),
+        },
     ]
-    train_rows.extend({"参数": key, "值": value} for key, value in training.items())
-    left.dataframe(pd.DataFrame(train_rows), width="stretch", hide_index=True)
-    right.caption("模型架构")
-    architecture = model.get("architecture", {})
-    arch_rows = [{"参数": key, "值": value} for key, value in architecture.items()]
-    if arch_rows:
-        right.dataframe(pd.DataFrame(arch_rows), width="stretch", hide_index=True)
-    else:
-        right.info("使用任务默认模型架构。")
-    split = request.get("split_preview", {})
-    if isinstance(split, dict) and split:
-        st.markdown("**数据划分**")
-        st.dataframe(
-            pd.DataFrame([
-                {"集合": "训练集", "规则": split.get("train", "-")},
-                {"集合": "验证集", "规则": split.get("val", "-")},
-                {"集合": "测试集", "规则": split.get("test", "-")},
-                {"集合": "划分策略", "规则": split.get("strategy", "-")},
-            ]),
-            width="stretch",
-            hide_index=True,
-        )
-    st.caption("训练启动后会生成实际窗口数和轴承清单，并写入 run/config.json。")
+    return pd.DataFrame(rows)
 
 
-def _render_run_summary(st, run_dir: Path | str, *, show_model_parameters: bool = True) -> None:
-    path = Path(run_dir)
-    summary = summarize_run(path)
-    st.caption(str(path))
-    _show_metrics(st, summary.get("raw_metrics", {}).get("test", {}))
-    if show_model_parameters and summary.get("command") == "train":
-        validation = validate_training_run(path)
-        _render_model_parameter_panel(st, validation)
-        _render_split_panel(st, validation)
-    if summary.get("command") == "benchmark" and summary.get("benchmark_rows"):
-        st.dataframe(pd.DataFrame(summary["benchmark_rows"]), width="stretch", hide_index=True)
-    _show_figures(st, summary.get("figures", {}))
+def _list_runs(command: str | None = None, task: str | None = None) -> list[Path]:
+    if not RUN_OUTPUT_ROOT.exists():
+        return []
+    runs: list[Path] = []
+    for child in RUN_OUTPUT_ROOT.iterdir():
+        if not child.is_dir():
+            continue
+        config = _load_json(child / "config.json")
+        if command and config.get("command") != command:
+            continue
+        if task and config.get("task") != task:
+            continue
+        runs.append(child)
+    return sorted(runs, key=lambda item: item.stat().st_mtime, reverse=True)
 
 
-def _render_artifact_dir(st, artifact_dir: Path | str) -> None:
-    path = Path(artifact_dir)
-    metrics = _load_json(path / "metrics.json")
-    if not metrics:
-        st.info("输出目录还没有 metrics.json。")
+def _is_safe_output_path(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+        roots = [RUN_OUTPUT_ROOT.resolve(), GUI_OUTPUT_ROOT.resolve()]
+        return any(resolved == root or root in resolved.parents for root in roots)
+    except OSError:
+        return False
+
+
+def _delete_output_dir(path: Path) -> None:
+    if not path.exists():
         return
-    st.caption(str(path))
-    _show_metrics(st, metrics.get("metrics", metrics.get("test", {})))
-    figures = metrics.get("figures", {})
-    if figures:
-        _show_figures(st, {key: Path(value) for key, value in figures.items()})
+    if not path.is_dir() or not _is_safe_output_path(path):
+        raise ValueError(f"refuse to delete unsafe path: {path}")
+    shutil.rmtree(path)
 
 
-def _render_inline_job_panel(st, title: str, empty_message: str, job: dict[str, Any] | None) -> None:
-    st.markdown(f"**{title}**")
-    if job is None:
-        st.info(empty_message)
-        return
-    status = str(job.get("status", "unknown"))
-    columns = st.columns(4)
-    columns[0].metric("状态", status)
-    columns[1].metric("类型", str(job.get("kind", "-")))
-    columns[2].metric("任务", str(job.get("task", "-") or "-").upper())
-    columns[3].metric("退出码", "-" if job.get("exit_code") is None else str(job.get("exit_code")))
-    run_dir = job.get("run_dir")
-    if run_dir:
-        st.caption(f"输出目录：{run_dir}")
-    st.code(read_job_log(job["job_dir"], tail_bytes=12000) or "等待日志输出。", language="text")
-    if status == "succeeded" and run_dir and Path(run_dir).exists():
-        if (Path(run_dir) / "config.json").exists():
-            _render_run_summary(st, run_dir)
-        elif (Path(run_dir) / "metrics.json").exists():
-            _render_artifact_dir(st, run_dir)
-        else:
-            st.caption(str(run_dir))
-    elif status == "failed":
-        st.error("任务失败，请查看上方日志。")
-    if status in {"queued", "running"}:
-        time.sleep(1.0)
-        st.rerun()
+def _default_training_run(task: str) -> Path | None:
+    runs = _list_runs(command="train", task=task)
+    return runs[0] if runs else None
 
 
-def _render_training_log_panel(st, job: dict[str, Any] | None) -> None:
-    _render_inline_job_panel(st, "训练日志", "选择 YAML 后点击开始训练，日志会显示在这里。", job)
+def _validate_training_run(run_dir: Path, expected_task: str) -> dict[str, Any]:
+    required = ["config.json", "metrics.json", "model_summary.json", "model_state.pt", "standardizer.npz"]
+    missing = [name for name in required if not (run_dir / name).exists()]
+    config = _load_json(run_dir / "config.json")
+    metrics = _load_json(run_dir / "metrics.json")
+    summary = _load_json(run_dir / "model_summary.json")
+    task = str(config.get("task", summary.get("task", "")))
+    return {
+        "valid": not missing and config.get("command") == "train" and task == expected_task,
+        "missing": missing,
+        "task": task,
+        "model": summary.get("model", "-"),
+        "input_dim": summary.get("input_dim", "-"),
+        "sequence_length": summary.get("sequence_length", "-"),
+        "parameter_count": summary.get("parameter_count", "-"),
+        "metrics": metrics.get("test", {}),
+    }
 
 
-def _render_eval_log_panel(st, job: dict[str, Any] | None) -> None:
-    _render_inline_job_panel(st, "Eval 日志", "选择模型路径和评测数据集后，评测输出会显示在这里。", job)
-
-
-def _render_data_job_panel(st, job: dict[str, Any] | None) -> None:
-    if job is not None:
-        _render_inline_job_panel(st, "数据任务日志", "数据加载或特征分析输出会显示在这里。", job)
-
-
-def _dataframe_status(st, status: dict[str, dict[str, Any]]) -> None:
+def _metrics_table(metrics: dict[str, Any]) -> pd.DataFrame:
     rows = []
-    for name, item in status.items():
+    for key, value in metrics.items():
+        if isinstance(value, (int, float, np.number)):
+            rows.append({"指标": key, "值": _format_number(value)})
+    return pd.DataFrame(rows)
+
+
+def _run_display_name(path: Path) -> str:
+    config = _load_json(path / "config.json")
+    command = config.get("command", "-")
+    task = config.get("task", "-")
+    stamp = datetime.fromtimestamp(path.stat().st_mtime).strftime("%H:%M:%S")
+    return f"{path.name} | {command}/{task} | {stamp}"
+
+
+def _render_run_result(st, run_dir: Path, *, title: str = "结果") -> None:
+    if not run_dir.exists():
+        st.warning(f"结果目录不存在：{run_dir}")
+        return
+    config = _load_json(run_dir / "config.json")
+    metrics = _load_json(run_dir / "metrics.json")
+    st.markdown(f"#### {title}")
+    st.caption(f"输出目录：{run_dir}")
+    cols = st.columns(4)
+    cols[0].metric("命令", str(config.get("command", "-")))
+    cols[1].metric("任务", str(config.get("task", "-")).upper())
+    cols[2].metric("模式", "sample" if config.get("sample") else "full")
+    cols[3].metric("更新时间", datetime.fromtimestamp(run_dir.stat().st_mtime).strftime("%H:%M:%S"))
+
+    metric_source = metrics.get("test", metrics.get("metrics", metrics))
+    if isinstance(metric_source, dict):
+        table = _metrics_table(metric_source)
+        if not table.empty:
+            st.dataframe(table, width="stretch", hide_index=True)
+    _figure_cards(st, run_dir)
+
+
+def _render_delete_controls(st, path: Path, *, key_prefix: str) -> None:
+    clear_col, delete_col = st.columns([1, 2])
+    if clear_col.button("清空当前展示", key=f"{key_prefix}_clear", width="stretch"):
+        for key in [
+            "last_analyze_run_dir",
+            "last_train_run_dir",
+            "last_evaluate_run_dir",
+            "last_predict_run_dir",
+        ]:
+            if st.session_state.get(key) == str(path):
+                st.session_state.pop(key, None)
+        st.rerun()
+    confirm = delete_col.checkbox("确认删除这个结果目录", key=f"{key_prefix}_confirm")
+    if delete_col.button("删除结果目录", key=f"{key_prefix}_delete", disabled=not confirm, width="stretch"):
+        try:
+            _delete_output_dir(path)
+        except Exception as exc:
+            st.error(str(exc))
+        else:
+            st.success(f"已删除：{path}")
+            for key, value in list(st.session_state.items()):
+                if isinstance(value, str) and value == str(path):
+                    st.session_state.pop(key, None)
+            st.rerun()
+
+
+def _save_upload(uploaded, folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
+    target.write_bytes(uploaded.getbuffer())
+    return target
+
+
+def _inspect_csv(path: Path) -> dict[str, Any]:
+    try:
+        frame = pd.read_csv(path, nrows=50)
+    except Exception as exc:
+        return {"ok": False, "message": f"CSV 读取失败：{exc}"}
+    numeric = frame.select_dtypes(include=[np.number])
+    return {
+        "ok": len(frame) > 0 and numeric.shape[1] > 0,
+        "rows": len(frame),
+        "columns": frame.shape[1],
+        "numeric_columns": numeric.shape[1],
+    }
+
+
+def _figure_cards(st, run_dir: Path) -> None:
+    figure_dir = run_dir / "figures"
+    if not figure_dir.exists():
+        return
+    figures = sorted([*figure_dir.glob("*.png"), *figure_dir.glob("*.jpg"), *figure_dir.glob("*.jpeg")])
+    if not figures:
+        return
+    st.markdown("#### 图表")
+    columns = st.columns(2)
+    for index, figure in enumerate(figures[:8]):
+        with columns[index % 2]:
+            st.image(str(figure), caption=figure.name, width="stretch")
+
+
+def _render_analysis_source(st, run_dir: Path) -> None:
+    config = _load_json(run_dir / "config.json")
+    metrics = _load_json(run_dir / "metrics.json")
+    rows = []
+    fallback_tasks = []
+    for task, item in metrics.get("analyses", {}).items():
+        source = item.get("source", {}) if isinstance(item, dict) else {}
+        source_name = str(source.get("source", "-"))
+        if source_name == "sample-fallback":
+            fallback_tasks.append(task.upper())
         rows.append(
             {
-                "dataset": name,
-                "valid": item["valid"],
-                "root": item["root"],
-                "bearings": item.get("bearing_count", 0),
-                "files": item.get("file_count", 0),
-                "conditions/splits": item.get("condition_count", item.get("split_count", 0)),
-                "cache": "ready" if item["cache"]["exists"] else "missing",
-                "cache_shape": str(item["cache"].get("feature_shape", [])),
-                "missing": ", ".join(item.get("missing", [])),
+                "任务": task.upper(),
+                "来源": source_name,
+                "模式": source.get("mode", "-"),
+                "说明": source.get("warning", ""),
             }
         )
-    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-
-
-def _render_feature_gallery(st, active: dict[str, Any] | None) -> None:
-    st.markdown("### 特征图谱")
-    with st.form("feature_analysis_form"):
-        task_col, feature_col, scale_col, button_col = st.columns([0.9, 1.0, 1.1, 1.1], gap="medium")
-        with task_col:
-            task = st.selectbox(
-                "分析任务",
-                ["all", "rul", "fault"],
-                format_func=lambda value: "全部" if value == "all" else value.upper(),
-            )
-        with feature_col:
-            feature_set = st.selectbox("特征审计", ["domain", "tsfresh", "advanced"], index=0)
-        with scale_col:
-            data_mode = st.radio(
-                "分析规模",
-                ["sample", "full"],
-                horizontal=True,
-                format_func=lambda value: "快速样本" if value == "sample" else "全量缓存",
-            )
-        with button_col:
-            st.write("")
-            submitted = st.form_submit_button(
-                "生成/刷新特征图谱",
-                disabled=_has_running_job(active),
-                width="stretch",
-            )
-    if submitted:
-        run_dir = _new_run_dir("outputs/runs", "analyze", task)
-        command = _phm_command(
-            "analyze",
-            "--task",
-            task,
-            "--feature-set",
-            feature_set,
-            "--run-dir",
-            run_dir,
-            "--sample" if data_mode == "sample" else "--full",
+    st.caption(
+        f"当前显示：{run_dir} | 任务：{config.get('task', '-')} | "
+        f"特征集：{config.get('feature_set', '-')} | "
+        f"规模：{'快速样本' if config.get('sample') else '全量'}"
+    )
+    if fallback_tasks:
+        st.warning(
+            f"{', '.join(fallback_tasks)} 没找到全量特征缓存，已回退到固定样本数据；"
+            "重复生成会得到相同图谱。先构建对应缓存或换真实数据目录后，图谱才会变化。"
         )
-        _start_job(st, command, kind="analyze", task=task, run_dir=run_dir)
-    gallery = collect_feature_gallery()
-    if not gallery["figures"]:
-        st.info("暂无可展示的特征图。先运行一次特征分析，系统会生成相关性热力图和特征排序图。")
+    if rows:
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+
+def _render_job_panel(st, job: dict[str, Any] | None) -> None:
+    if not job:
+        st.info("暂无任务。")
         return
-    st.caption(f"来源：{gallery['source_run']}")
-    figures = {item["title"]: Path(item["path"]) for item in gallery["figures"]}
-    _show_figures(st, figures)
+    status = str(job.get("status", "unknown"))
+    st.markdown(f"**任务** `{job.get('kind', '-')}` / `{job.get('task', '-')}` / `{status}`")
+    st.caption(f"输出目录：{job.get('run_dir') or '-'}")
+    if status == "running":
+        st.progress(0.65, text="任务运行中，日志会自动追加。")
+    elif status == "queued":
+        st.progress(0.15, text="任务排队中。")
+    elif status == "succeeded":
+        st.success("任务完成。")
+    elif status == "failed":
+        st.error(f"任务失败，退出码：{job.get('exit_code')}")
+    log_text = read_job_log(job["job_dir"], tail_bytes=16000) if job.get("job_dir") else ""
+    st.code(log_text or "等待日志输出。", language="text")
+    if _is_running(job):
+        refresh_key = f"refresh_job_{str(job.get('job_dir', job.get('job_id', 'unknown'))).replace('/', '_')}"
+        st.button("刷新任务状态", key=refresh_key, on_click=st.rerun)
 
 
-def _render_data_tab(st, active: dict[str, Any] | None) -> None:
-    st.subheader("数据加载与特征缓存")
-    input_col, status_col = st.columns([0.82, 1.38], gap="large")
-    with input_col:
+def _overview_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("运行总览")
+    cache_rows = [_cache_status("rul"), _cache_status("fault")]
+    col1, col2, col3 = st.columns(3)
+    col1.metric("RUL 缓存", "ready" if cache_rows[0]["exists"] else "missing")
+    col2.metric("Fault 缓存", "ready" if cache_rows[1]["exists"] else "missing")
+    col3.metric("后台任务", active["status"] if active else "idle")
+    st.dataframe(pd.DataFrame(cache_rows), width="stretch", hide_index=True)
+
+    latest_runs = _list_runs()[:6]
+    if latest_runs:
+        st.markdown("#### 最近输出")
+        rows = []
+        for run in latest_runs:
+            config = _load_json(run / "config.json")
+            rows.append(
+                {
+                    "名称": run.name,
+                    "命令": config.get("command", "-"),
+                    "任务": config.get("task", "-"),
+                    "更新时间": datetime.fromtimestamp(run.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                    "路径": str(run),
+                }
+            )
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+
+def _data_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("数据与特征")
+    left, right = st.columns([0.8, 1.2], gap="large")
+    with left:
         phm_root = Path(st.text_input("PHM2012 根目录", value=str(st.session_state.get("phm_root", DEFAULT_PHM_ROOT))))
         xjtu_root = Path(st.text_input("XJTU-SY 根目录", value=str(st.session_state.get("xjtu_root", DEFAULT_XJTU_ROOT))))
-        force = st.checkbox("强制刷新缓存", value=False)
-    st.session_state["phm_root"] = str(phm_root)
-    st.session_state["xjtu_root"] = str(xjtu_root)
-    status = inspect_dataset_roots(phm_root, xjtu_root)
-    disabled = _has_running_job(active)
-    with input_col:
-        columns = st.columns(3)
-        cache_specs = [("rul", "RUL 缓存"), ("fault", "Fault 缓存"), ("all", "全部缓存")]
-        for column, (task, label) in zip(columns, cache_specs):
+        st.session_state["phm_root"] = str(phm_root)
+        st.session_state["xjtu_root"] = str(xjtu_root)
+        force = st.checkbox("强制重建缓存", value=False)
+        disabled = _is_running(active)
+        cache_cols = st.columns(3)
+        for column, task, label in [
+            (cache_cols[0], "rul", "构建 RUL"),
+            (cache_cols[1], "fault", "构建 Fault"),
+            (cache_cols[2], "all", "全部缓存"),
+        ]:
             if column.button(label, disabled=disabled, width="stretch"):
                 run_dir = _new_run_dir(GUI_OUTPUT_ROOT / "cache", "cache", task)
                 command = _phm_command(
@@ -855,181 +443,241 @@ def _render_data_tab(st, active: dict[str, Any] | None) -> None:
                     *(["--force"] if force else []),
                 )
                 _start_job(st, command, kind="cache", task=task, run_dir=run_dir)
-    with status_col:
-        _dataframe_status(st, status)
+    with right:
+        st.dataframe(_inspect_roots(phm_root, xjtu_root), width="stretch", hide_index=True)
+
     st.divider()
-    _render_feature_gallery(st, active)
-    _render_data_job_panel(st, _session_job(st, "data_job_dir"))
-
-
-def _render_training_tab(st, active: dict[str, Any] | None) -> None:
-    st.subheader("训练")
-    config_col, log_col = st.columns([0.78, 1.42], gap="large")
-    with config_col:
-        selected_config_path: Path | None = None
-        request: dict[str, Any] | None = None
-        config_error = ""
-        config_files = list_training_config_files()
-        labels = ["请选择配置"] + [str(path) for path in config_files]
-        default_index = 0
-        for index, label in enumerate(labels):
-            if label.endswith("rul_smoke.yaml"):
-                default_index = index
-                break
-        selected_label = st.selectbox("训练配置 YAML", labels, index=default_index)
-        custom_path = st.text_input("自定义 YAML 路径", value="")
-        uploaded = st.file_uploader("上传训练配置 YAML", type=["yaml", "yml"])
-        if uploaded is not None:
-            selected_config_path = _save_uploaded_yaml(uploaded)
-            st.caption(f"已保存：{selected_config_path}")
-        elif custom_path:
-            selected_config_path = Path(custom_path).expanduser()
-        elif selected_label != "请选择配置":
-            selected_config_path = Path(selected_label)
-        if selected_config_path is not None:
-            try:
-                raw_config = load_training_config(selected_config_path)
-                request = resolve_training_config(raw_config, config_path=selected_config_path)
-            except Exception as exc:
-                config_error = str(exc)
-        if config_error:
-            st.error(config_error)
-        disabled = _has_running_job(active) or request is None or bool(config_error)
-        if st.button("开始训练", disabled=disabled, width="stretch"):
-            assert request is not None and selected_config_path is not None
-            run_dir = _new_run_dir("outputs/runs", "train", request["task"])
-            command = _phm_command("train", "--config", selected_config_path, "--run-dir", run_dir)
-            _start_job(st, command, kind="train", task=request["task"], run_dir=run_dir)
-    with log_col:
-        if request is not None:
-            _render_training_request_preview(st, request)
-        else:
-            st.info("选择或上传训练配置 YAML 后，这里会显示数据集、trainer、模型架构和训练参数。")
-        st.divider()
-        _render_training_log_panel(st, _session_job(st, "train_job_dir"))
-
-
-def _save_uploaded_csv(uploaded) -> Path:
-    upload_dir = GUI_OUTPUT_ROOT / "uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    target = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
-    target.write_bytes(uploaded.getbuffer())
-    return target
-
-
-def _save_uploaded_yaml(uploaded) -> Path:
-    upload_dir = GUI_OUTPUT_ROOT / "configs"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    target = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
-    target.write_bytes(uploaded.getbuffer())
-    return target
-
-
-def _render_eval_model_status(st, validation: dict[str, Any]) -> None:
-    columns = st.columns(5)
-    columns[0].metric("可用", "yes" if validation["valid"] else "no")
-    columns[1].metric("任务", validation["task"].upper() if validation["task"] else "-")
-    columns[2].metric("模型", validation["model"] or "-")
-    columns[3].metric("输入维度", str(validation["input_dim"] or "-"))
-    columns[4].metric("序列长度", str(validation["sequence_length"] or "-"))
-    if validation["missing"]:
-        st.error(f"缺少文件：{', '.join(validation['missing'])}")
-    if validation["task_mismatch"]:
-        st.error(f"任务不匹配：期望 {validation['expected_task']}，实际 {validation['task']}")
-    if validation["valid"]:
-        _render_model_parameter_panel(st, validation)
-        _render_split_panel(st, validation)
-
-
-def _render_eval_tab(st, active: dict[str, Any] | None) -> None:
-    st.subheader("Eval")
-    control_col, result_col = st.columns([0.82, 1.38], gap="large")
-    with control_col:
-        task = st.selectbox(
-            "任务",
-            ["rul", "fault"],
-            format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断",
+    st.markdown("#### 特征分析")
+    task_col, feature_col, scale_col, run_col = st.columns([1, 1, 1, 1])
+    task = task_col.selectbox("任务", ["all", "rul", "fault"], format_func=lambda value: value.upper())
+    feature_set = feature_col.selectbox("特征集", ["domain", "tsfresh", "advanced"])
+    scale = scale_col.radio(
+        "规模",
+        ["sample", "full"],
+        horizontal=True,
+        format_func=lambda value: "快速样本" if value == "sample" else "全量缓存",
+    )
+    if run_col.button("生成图谱", disabled=_is_running(active), width="stretch"):
+        run_dir = _new_run_dir(RUN_OUTPUT_ROOT, "analyze", task)
+        command = _phm_command(
+            "analyze",
+            "--task",
+            task,
+            "--feature-set",
+            feature_set,
+            "--run-dir",
+            run_dir,
+            "--sample" if scale == "sample" else "--full",
         )
-        default_model = st.session_state.get(f"eval_model_path_{task}") or _default_train_run(task)
-        model_path_text = st.text_input("模型路径", value=str(default_model or ""), key=f"eval_model_path_input_{task}")
-        st.session_state[f"eval_model_path_{task}"] = model_path_text
-        dataset = st.selectbox("评测数据集", ["fixed_test", "feature_csv"], format_func=lambda value: "固定测试集" if value == "fixed_test" else "特征 CSV")
-        device = st.selectbox("设备", ["auto", "mps", "cuda", "cpu"], key="eval_device")
+        _start_job(st, command, kind="analyze", task=task, run_dir=run_dir)
 
-        run_path = Path(model_path_text).expanduser() if model_path_text else None
-        validation: dict[str, Any] | None = None
-        if run_path is not None and run_path.exists():
-            validation = validate_training_run(run_path, expected_task=task)
-        elif model_path_text:
-            st.error("模型路径不存在。")
-        else:
-            st.info("填写训练 run 目录后可以评测或推理。")
+    analyze_runs = _list_runs(command="analyze")
+    pending_analyze = Path(st.session_state.get("pending_analyze_run_dir", ""))
+    if active and active.get("kind") == "analyze" and _is_running(active):
+        return
+    if pending_analyze in analyze_runs:
+        st.session_state.pop("pending_analyze_run_dir", None)
+    elif st.session_state.get("pending_analyze_run_dir") and not (active and active.get("kind") == "analyze"):
+        return
+    if analyze_runs:
+        last_analyze = Path(st.session_state.get("last_analyze_run_dir", ""))
+        default_index = analyze_runs.index(last_analyze) if last_analyze in analyze_runs else 0
+        selected = st.selectbox("查看分析结果", analyze_runs, index=default_index, format_func=_run_display_name)
+        _render_analysis_source(st, selected)
+        _figure_cards(st, selected)
+        _render_delete_controls(st, selected, key_prefix="analyze_result")
 
+
+def _training_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("训练")
+    config_col, preview_col = st.columns([0.75, 1.25], gap="large")
+    request: dict[str, Any] | None = None
+    selected_path: Path | None = None
+    with config_col:
+        configs = list_training_config_files()
+        labels = ["请选择配置"] + [str(path) for path in configs]
+        default = next((index for index, label in enumerate(labels) if label.endswith("rul_smoke.yaml")), 0)
+        selected_label = st.selectbox("训练配置", labels, index=default)
+        custom_path = st.text_input("自定义 YAML 路径", value="")
+        uploaded = st.file_uploader("上传 YAML", type=["yaml", "yml"])
+        if uploaded is not None:
+            selected_path = _save_upload(uploaded, GUI_OUTPUT_ROOT / "configs")
+            st.caption(f"已保存：{selected_path}")
+        elif custom_path:
+            selected_path = Path(custom_path).expanduser()
+        elif selected_label != "请选择配置":
+            selected_path = Path(selected_label)
+        error = ""
+        if selected_path is not None:
+            try:
+                request = resolve_training_config(load_training_config(selected_path), config_path=selected_path)
+            except Exception as exc:
+                error = str(exc)
+        if error:
+            st.error(error)
+        if st.button("开始训练", disabled=_is_running(active) or request is None or bool(error), width="stretch"):
+            assert request is not None and selected_path is not None
+            run_dir = _new_run_dir(RUN_OUTPUT_ROOT, "train", request["task"])
+            _start_job(st, _phm_command("train", "--config", selected_path, "--run-dir", run_dir), kind="train", task=request["task"], run_dir=run_dir)
+    with preview_col:
+        if request is None:
+            st.info("选择训练配置后会显示训练参数。")
+            return
+        st.markdown("#### 配置预览")
+        metrics = st.columns(4)
+        metrics[0].metric("任务", request["task"].upper())
+        metrics[1].metric("预设", request["preset"])
+        metrics[2].metric("数据", "sample" if request["sample"] else "full")
+        metrics[3].metric("设备", request["device"])
+        st.json(
+            {
+                "dataset": request["dataset_config"],
+                "trainer": request["trainer_config"],
+                "training": request["training_overrides"],
+                "model": request["model_config"],
+                "split": request["split_preview"],
+            },
+            expanded=False,
+        )
+    st.divider()
+    train_runs = _list_runs(command="train")
+    if train_runs:
+        last_train = Path(st.session_state.get("last_train_run_dir", ""))
+        default_index = train_runs.index(last_train) if last_train in train_runs else 0
+        selected = st.selectbox("查看训练结果", train_runs, index=default_index, format_func=_run_display_name)
+        _render_run_result(st, selected, title="训练结果")
+        _render_delete_controls(st, selected, key_prefix="train_result")
+
+
+def _evaluation_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("评测与推理")
+    control_col, result_col = st.columns([0.8, 1.2], gap="large")
+    with control_col:
+        task = st.selectbox("任务", ["rul", "fault"], format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断")
+        default_run = _default_training_run(task)
+        run_text = st.text_input("训练 run 目录", value=str(default_run or ""))
+        run_path = Path(run_text).expanduser() if run_text else None
+        mode = st.radio("模式", ["fixed_test", "feature_csv"], horizontal=True, format_func=lambda value: "固定测试集" if value == "fixed_test" else "特征 CSV")
+        device = st.selectbox("设备", ["auto", "mps", "cuda", "cpu"])
+        validation = _validate_training_run(run_path, task) if run_path and run_path.exists() else None
         csv_path: Path | None = None
-        if dataset == "feature_csv":
-            csv_path_text = st.text_input("特征 CSV 路径", value="")
-            uploaded = st.file_uploader("上传特征 CSV", type=["csv"])
+        if mode == "feature_csv":
+            csv_text = st.text_input("CSV 路径", value="")
+            uploaded = st.file_uploader("上传 CSV", type=["csv"])
             if uploaded is not None:
-                csv_path = _save_uploaded_csv(uploaded)
-                st.caption(f"已保存上传文件：{csv_path}")
-            elif csv_path_text:
-                csv_path = Path(csv_path_text).expanduser()
-            if csv_path is not None and csv_path.exists():
-                st.json(inspect_uploaded_dataset(csv_path))
-            elif csv_path_text:
-                st.error("特征 CSV 路径不存在。")
-
-        disabled = _has_running_job(active) or validation is None or not validation["valid"]
-        if dataset == "fixed_test":
+                csv_path = _save_upload(uploaded, GUI_OUTPUT_ROOT / "uploads")
+            elif csv_text:
+                csv_path = Path(csv_text).expanduser()
+            if csv_path and csv_path.exists():
+                st.json(_inspect_csv(csv_path), expanded=False)
+        disabled = _is_running(active) or validation is None or not validation["valid"]
+        if mode == "fixed_test":
             if st.button("开始评测", disabled=disabled, width="stretch"):
                 assert run_path is not None
                 output_dir = _new_run_dir(GUI_OUTPUT_ROOT / "evaluations", "evaluate", task)
-                command = _phm_command("evaluate", "--run", run_path, "--device", device, "--output-dir", output_dir)
-                _start_job(st, command, kind="evaluate", task=task, run_dir=output_dir)
+                _start_job(st, _phm_command("evaluate", "--run", run_path, "--device", device, "--output-dir", output_dir), kind="evaluate", task=task, run_dir=output_dir)
         else:
-            csv_disabled = disabled or csv_path is None or not csv_path.exists()
-            if st.button("开始推理", disabled=csv_disabled, width="stretch"):
+            if st.button("开始推理", disabled=disabled or csv_path is None or not csv_path.exists(), width="stretch"):
                 assert run_path is not None and csv_path is not None
                 output_dir = _new_run_dir(GUI_OUTPUT_ROOT / "predictions", "predict", task)
-                command = _phm_command("predict", "--run", run_path, "--csv", csv_path, "--device", device, "--output-dir", output_dir)
-                _start_job(st, command, kind="predict", task=task, run_dir=output_dir)
+                _start_job(st, _phm_command("predict", "--run", run_path, "--csv", csv_path, "--device", device, "--output-dir", output_dir), kind="predict", task=task, run_dir=output_dir)
     with result_col:
-        if validation is not None:
-            _render_eval_model_status(st, validation)
-            st.divider()
-        _render_eval_log_panel(st, _session_job(st, "eval_job_dir"))
+        if run_path and not run_path.exists():
+            st.error("训练 run 目录不存在。")
+        elif validation is None:
+            st.info("选择训练 run 后可评测或推理。")
+        else:
+            st.markdown("#### 模型状态")
+            cols = st.columns(4)
+            cols[0].metric("可用", "yes" if validation["valid"] else "no")
+            cols[1].metric("模型", validation["model"])
+            cols[2].metric("输入维度", validation["input_dim"])
+            cols[3].metric("序列长度", validation["sequence_length"])
+            if validation["missing"]:
+                st.error(f"缺少文件：{', '.join(validation['missing'])}")
+            if validation["task"] != task:
+                st.error(f"任务不匹配：当前选择 {task}，run 是 {validation['task'] or '-'}")
+            table = _metrics_table(validation["metrics"])
+            if not table.empty:
+                st.dataframe(table, width="stretch", hide_index=True)
+    st.divider()
+    result_options = [
+        Path(value)
+        for value in [
+            st.session_state.get("last_evaluate_run_dir"),
+            st.session_state.get("last_predict_run_dir"),
+        ]
+        if value and Path(value).exists()
+    ]
+    result_options.extend(path for path in sorted((GUI_OUTPUT_ROOT / "evaluations").glob("*"), key=lambda item: item.stat().st_mtime, reverse=True) if path.is_dir())
+    result_options.extend(path for path in sorted((GUI_OUTPUT_ROOT / "predictions").glob("*"), key=lambda item: item.stat().st_mtime, reverse=True) if path.is_dir())
+    deduped_results = []
+    seen_results = set()
+    for path in result_options:
+        if path in seen_results:
+            continue
+        seen_results.add(path)
+        deduped_results.append(path)
+    if deduped_results:
+        selected_result = st.selectbox("查看评测/推理结果", deduped_results, format_func=lambda path: f"{path.name} | {datetime.fromtimestamp(path.stat().st_mtime).strftime('%H:%M:%S')}")
+        _render_run_result(st, selected_result, title="评测/推理结果")
+        _render_delete_controls(st, selected_result, key_prefix="eval_result")
+
+
+def _jobs_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("任务日志")
+    jobs = list_jobs()
+    if not jobs:
+        st.info("暂无后台任务。")
+        return
+    rows = []
+    for job in jobs:
+        rows.append(
+            {
+                "任务": job.get("job_id", ""),
+                "类型": job.get("kind", ""),
+                "任务类型": job.get("task", ""),
+                "状态": job.get("status", ""),
+                "退出码": job.get("exit_code", ""),
+                "开始": job.get("started_at", "") or job.get("created_at", ""),
+                "输出": job.get("run_dir", ""),
+            }
+        )
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    selected_default = active["job_dir"] if active else st.session_state.get("selected_job_dir", jobs[0].get("job_dir"))
+    options = [str(job["job_dir"]) for job in jobs]
+    selected = st.selectbox("查看日志", options, index=options.index(selected_default) if selected_default in options else 0)
+    try:
+        job = {**poll_job(selected), "job_dir": selected}
+    except FileNotFoundError:
+        job = None
+    _render_job_panel(st, job)
 
 
 def main() -> None:
     import streamlit as st
 
-    st.set_page_config(
-        page_title="轴承 PHM 实验工作台",
-        layout="wide",
-        initial_sidebar_state="collapsed",
-    )
+    st.set_page_config(page_title="轴承 PHM 工作台", layout="wide", initial_sidebar_state="expanded")
     st.markdown(
         """
         <style>
-        header[data-testid="stHeader"] { display: none; }
-        div[data-testid="collapsedControl"] { display: none; }
-        div[data-testid="stToolbar"] { display: none; }
-        div[data-testid="stDecoration"] { display: none; }
-        #MainMenu { visibility: hidden; }
-        footer { visibility: hidden; }
-        .block-container { max-width: none; padding: 0.35rem 1.1rem 0.9rem; }
-        div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d8dee9; padding: 0.65rem; border-radius: 6px; }
-        .stTabs [data-baseweb="tab-list"] { gap: 0.75rem; }
-        .phm-header { margin-bottom: 0.35rem; }
-        .phm-header h1 {
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            font-size: 1.38rem;
-            line-height: 1.15;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: 0;
+        .block-container { padding-top: 1rem; padding-bottom: 1.5rem; max-width: none; }
+        header[data-testid="stHeader"], #MainMenu, footer { visibility: hidden; }
+        div[data-testid="stMetric"] {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.7rem;
         }
-        .phm-header p { margin: 0.15rem 0 0; color: #667085; font-size: 0.86rem; }
+        .phm-title {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+            margin-bottom: 0.8rem;
+        }
+        .phm-title h1 { margin: 0; font-size: 1.55rem; }
+        .phm-title p { margin: 0.25rem 0 0; color: #667085; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1037,21 +685,34 @@ def main() -> None:
     active = _active_job(st)
     st.markdown(
         """
-        <div class="phm-header">
-          <h1>轴承 PHM 实验工作台</h1>
-          <p>数据加载、特征缓存、模型训练和推理评测。</p>
+        <div class="phm-title">
+          <h1>轴承 PHM 工作台</h1>
+          <p>数据检查、特征缓存、训练、评测和推理统一入口。</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    with st.sidebar:
+        st.markdown("### 状态")
+        if active:
+            st.info(f"{active.get('kind')} / {active.get('task')} / {active.get('status')}")
+            if st.button("刷新", width="stretch"):
+                st.rerun()
+        else:
+            st.success("空闲")
+        st.caption(f"工作目录：{Path.cwd()}")
 
-    data_tab, train_tab, eval_tab = st.tabs(["数据", "训练", "Eval"])
-    with data_tab:
-        _render_data_tab(st, active)
-    with train_tab:
-        _render_training_tab(st, active)
-    with eval_tab:
-        _render_eval_tab(st, active)
+    tabs = st.tabs(["总览", "数据", "训练", "评测/推理", "任务日志"])
+    with tabs[0]:
+        _overview_tab(st, active)
+    with tabs[1]:
+        _data_tab(st, active)
+    with tabs[2]:
+        _training_tab(st, active)
+    with tabs[3]:
+        _evaluation_tab(st, active)
+    with tabs[4]:
+        _jobs_tab(st, active)
 
 
 if __name__ == "__main__":

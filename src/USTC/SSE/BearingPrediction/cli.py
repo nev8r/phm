@@ -365,6 +365,8 @@ def _run_gui(args: argparse.Namespace) -> int:
         str(args.host),
         "--server.headless",
         "true" if args.headless else "false",
+        "--browser.gatherUsageStats",
+        "false",
     ]
     completed = subprocess.run(command, check=False)
     return int(completed.returncode)
