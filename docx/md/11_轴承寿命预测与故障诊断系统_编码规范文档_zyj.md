@@ -19,7 +19,7 @@ Notebook、用户手册和演示代码推荐使用：
 
 ```python
 from phm.data.loader.PHM2012Loader import PHM2012Loader
-from phm.model.paper import PaperCBAMCNNLSTMRegressor
+from phm.model.basic.CNN import CNN
 ```
 
 内部历史路径 `USTC.SSE.BearingPrediction` 作为物理包路径保留，不在示例中作为首选导入方式。

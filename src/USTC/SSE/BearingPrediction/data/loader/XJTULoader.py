@@ -70,8 +70,13 @@ class XJTULoader(ABCLoader):
         entity_dict = {}
         for condition in ['35Hz12kN', '37.5Hz11kN', '40Hz10kN']:
             condition_dir = os.path.join(root, condition)
+            if not os.path.isdir(condition_dir):
+                continue
             for bearing_name in os.listdir(condition_dir):
-                file_dict[bearing_name] = os.path.join(root, condition, bearing_name)
+                bearing_dir = os.path.join(condition_dir, bearing_name)
+                if not os.path.isdir(bearing_dir):
+                    continue
+                file_dict[bearing_name] = bearing_dir
                 entity_dict[bearing_name] = None
         return file_dict, entity_dict
 

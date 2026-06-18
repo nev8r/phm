@@ -19,7 +19,7 @@
 |---|---|---|
 | UT-01 | 特征处理器 | FFT、RMS、峭度、谱特征、频带能量输出维度与数值范围 |
 | UT-02 | 数据集构造 | PHM2012/XJTU 样本 shape、标签 shape、元数据字段 |
-| UT-03 | 模型 forward | CBAM-CNN-LSTM 与 ResCNN-LSTM 输出维度 |
+| UT-03 | 模型 forward | 主线模型输出维度 |
 | UT-04 | Trainer | 单轮训练、loss 记录、设备迁移 |
 | UT-05 | 训练产物 | history、metrics、prediction 文件字段 |
 

@@ -23,10 +23,7 @@
 | 测试文件 | 覆盖内容 | 预期 |
 |---|---|---|
 | `tests/test_feature_processors.py` | 特征处理器 | 输出维度与数值范围正确 |
-| `tests/test_paper_datasets.py` | 论文数据集构造 | 样本、标签、元数据一致 |
-| `tests/test_paper_models.py` | 主线模型 forward | 输出 shape 正确 |
 | `tests/test_trainer.py` | 训练器 | 单轮训练与指标记录正确 |
-| `tests/test_training_artifacts.py` | 训练产物 | 文件字段完整 |
 
 ## 缺陷与处理
 

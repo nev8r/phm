@@ -14,16 +14,17 @@
 1. 准备 Python 3.11 与 uv。
 2. 在项目根目录执行 `uv sync`。
 3. 确认 `data/loader_roots/phm2012` 和 `data/loader_roots/xjtu` 能访问真实数据。
-4. 启动 Jupyter 或 IDE，打开 `examples/3-papers` 下的 Notebook。
-5. 先运行 PHM2012 RUL 主线，再运行 XJTU-SY 故障诊断主线。
+4. 启动 Jupyter 或 IDE，打开 `examples/1-guide` 或 `examples/2-demo` 下的 Notebook。
+5. 先运行极简流程或 RUL Demo，再运行故障诊断 Demo。
 6. 查看 Notebook 输出的指标表、特征图、训练曲线和混淆矩阵。
 
 ## 常用入口
 
 | 入口 | 用途 |
 |---|---|
-| `examples/3-papers/PHM2012_RUL_CBAM_CNN_LSTM.ipynb` | PHM2012 RUL 论文主线复现 |
-| `examples/3-papers/XJTU_Fault_CNN_LSTM.ipynb` | XJTU-SY 故障诊断论文主线复现 |
+| `examples/1-guide/Guide-1_极简实验流程.ipynb` | 最小实验流程 |
+| `examples/2-demo/RUL预测-轴承.ipynb` | 轴承 RUL 预测 Demo |
+| `examples/2-demo/故障诊断-轴承.ipynb` | 轴承故障诊断 Demo |
 | `tests/` | 单元与集成测试 |
 | `docx/` | 课程材料目录 |
 

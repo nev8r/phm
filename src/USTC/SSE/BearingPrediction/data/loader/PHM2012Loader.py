@@ -38,8 +38,13 @@ class PHM2012Loader(ABCLoader):
         entity_dict = {}
         for folder in ['Learning_set', 'Full_Test_Set']:
             folder_dir = os.path.join(root, folder)
+            if not os.path.isdir(folder_dir):
+                continue
             for bearing_name in os.listdir(folder_dir):
-                file_dict[bearing_name] = os.path.join(root, folder, bearing_name)
+                bearing_dir = os.path.join(folder_dir, bearing_name)
+                if not os.path.isdir(bearing_dir):
+                    continue
+                file_dict[bearing_name] = bearing_dir
                 entity_dict[bearing_name] = None
         return file_dict, entity_dict
 

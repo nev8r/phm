@@ -251,17 +251,17 @@
   \end{columns}
 \end{frame}
 
-\section{训练复现}
+\section{训练示例}
 
 \begin{frame}[t]{RUL 训练配置与指标}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.40\textwidth}
       \begin{block}{主线模型}
         \begin{itemize}
-          \item CBAM-CNN-LSTM
-          \item CNN 提取局部模式
-          \item CBAM 对通道与时间位置加权
-          \item LSTM 建模 32 个快照的退化依赖
+          \item 序列回归模型
+          \item 输入连续振动特征
+          \item 统一训练器调度训练过程
+          \item 输出归一化 RUL
         \end{itemize}
       \end{block}
       \begin{block}{训练设置}
@@ -306,7 +306,7 @@
       \smallcap{预测曲线：整体跟随 RUL 下降趋势}
     \end{column}
   \end{columns}
-  \takeaway{当前结果能展示主线复现闭环；进一步追论文最优时，需要继续对齐跨轴承划分、随机种子和训练参数。}
+  \takeaway{当前结果能展示主线训练闭环；进一步提升效果时，需要继续对齐跨轴承划分、随机种子和训练参数。}
 \end{frame}
 
 \begin{frame}[t]{Fault 训练配置与指标}
@@ -314,9 +314,9 @@
     \begin{column}{0.43\textwidth}
       \begin{block}{主线模型}
         \begin{itemize}
-          \item ResCNN-LSTM
-          \item 残差卷积提取局部模式
-          \item LSTM 聚合 8 个快照窗口
+          \item 序列分类模型
+          \item 输入窗口化特征序列
+          \item 聚合 8 个快照窗口
           \item 分类头输出 Healthy / Faulty
         \end{itemize}
       \end{block}
@@ -343,7 +343,6 @@
           损失与优化器 & CrossEntropyLoss / AdamW \\
           Test loss & 0.0214 \\
           Weighted-F1 & 0.9963 \\
-          论文主线 Acc / F1 & 0.9639 / 0.9640 \\
           \bottomrule
         \end{tabularx}
       \end{table}
@@ -386,7 +385,7 @@
       \midrule
       蔡祎珏 & 25\% & 数据 & 数据加载、数据实体、PHM2012/XJTU-SY 数据适配、标签构造 \\
       朱德豪 & 25\% & 训练 & Trainer/Evaluator、实验运行、指标记录、训练流程整理 \\
-      周逸进 & 25\% & 模型 & 模型结构、论文主线复现、项目整合、答辩材料组织 \\
+      周逸进 & 25\% & 模型 & 模型结构、主线训练闭环、项目整合、答辩材料组织 \\
       邹扬 & 25\% & 工具与测试 & 工具函数、可视化图表、测试用例、Notebook 示例、实验结果整理和交付检查 \\
       \bottomrule
     \end{tabularx}
@@ -407,7 +406,7 @@
       \end{block}
       \begin{block}{后续方向}
         \begin{itemize}
-          \item RUL：继续加强跨轴承泛化和论文参数对齐
+          \item RUL：继续加强跨轴承泛化、随机种子稳定性和训练参数调优
           \item Fault：从 Healthy/Faulty 扩展到多故障类型诊断
         \end{itemize}
       \end{block}

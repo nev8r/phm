@@ -94,13 +94,6 @@ evaluator(test_set, result)
 ```
 
 
-## 📚 Reproduced Papers
-> This framework has been used to reproduce several published methods in the bearing PHM field.  
-> The original contributions are treated with full respect. If the reproduced results deviate from the originals, it may be due to differences in implementation or experimental setup, or potentially due to oversights during reproduction.
-
-### ✅ Reproduced Papers Overview
-coming soon
-
 ## 📂    File Structure
 - src/USTC/SSE/BearingPrediction – Core framework code.
 - doc – Detailed documentation (recommended for writing custom components).
