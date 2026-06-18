@@ -1,0 +1,5 @@
+name: xjtu_leave_one_bearing_out
+enabled: true
+condition_id: 35Hz12kN
+test_bearing_id: Bearing1_5
+val_bearing_id: Bearing1_4

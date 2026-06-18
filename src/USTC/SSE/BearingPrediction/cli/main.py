@@ -1,8 +1,8 @@
 """
-Stage 0 command line entrypoint.
+Experiment command line entrypoint.
 
-This module provides the Hydra-based CLI used to validate experiment config and
-create the first reproducible run artifacts.
+This module provides the Hydra-based CLI used to validate experiment config,
+create run artifacts, and dispatch early infrastructure stages.
 """
 
 import sys
@@ -62,11 +62,38 @@ def run_validate_cli(cfg: DictConfig) -> None:
         raise ValueError(f"Config validation failed: {failed}")
 
     mode = str(cfg.mode)
-    if mode != "validate":
-        stage = STAGE_FOR_MODE.get(mode, "a later stage")
-        raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
+    if mode == "validate":
+        print(f"Validation succeeded. Run directory: {context.run_dir}")
+        return
 
-    print(f"Validation succeeded. Run directory: {context.run_dir}")
+    if mode == "build_index":
+        run_build_index(cfg, context)
+        return
+
+    stage = STAGE_FOR_MODE.get(mode, "a later stage")
+    raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
+
+
+def run_build_index(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.infra.index.IndexBuilder import IndexBuilder
+    from USTC.SSE.BearingPrediction.infra.index.IndexValidator import IndexValidator
+    from USTC.SSE.BearingPrediction.infra.split.SplitRegistry import build_splitter
+
+    index = IndexBuilder().build(cfg)
+    index_report = IndexValidator().validate(index, strict=True)
+    context.artifacts.mkdir("index")
+    index.to_parquet(context.artifacts.path("index/sample_index.parquet"), index=False)
+    index.to_csv(context.artifacts.path("index/sample_index.csv"), index=False)
+    context.artifacts.write_json("index/index_report.json", index_report)
+
+    if bool(OmegaConf.select(cfg, "split.enabled", default=False)):
+        splitter = build_splitter(cfg.split)
+        split = splitter.split(index)
+        context.artifacts.mkdir("split")
+        context.artifacts.write_json("split/split.json", split.to_dict())
+        context.artifacts.write_json("split/split_report.json", split.report())
+
+    print(f"Index build succeeded. Run directory: {context.run_dir}")
 
 
 def parse_cli_args(argv: Sequence[str]) -> Tuple[str, List[str]]:

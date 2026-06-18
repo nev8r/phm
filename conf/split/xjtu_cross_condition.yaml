@@ -1,0 +1,8 @@
+name: xjtu_cross_condition
+enabled: true
+train_condition_ids:
+  - 35Hz12kN
+val_condition_ids:
+  - 37.5Hz11kN
+test_condition_ids:
+  - 40Hz10kN

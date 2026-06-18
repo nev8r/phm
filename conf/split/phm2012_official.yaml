@@ -1,0 +1,8 @@
+name: phm2012_official
+enabled: true
+mode: source_group
+train_source_group: Learning_set
+test_source_group: Full_Test_Set
+val_bearings:
+  - Bearing1_2
+  - Bearing2_2
