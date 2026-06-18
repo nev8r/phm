@@ -1,0 +1,23 @@
+task: rul
+preset: smoke
+data:
+  dataset: PHM2012
+  mode: sample
+trainer:
+  name: BaseTrainer
+  device: auto
+  seed: 42
+training:
+  epochs: 1
+  sequence_length: 8
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+model:
+  name: CBAM-CNN-LSTM
+  architecture:
+    lstm_hidden: 32
+    lstm_layers: 1
+    cbam_reduction: 8
+    cbam_kernel_size: 7
+    dropout: 0.1

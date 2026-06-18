@@ -90,6 +90,10 @@ class PreparedData:
     train_windows: np.ndarray
     val_windows: np.ndarray
     test_windows: np.ndarray
+    train_entities: list[str]
+    val_entities: list[str]
+    test_entities: list[str]
+    split_strategy: str
     train_dataset: SequenceFeatureDataset
     val_dataset: SequenceFeatureDataset
     test_dataset: SequenceFeatureDataset
@@ -236,6 +240,10 @@ def _make_sample_feature_cache(task: str, seed: int = 42) -> FeatureCache:
     )
 
 
+def _unique_entities(values: np.ndarray) -> list[str]:
+    return list(dict.fromkeys(str(value) for value in values.tolist()))
+
+
 def load_feature_cache_for_task(task: str, *, sample: bool = False, project_root: Path | None = None) -> FeatureCache:
     if sample:
         return _make_sample_feature_cache(task)
@@ -307,13 +315,13 @@ def prepare_sequence_data(
         else:
             train_bearings = list(PHM2012_LEARNING_BEARINGS)
             test_bearings = [bearing for bearing in PAPER_RUL_TEST_BEARINGS if bearing in cache.ranges]
-        train_val_windows, _ = make_sequence_index(
+        train_val_windows, train_val_window_bearings = make_sequence_index(
             cache.ranges,
             sequence_length=sequence_length,
             sequence_step=1,
             bearings=train_bearings,
         )
-        test_windows, _ = make_sequence_index(
+        test_windows, test_window_bearings = make_sequence_index(
             cache.ranges,
             sequence_length=sequence_length,
             sequence_step=1,
@@ -324,8 +332,12 @@ def prepare_sequence_data(
         val_size = max(int(len(order) * 0.15), 1)
         val_windows = train_val_windows[order[:val_size]]
         train_windows = train_val_windows[order[val_size:]]
+        val_entities = _unique_entities(train_val_window_bearings[order[:val_size]])
+        train_entities = _unique_entities(train_val_window_bearings[order[val_size:]])
+        test_entities = _unique_entities(test_window_bearings)
+        split_strategy = "bearing_holdout_with_train_validation_split"
     elif task == "fault":
-        windows, _ = make_sequence_index(
+        windows, window_bearings = make_sequence_index(
             cache.ranges,
             sequence_length=sequence_length,
             sequence_step=1,
@@ -337,6 +349,10 @@ def prepare_sequence_data(
         test_windows = windows[order[:test_size]]
         val_windows = windows[order[test_size:test_size + val_size]]
         train_windows = windows[order[test_size + val_size:]]
+        test_entities = _unique_entities(window_bearings[order[:test_size]])
+        val_entities = _unique_entities(window_bearings[order[test_size:test_size + val_size]])
+        train_entities = _unique_entities(window_bearings[order[test_size + val_size:]])
+        split_strategy = "random_window_split"
     else:
         raise ValueError(f"unsupported task: {task}")
 
@@ -357,6 +373,10 @@ def prepare_sequence_data(
         train_windows=train_windows,
         val_windows=val_windows,
         test_windows=test_windows,
+        train_entities=train_entities,
+        val_entities=val_entities,
+        test_entities=test_entities,
+        split_strategy=split_strategy,
         train_dataset=train_dataset,
         val_dataset=val_dataset,
         test_dataset=test_dataset,
@@ -432,17 +452,22 @@ def _preset_config(task: str, preset: str, sample: bool) -> dict[str, Any]:
     return config
 
 
-def _model_architecture_config(task: str, *, smoke: bool) -> dict[str, Any]:
+def _model_architecture_config(
+    task: str,
+    *,
+    smoke: bool,
+    overrides: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     if task == "rul":
-        return {
+        config = {
             "lstm_hidden": 32 if smoke else 160,
             "lstm_layers": 1 if smoke else 2,
             "cbam_reduction": 8 if smoke else 16,
             "cbam_kernel_size": 7,
             "dropout": 0.10 if smoke else 0.15,
         }
-    if task == "fault":
-        return {
+    elif task == "fault":
+        config = {
             "num_classes": len(XJTU_HEALTH_STATES),
             "hidden_dim": 24 if smoke else 64,
             "conv_channels": 24 if smoke else 64,
@@ -450,16 +475,50 @@ def _model_architecture_config(task: str, *, smoke: bool) -> dict[str, Any]:
             "residual_blocks": 1 if smoke else 2,
             "dropout": 0.10 if smoke else 0.20,
         }
-    raise ValueError(f"unsupported task: {task}")
+    else:
+        raise ValueError(f"unsupported task: {task}")
+    if overrides:
+        config.update(overrides)
+    return config
 
 
-def _build_model(task: str, input_dim: int, *, smoke: bool) -> torch.nn.Module:
-    architecture = _model_architecture_config(task, smoke=smoke)
+def _build_model(
+    task: str,
+    input_dim: int,
+    *,
+    smoke: bool,
+    architecture_config: dict[str, Any] | None = None,
+) -> torch.nn.Module:
+    architecture = architecture_config or _model_architecture_config(task, smoke=smoke)
     if task == "rul":
         return PaperCBAMCNNLSTMRegressor(input_dim=input_dim, **architecture)
     if task == "fault":
         return ResCNNLSTMClassifier(input_dim=input_dim, **architecture)
     raise ValueError(f"unsupported task: {task}")
+
+
+def _apply_training_overrides(config: dict[str, Any], overrides: dict[str, Any] | None) -> dict[str, Any]:
+    result = dict(config)
+    for key, value in (overrides or {}).items():
+        if key in {"epochs", "sequence_length", "batch_size"}:
+            result[key] = int(value)
+        elif key in {"learning_rate", "weight_decay"}:
+            result[key] = float(value)
+    return result
+
+
+def _split_details(prepared: PreparedData) -> dict[str, Any]:
+    return {
+        "strategy": prepared.split_strategy,
+        "sequence_length": int(prepared.sequence_length),
+        "batch_size": int(prepared.batch_size),
+        "train_windows": int(len(prepared.train_dataset)),
+        "val_windows": int(len(prepared.val_dataset)),
+        "test_windows": int(len(prepared.test_dataset)),
+        "train_entities": prepared.train_entities,
+        "val_entities": prepared.val_entities,
+        "test_entities": prepared.test_entities,
+    }
 
 
 def _evaluate_rul_model(
@@ -1061,13 +1120,19 @@ def run_paper_training(
     device_name: str,
     run_dir: Path,
     seed: int = 42,
+    training_overrides: dict[str, Any] | None = None,
+    architecture_overrides: dict[str, Any] | None = None,
+    source_config_path: str = "",
+    dataset_config: dict[str, Any] | None = None,
+    trainer_config: dict[str, Any] | None = None,
+    model_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     set_random_seed(seed)
     run_dir.mkdir(parents=True, exist_ok=True)
     figures_dir = run_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    preset_values = _preset_config(task, preset, sample)
+    preset_values = _apply_training_overrides(_preset_config(task, preset, sample), training_overrides)
     prepared = prepare_sequence_data(
         task,
         sample=sample,
@@ -1077,7 +1142,13 @@ def run_paper_training(
     )
     device = resolve_device(device_name)
     smoke = preset == "smoke" or sample
-    model = _build_model(task, prepared.feature_cache.features.shape[1], smoke=smoke)
+    architecture_config = _model_architecture_config(task, smoke=smoke, overrides=architecture_overrides)
+    model = _build_model(
+        task,
+        prepared.feature_cache.features.shape[1],
+        smoke=smoke,
+        architecture_config=architecture_config,
+    )
     criterion: torch.nn.Module = nn.MSELoss() if task == "rul" else nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -1164,7 +1235,7 @@ def run_paper_training(
         "model": model_name,
         "task": task,
         "parameter_count": count_parameters(model),
-        "architecture_config": _model_architecture_config(task, smoke=sample or preset == "smoke"),
+        "architecture_config": architecture_config,
         "model_state_path": str(checkpoint),
         "model_state_size_bytes": checkpoint.stat().st_size,
         "standardizer_path": str(standardizer_path),
@@ -1172,6 +1243,26 @@ def run_paper_training(
         "input_dim": int(prepared.feature_cache.features.shape[1]),
         "sequence_length": prepared.sequence_length,
     }
+    dataset_info = {
+        "task": task,
+        "dataset": "PHM2012" if task == "rul" else "XJTU-SY",
+        "mode": "sample" if sample else "full",
+    }
+    dataset_info.update(dataset_config or {})
+    trainer_info = {
+        "name": "BaseTrainer",
+        "device": str(device),
+        "seed": seed,
+    }
+    trainer_info.update(trainer_config or {})
+    trainer_info["device"] = str(device)
+    trainer_info["seed"] = seed
+    model_info = {
+        "name": model_name,
+        "architecture": architecture_config,
+    }
+    model_info.update(model_config or {})
+    model_info["architecture"] = architecture_config
     config = {
         "command": "train",
         "task": task,
@@ -1180,7 +1271,13 @@ def run_paper_training(
         "device": str(device),
         "seed": seed,
         "trainer": "BaseTrainer",
+        "trainer_config": trainer_info,
         "model": model_name,
+        "model_config": model_info,
+        "dataset_config": dataset_info,
+        "training_config": dict(preset_values),
+        "source_config_path": source_config_path,
+        "training_overrides": dict(training_overrides or {}),
         **preset_values,
         "feature_source": prepared.feature_cache.metadata,
         "split_sizes": {
@@ -1188,6 +1285,7 @@ def run_paper_training(
             "val": len(prepared.val_dataset),
             "test": len(prepared.test_dataset),
         },
+        "split_details": _split_details(prepared),
     }
     if task == "rul":
         config["test_scope"] = "paper_mainline_bearings" if not sample else "sample_last_bearing"

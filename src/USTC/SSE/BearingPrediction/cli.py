@@ -34,6 +34,8 @@ from .analysis import (
     task_relationship_summary,
     write_json,
 )
+from .training_config import load_training_config
+from .training_config import resolve_training_config
 from .workflow import run_benchmark as run_benchmark_workflow
 from .workflow import build_or_load_feature_cache
 from .workflow import evaluate_saved_training_run
@@ -65,12 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
     cache.add_argument("--run-dir", default=None, help="explicit directory for this cache job")
 
     train = subparsers.add_parser("train", help="train a paper reproduction model")
-    train.add_argument("--task", choices=["rul", "fault"], required=True)
-    train.add_argument("--preset", choices=["paper", "smoke"], default="paper")
+    train.add_argument("--config", default=None, help="YAML training config path")
+    train.add_argument("--task", choices=["rul", "fault"], default=None)
+    train.add_argument("--preset", choices=["paper", "smoke"], default=None)
     train.add_argument("--full", action="store_true", help="use full dataset/cache")
     train.add_argument("--sample", action="store_true", help="run a short smoke training job")
-    train.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
-    train.add_argument("--output-dir", default="outputs/runs", help="directory for run artifacts")
+    train.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default=None)
+    train.add_argument("--output-dir", default=None, help="directory for run artifacts")
     train.add_argument("--run-dir", default=None, help="explicit directory for this training run")
 
     benchmark = subparsers.add_parser("benchmark", help="compare baselines with shared splits and metrics")
@@ -246,13 +249,34 @@ def _run_analyze(args: argparse.Namespace) -> int:
 
 
 def _run_train(args: argparse.Namespace) -> int:
-    run_dir = Path(args.run_dir) if args.run_dir else _new_run_dir(args.output_dir, "train", args.task)
+    data_mode = "sample" if args.sample else "full" if args.full else None
+    raw_config = load_training_config(args.config) if args.config else {}
+    request = resolve_training_config(
+        raw_config,
+        config_path=args.config,
+        cli_overrides={
+            "task": args.task,
+            "preset": args.preset,
+            "data_mode": data_mode,
+            "device": args.device,
+            "output_dir": args.output_dir,
+            "run_dir": args.run_dir,
+        },
+    )
+    run_dir = Path(request["run_dir"]) if request["run_dir"] else _new_run_dir(request["output_dir"], "train", request["task"])
     run_paper_training(
-        task=args.task,
-        preset=args.preset,
-        sample=bool(args.sample or not args.full),
-        device_name=args.device,
+        task=request["task"],
+        preset=request["preset"],
+        sample=bool(request["sample"]),
+        device_name=request["device"],
         run_dir=run_dir,
+        seed=int(request["seed"]),
+        training_overrides=request["training_overrides"],
+        architecture_overrides=request["architecture_overrides"],
+        source_config_path=request["source_config_path"],
+        dataset_config=request["dataset_config"],
+        trainer_config=request["trainer_config"],
+        model_config=request["model_config"],
     )
     print(f"run_dir={run_dir}")
     return 0

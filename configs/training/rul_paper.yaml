@@ -1,0 +1,23 @@
+task: rul
+preset: paper
+data:
+  dataset: PHM2012
+  mode: full
+trainer:
+  name: BaseTrainer
+  device: auto
+  seed: 42
+training:
+  epochs: 200
+  sequence_length: 32
+  batch_size: 128
+  learning_rate: 0.0007
+  weight_decay: 0.0001
+model:
+  name: CBAM-CNN-LSTM
+  architecture:
+    lstm_hidden: 160
+    lstm_layers: 2
+    cbam_reduction: 16
+    cbam_kernel_size: 7
+    dropout: 0.15

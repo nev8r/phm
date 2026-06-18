@@ -69,6 +69,57 @@ class PhmWorkflowTest(unittest.TestCase):
             self.assertTrue((run_dir / "predictions.csv").exists())
             self.assertTrue((run_dir / "figures" / "rul_prediction_curve.png").exists())
 
+    def test_train_accepts_yaml_config_and_records_split_details(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "train_rul_config.yaml"
+            config_path.write_text(
+                "\n".join([
+                    "task: rul",
+                    "preset: smoke",
+                    "data:",
+                    "  dataset: PHM2012",
+                    "  mode: sample",
+                    "trainer:",
+                    "  name: BaseTrainer",
+                    "  device: cpu",
+                    "  seed: 7",
+                    "training:",
+                    "  epochs: 1",
+                    "  batch_size: 16",
+                    "  sequence_length: 8",
+                    "  learning_rate: 0.001",
+                    "model:",
+                    "  name: CBAM-CNN-LSTM",
+                    "  architecture:",
+                    "    lstm_hidden: 40",
+                    "    lstm_layers: 1",
+                    "    cbam_reduction: 8",
+                    "    cbam_kernel_size: 7",
+                    "    dropout: 0.1",
+                ]),
+                encoding="utf-8",
+            )
+
+            code = run_cli([
+                "train",
+                "--config",
+                str(config_path),
+                "--output-dir",
+                tmp,
+            ])
+
+            run_dir = next(path for path in Path(tmp).iterdir() if path.is_dir() and path.name != "__pycache__")
+            config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+            summary = json.loads((run_dir / "model_summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(code, 0)
+            self.assertEqual(config["source_config_path"], str(config_path))
+            self.assertEqual(config["dataset_config"]["dataset"], "PHM2012")
+            self.assertEqual(config["dataset_config"]["mode"], "sample")
+            self.assertEqual(config["trainer_config"]["name"], "BaseTrainer")
+            self.assertEqual(config["split_details"]["strategy"], "bearing_holdout_with_train_validation_split")
+            self.assertIn("train_entities", config["split_details"])
+            self.assertEqual(summary["architecture_config"]["lstm_hidden"], 40)
+
     def test_train_fault_sample_writes_confusion_matrix(self):
         with tempfile.TemporaryDirectory() as tmp:
             code = run_cli([

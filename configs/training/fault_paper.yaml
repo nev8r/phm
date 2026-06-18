@@ -1,0 +1,24 @@
+task: fault
+preset: paper
+data:
+  dataset: XJTU-SY
+  mode: full
+trainer:
+  name: BaseTrainer
+  device: auto
+  seed: 42
+training:
+  epochs: 35
+  sequence_length: 8
+  batch_size: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+model:
+  name: ResCNN-LSTM
+  architecture:
+    num_classes: 2
+    hidden_dim: 64
+    conv_channels: 64
+    lstm_layers: 1
+    residual_blocks: 2
+    dropout: 0.2

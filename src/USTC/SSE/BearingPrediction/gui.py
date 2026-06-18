@@ -31,6 +31,11 @@ from USTC.SSE.BearingPrediction.gui_jobs import (
     read_job_log,
     start_cli_job,
 )
+from USTC.SSE.BearingPrediction.training_config import (
+    list_training_config_files,
+    load_training_config,
+    resolve_training_config,
+)
 
 
 DEFAULT_PHM_ROOT = Path("data/loader_roots/phm2012")
@@ -458,7 +463,8 @@ def validate_training_run(run_dir: Path | str, expected_task: str | None = None)
     standardizer_size = summary.get("standardizer_size_bytes")
     if not isinstance(standardizer_size, (int, float)):
         standardizer_size = standardizer_path.stat().st_size if standardizer_path.exists() else 0
-    training_config = {
+    training_config = dict(config.get("training_config", {})) if isinstance(config.get("training_config"), dict) else {}
+    training_config.update({
         key: config[key]
         for key in [
             "preset",
@@ -472,7 +478,7 @@ def validate_training_run(run_dir: Path | str, expected_task: str | None = None)
             "seed",
         ]
         if key in config
-    }
+    })
     architecture_config = summary.get("architecture_config", {})
     if not isinstance(architecture_config, dict):
         architecture_config = {}
@@ -492,6 +498,11 @@ def validate_training_run(run_dir: Path | str, expected_task: str | None = None)
         "standardizer_size_bytes": standardizer_size,
         "training_config": training_config,
         "architecture_config": architecture_config,
+        "dataset_config": config.get("dataset_config", {}),
+        "trainer_config": config.get("trainer_config", {}),
+        "model_config": config.get("model_config", {}),
+        "split_sizes": config.get("split_sizes", {}),
+        "split_details": config.get("split_details", {}),
         "metrics": metrics.get("test", {}),
         "summary": summary,
     }
@@ -568,7 +579,8 @@ def _show_figures(st, figures: dict[str, Path | str]) -> None:
 
 
 def _render_model_parameter_panel(st, validation: dict[str, Any]) -> None:
-    st.markdown("**模型参数**")
+    st.markdown("**模型架构与参数**")
+    st.caption("模型参数")
     columns = st.columns(5)
     columns[0].metric("参数量", _format_count(validation.get("parameter_count")))
     columns[1].metric("Checkpoint", _format_bytes(validation.get("model_state_size_bytes")))
@@ -602,13 +614,85 @@ def _render_model_parameter_panel(st, validation: dict[str, Any]) -> None:
             right.dataframe(pd.DataFrame(arch_rows), width="stretch", hide_index=True)
 
 
+def _render_split_panel(st, validation: dict[str, Any]) -> None:
+    split_sizes = validation.get("split_sizes", {})
+    split_details = validation.get("split_details", {})
+    split_sizes = split_sizes if isinstance(split_sizes, dict) else {}
+    split_details = split_details if isinstance(split_details, dict) else {}
+    if not split_sizes and not split_details:
+        return
+    st.markdown("**数据划分**")
+    sizes = split_sizes
+    columns = st.columns(4)
+    columns[0].metric("训练集", _format_count(sizes.get("train", split_details.get("train_windows"))))
+    columns[1].metric("验证集", _format_count(sizes.get("val", split_details.get("val_windows"))))
+    columns[2].metric("测试集", _format_count(sizes.get("test", split_details.get("test_windows"))))
+    columns[3].metric("划分策略", str(split_details.get("strategy", "-")))
+    entity_rows = []
+    for key, label in [
+        ("train_entities", "训练集轴承"),
+        ("val_entities", "验证集轴承"),
+        ("test_entities", "测试集轴承"),
+    ]:
+        values = split_details.get(key, [])
+        if values:
+            entity_rows.append({"集合": label, "轴承/对象": ", ".join(str(item) for item in values)})
+    if entity_rows:
+        st.dataframe(pd.DataFrame(entity_rows), width="stretch", hide_index=True)
+
+
+def _render_training_request_preview(st, request: dict[str, Any]) -> None:
+    st.markdown("**配置预览**")
+    dataset = request.get("dataset_config", {})
+    trainer = request.get("trainer_config", {})
+    training = request.get("training_overrides", {})
+    model = request.get("model_config", {})
+    columns = st.columns(4)
+    columns[0].metric("任务", str(request.get("task", "-")).upper())
+    columns[1].metric("数据集", str(dataset.get("dataset", "-")))
+    columns[2].metric("数据规模", str(dataset.get("mode", "-")))
+    columns[3].metric("Trainer", str(trainer.get("name", "-")))
+    left, right = st.columns(2)
+    left.caption("训练配置")
+    train_rows = [
+        {"参数": "preset", "值": request.get("preset", "-")},
+        {"参数": "device", "值": request.get("device", "-")},
+        {"参数": "seed", "值": request.get("seed", "-")},
+    ]
+    train_rows.extend({"参数": key, "值": value} for key, value in training.items())
+    left.dataframe(pd.DataFrame(train_rows), width="stretch", hide_index=True)
+    right.caption("模型架构")
+    architecture = model.get("architecture", {})
+    arch_rows = [{"参数": key, "值": value} for key, value in architecture.items()]
+    if arch_rows:
+        right.dataframe(pd.DataFrame(arch_rows), width="stretch", hide_index=True)
+    else:
+        right.info("使用任务默认模型架构。")
+    split = request.get("split_preview", {})
+    if isinstance(split, dict) and split:
+        st.markdown("**数据划分**")
+        st.dataframe(
+            pd.DataFrame([
+                {"集合": "训练集", "规则": split.get("train", "-")},
+                {"集合": "验证集", "规则": split.get("val", "-")},
+                {"集合": "测试集", "规则": split.get("test", "-")},
+                {"集合": "划分策略", "规则": split.get("strategy", "-")},
+            ]),
+            width="stretch",
+            hide_index=True,
+        )
+    st.caption("训练启动后会生成实际窗口数和轴承清单，并写入 run/config.json。")
+
+
 def _render_run_summary(st, run_dir: Path | str, *, show_model_parameters: bool = True) -> None:
     path = Path(run_dir)
     summary = summarize_run(path)
     st.caption(str(path))
     _show_metrics(st, summary.get("raw_metrics", {}).get("test", {}))
     if show_model_parameters and summary.get("command") == "train":
-        _render_model_parameter_panel(st, validate_training_run(path))
+        validation = validate_training_run(path)
+        _render_model_parameter_panel(st, validation)
+        _render_split_panel(st, validation)
     if summary.get("command") == "benchmark" and summary.get("benchmark_rows"):
         st.dataframe(pd.DataFrame(summary["benchmark_rows"]), width="stretch", hide_index=True)
     _show_figures(st, summary.get("figures", {}))
@@ -829,29 +913,76 @@ def _render_data_tab(st, active: dict[str, Any] | None) -> None:
 
 def _render_training_tab(st, active: dict[str, Any] | None) -> None:
     st.subheader("训练")
-    with st.form("train_form"):
-        task = st.selectbox("任务", ["rul", "fault"], format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断")
-        data_mode = st.radio("数据规模", ["sample", "full"], horizontal=True, format_func=lambda value: "快速样本" if value == "sample" else "全量数据")
-        preset = st.selectbox("训练预设", ["smoke", "paper"], index=0 if data_mode == "sample" else 1)
-        device = st.selectbox("设备", ["auto", "mps", "cuda", "cpu"])
-        submitted = st.form_submit_button("开始训练", disabled=_has_running_job(active), width="stretch")
-    if submitted:
-        run_dir = _new_run_dir("outputs/runs", "train", task)
-        command = _phm_command(
-            "train",
-            "--task",
-            task,
-            "--preset",
-            preset,
-            "--device",
-            device,
-            "--run-dir",
-            run_dir,
-            "--sample" if data_mode == "sample" else "--full",
-        )
-        _start_job(st, command, kind="train", task=task, run_dir=run_dir)
+    config_col, preview_col = st.columns([0.86, 1.34], gap="large")
+    with config_col:
+        source = st.radio("配置来源", ["YAML", "手动"], horizontal=True)
+        selected_config_path: Path | None = None
+        request: dict[str, Any] | None = None
+        config_error = ""
+        if source == "YAML":
+            config_files = list_training_config_files()
+            labels = ["请选择配置"] + [str(path) for path in config_files]
+            selected_label = st.selectbox("训练配置 YAML", labels)
+            custom_path = st.text_input("自定义 YAML 路径", value="")
+            uploaded = st.file_uploader("上传训练配置 YAML", type=["yaml", "yml"])
+            if uploaded is not None:
+                selected_config_path = _save_uploaded_yaml(uploaded)
+                st.caption(f"已保存：{selected_config_path}")
+            elif custom_path:
+                selected_config_path = Path(custom_path).expanduser()
+            elif selected_label != "请选择配置":
+                selected_config_path = Path(selected_label)
+            if selected_config_path is not None:
+                try:
+                    raw_config = load_training_config(selected_config_path)
+                    request = resolve_training_config(raw_config, config_path=selected_config_path)
+                except Exception as exc:
+                    config_error = str(exc)
+            if config_error:
+                st.error(config_error)
+            disabled = _has_running_job(active) or request is None or bool(config_error)
+            if st.button("开始训练", disabled=disabled, width="stretch"):
+                assert request is not None
+                run_dir = _new_run_dir("outputs/runs", "train", request["task"])
+                command = _phm_command("train", "--config", selected_config_path, "--run-dir", run_dir)
+                _start_job(st, command, kind="train", task=request["task"], run_dir=run_dir)
+        else:
+            task = st.selectbox("任务", ["rul", "fault"], format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断")
+            data_mode = st.radio("数据规模", ["sample", "full"], horizontal=True, format_func=lambda value: "快速样本" if value == "sample" else "全量数据")
+            preset = st.selectbox("训练预设", ["smoke", "paper"], index=0 if data_mode == "sample" else 1)
+            device = st.selectbox("设备", ["auto", "mps", "cuda", "cpu"])
+            request = resolve_training_config(
+                {},
+                cli_overrides={
+                    "task": task,
+                    "preset": preset,
+                    "data_mode": data_mode,
+                    "device": device,
+                },
+            )
+            if st.button("开始训练", disabled=_has_running_job(active), width="stretch"):
+                run_dir = _new_run_dir("outputs/runs", "train", task)
+                command = _phm_command(
+                    "train",
+                    "--task",
+                    task,
+                    "--preset",
+                    preset,
+                    "--device",
+                    device,
+                    "--run-dir",
+                    run_dir,
+                    "--sample" if data_mode == "sample" else "--full",
+                )
+                _start_job(st, command, kind="train", task=task, run_dir=run_dir)
+    with preview_col:
+        if request is not None:
+            _render_training_request_preview(st, request)
+        else:
+            st.info("选择或上传训练配置 YAML 后，这里会显示数据集、trainer、模型架构和训练参数。")
     latest = _default_train_run("rul") or _default_train_run("fault")
     if latest:
+        st.divider()
         st.markdown("**最近可用训练结果**")
         _render_run_summary(st, latest)
 
@@ -875,11 +1006,20 @@ def _render_model_tab(st) -> None:
     if validation["task_mismatch"]:
         st.error(f"任务不匹配：期望 {validation['expected_task']}，实际 {validation['task']}")
     _render_model_parameter_panel(st, validation)
+    _render_split_panel(st, validation)
     _render_run_summary(st, selected, show_model_parameters=False)
 
 
 def _save_uploaded_csv(uploaded) -> Path:
     upload_dir = GUI_OUTPUT_ROOT / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    target = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
+    target.write_bytes(uploaded.getbuffer())
+    return target
+
+
+def _save_uploaded_yaml(uploaded) -> Path:
+    upload_dir = GUI_OUTPUT_ROOT / "configs"
     upload_dir.mkdir(parents=True, exist_ok=True)
     target = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
     target.write_bytes(uploaded.getbuffer())
@@ -961,6 +1101,17 @@ def _render_benchmark_tab(st, active: dict[str, Any] | None) -> None:
         st.dataframe(pd.DataFrame(table), width="stretch", hide_index=True)
 
 
+def _render_eval_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("Eval")
+    model_col, inference_col = st.columns([1.0, 1.0], gap="large")
+    with model_col:
+        _render_model_tab(st)
+    with inference_col:
+        _render_inference_tab(st, active)
+    st.divider()
+    _render_benchmark_tab(st, active)
+
+
 def main() -> None:
     import streamlit as st
 
@@ -1005,7 +1156,7 @@ def main() -> None:
         <div class="phm-header">
           <div>
             <h1>轴承 PHM 实验工作台</h1>
-            <p>数据加载、特征缓存、模型训练、模型加载、推理评测和 Benchmark。</p>
+            <p>数据加载、特征缓存、模型训练、推理评测和 Benchmark。</p>
           </div>
           <div class="phm-status-chip">后台任务：{status} / {kind}</div>
         </div>
@@ -1015,19 +1166,13 @@ def main() -> None:
     with st.sidebar:
         _render_sidebar_summary(st, active)
 
-    data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
-        ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
-    )
+    data_tab, train_tab, eval_tab = st.tabs(["数据", "训练", "Eval"])
     with data_tab:
         _render_data_tab(st, active)
     with train_tab:
         _render_training_tab(st, active)
-    with model_tab:
-        _render_model_tab(st)
-    with inference_tab:
-        _render_inference_tab(st, active)
-    with benchmark_tab:
-        _render_benchmark_tab(st, active)
+    with eval_tab:
+        _render_eval_tab(st, active)
     _render_runtime_drawer(st, active)
 
 

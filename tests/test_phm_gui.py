@@ -103,6 +103,16 @@ class PhmGuiSupportTest(unittest.TestCase):
         self.assertIn("参数量", source)
         self.assertIn("Learning Rate", source)
 
+    def test_gui_training_workspace_uses_three_top_level_tabs_and_yaml_configs(self):
+        source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
+
+        self.assertIn('st.tabs(["数据", "训练", "Eval"])', source)
+        self.assertNotIn('"模型", "推理/评测", "Benchmark/运行记录"', source)
+        self.assertIn("训练配置 YAML", source)
+        self.assertIn("模型架构", source)
+        self.assertIn("数据划分", source)
+        self.assertIn("def _render_eval_tab", source)
+
     def test_feature_gallery_discovers_latest_analysis_figures(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

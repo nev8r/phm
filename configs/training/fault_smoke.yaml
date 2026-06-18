@@ -1,0 +1,24 @@
+task: fault
+preset: smoke
+data:
+  dataset: XJTU-SY
+  mode: sample
+trainer:
+  name: BaseTrainer
+  device: auto
+  seed: 42
+training:
+  epochs: 1
+  sequence_length: 8
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+model:
+  name: ResCNN-LSTM
+  architecture:
+    num_classes: 2
+    hidden_dim: 24
+    conv_channels: 24
+    lstm_layers: 1
+    residual_blocks: 1
+    dropout: 0.1
