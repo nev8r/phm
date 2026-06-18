@@ -126,6 +126,24 @@ class PhmAnalysisCliTest(unittest.TestCase):
             self.assertIn("dataset_cards", metrics)
             self.assertIn("task_relationship", metrics)
 
+    def test_cli_analyze_accepts_explicit_run_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "explicit_analyze_all"
+            code = run_cli([
+                "analyze",
+                "--task",
+                "all",
+                "--feature-set",
+                "domain",
+                "--sample",
+                "--run-dir",
+                str(run_dir),
+            ])
+
+            self.assertEqual(code, 0)
+            self.assertTrue((run_dir / "config.json").exists())
+            self.assertTrue((run_dir / "figures" / "rul_feature_heatmap.png").exists())
+
     def test_cli_parser_exposes_required_subcommands(self):
         parser = build_parser()
         help_text = parser.format_help()

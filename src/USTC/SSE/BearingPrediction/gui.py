@@ -41,6 +41,18 @@ DEFAULT_TRAIN_RUNS = {
     "fault": Path("outputs/runs/20260618_153012_train_fault"),
 }
 GUI_OUTPUT_ROOT = Path("outputs/gui")
+FEATURE_GALLERY_SPECS = [
+    ("rul_feature_heatmap.png", "PHM2012 RUL 特征相关性热力图", "PHM2012"),
+    ("rul_feature_rank.png", "PHM2012 RUL 特征排序", "PHM2012"),
+    ("fault_feature_heatmap.png", "XJTU-SY Fault 特征相关性热力图", "XJTU-SY"),
+    ("fault_feature_rank.png", "XJTU-SY Fault 特征排序", "XJTU-SY"),
+]
+FALLBACK_FEATURE_GALLERY_SPECS = [
+    ("feature_analysis.png", "PHM2012 RUL 特征分析", "PHM2012"),
+    ("xjtu_feature_analysis.png", "XJTU-SY Fault 特征分析", "XJTU-SY"),
+    ("phm2012_dataset_overview.png", "PHM2012 数据概览", "PHM2012"),
+    ("xjtu_dataset_overview.png", "XJTU-SY 数据概览", "XJTU-SY"),
+]
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -301,6 +313,36 @@ def list_run_directories(
     return sorted(runs, key=lambda item: item["mtime"], reverse=True)
 
 
+def collect_feature_gallery(
+    output_root: Path | str = Path("outputs/runs"),
+    *,
+    fallback_root: Path | str = Path("outputs/latex/figures/project"),
+) -> dict[str, Any]:
+    """Collect feature-analysis figures for the GUI data workspace."""
+    figures: list[dict[str, str]] = []
+    source_run = ""
+    for run in list_run_directories(output_root, command="analyze"):
+        run_dir = Path(run["path"])
+        figure_dir = run_dir / "figures"
+        current = []
+        for filename, title, dataset in FEATURE_GALLERY_SPECS:
+            path = figure_dir / filename
+            if path.exists():
+                current.append({"title": title, "dataset": dataset, "path": str(path)})
+        if current:
+            figures = current
+            source_run = str(run_dir)
+            break
+    if not figures:
+        fallback = Path(fallback_root)
+        for filename, title, dataset in FALLBACK_FEATURE_GALLERY_SPECS:
+            path = fallback / filename
+            if path.exists():
+                figures.append({"title": title, "dataset": dataset, "path": str(path)})
+        source_run = str(fallback) if figures else ""
+    return {"source_run": source_run, "figures": figures}
+
+
 def summarize_run(run_dir: Path | str) -> dict[str, Any]:
     path = Path(run_dir)
     config = _load_json(path / "config.json")
@@ -539,6 +581,15 @@ def _render_main_status_area(st, active: dict[str, Any] | None) -> None:
     _render_last_output(st, st.session_state.get("last_job_dir"))
 
 
+def _render_runtime_drawer(st, active: dict[str, Any] | None) -> None:
+    with st.expander("运行状态、日志与最近输出", expanded=_has_running_job(active)):
+        job_col, output_col = st.columns([1.0, 1.4], gap="large")
+        with job_col:
+            _render_job_panel(st, active)
+        with output_col:
+            _render_last_output(st, st.session_state.get("last_job_dir"))
+
+
 def _dataframe_status(st, status: dict[str, dict[str, Any]]) -> None:
     rows = []
     for name, item in status.items():
@@ -586,34 +637,88 @@ def _select_training_run(st, task: str | None = None, *, key_prefix: str = "trai
     return Path(selected["path"])
 
 
+def _render_feature_gallery(st, active: dict[str, Any] | None) -> None:
+    st.markdown("### 特征图谱")
+    with st.form("feature_analysis_form"):
+        task_col, feature_col, scale_col, button_col = st.columns([0.9, 1.0, 1.1, 1.1], gap="medium")
+        with task_col:
+            task = st.selectbox(
+                "分析任务",
+                ["all", "rul", "fault"],
+                format_func=lambda value: "全部" if value == "all" else value.upper(),
+            )
+        with feature_col:
+            feature_set = st.selectbox("特征审计", ["domain", "tsfresh", "advanced"], index=0)
+        with scale_col:
+            data_mode = st.radio(
+                "分析规模",
+                ["sample", "full"],
+                horizontal=True,
+                format_func=lambda value: "快速样本" if value == "sample" else "全量缓存",
+            )
+        with button_col:
+            st.write("")
+            submitted = st.form_submit_button(
+                "生成/刷新特征图谱",
+                disabled=_has_running_job(active),
+                width="stretch",
+            )
+    if submitted:
+        run_dir = _new_run_dir("outputs/runs", "analyze", task)
+        command = _phm_command(
+            "analyze",
+            "--task",
+            task,
+            "--feature-set",
+            feature_set,
+            "--run-dir",
+            run_dir,
+            "--sample" if data_mode == "sample" else "--full",
+        )
+        _start_job(st, command, kind="analyze", task=task, run_dir=run_dir)
+    gallery = collect_feature_gallery()
+    if not gallery["figures"]:
+        st.info("暂无可展示的特征图。先运行一次特征分析，系统会生成相关性热力图和特征排序图。")
+        return
+    st.caption(f"来源：{gallery['source_run']}")
+    figures = {item["title"]: Path(item["path"]) for item in gallery["figures"]}
+    _show_figures(st, figures)
+
+
 def _render_data_tab(st, active: dict[str, Any] | None) -> None:
-    st.subheader("数据加载")
-    phm_root = Path(st.text_input("PHM2012 根目录", value=str(st.session_state.get("phm_root", DEFAULT_PHM_ROOT))))
-    xjtu_root = Path(st.text_input("XJTU-SY 根目录", value=str(st.session_state.get("xjtu_root", DEFAULT_XJTU_ROOT))))
+    st.subheader("数据加载与特征缓存")
+    input_col, status_col = st.columns([0.82, 1.38], gap="large")
+    with input_col:
+        phm_root = Path(st.text_input("PHM2012 根目录", value=str(st.session_state.get("phm_root", DEFAULT_PHM_ROOT))))
+        xjtu_root = Path(st.text_input("XJTU-SY 根目录", value=str(st.session_state.get("xjtu_root", DEFAULT_XJTU_ROOT))))
+        force = st.checkbox("强制刷新缓存", value=False)
     st.session_state["phm_root"] = str(phm_root)
     st.session_state["xjtu_root"] = str(xjtu_root)
     status = inspect_dataset_roots(phm_root, xjtu_root)
-    _dataframe_status(st, status)
-    force = st.checkbox("强制刷新缓存", value=False)
     disabled = _has_running_job(active)
-    columns = st.columns(3)
-    cache_specs = [("rul", "构建 RUL 特征缓存"), ("fault", "构建 Fault 特征缓存"), ("all", "构建全部特征缓存")]
-    for column, (task, label) in zip(columns, cache_specs):
-        if column.button(label, disabled=disabled, width="stretch"):
-            run_dir = _new_run_dir(GUI_OUTPUT_ROOT / "cache", "cache", task)
-            command = _phm_command(
-                "cache",
-                "--task",
-                task,
-                "--phm-root",
-                phm_root,
-                "--xjtu-root",
-                xjtu_root,
-                "--run-dir",
-                run_dir,
-                *(["--force"] if force else []),
-            )
-            _start_job(st, command, kind="cache", task=task, run_dir=run_dir)
+    with input_col:
+        columns = st.columns(3)
+        cache_specs = [("rul", "RUL 缓存"), ("fault", "Fault 缓存"), ("all", "全部缓存")]
+        for column, (task, label) in zip(columns, cache_specs):
+            if column.button(label, disabled=disabled, width="stretch"):
+                run_dir = _new_run_dir(GUI_OUTPUT_ROOT / "cache", "cache", task)
+                command = _phm_command(
+                    "cache",
+                    "--task",
+                    task,
+                    "--phm-root",
+                    phm_root,
+                    "--xjtu-root",
+                    xjtu_root,
+                    "--run-dir",
+                    run_dir,
+                    *(["--force"] if force else []),
+                )
+                _start_job(st, command, kind="cache", task=task, run_dir=run_dir)
+    with status_col:
+        _dataframe_status(st, status)
+    st.divider()
+    _render_feature_gallery(st, active)
 
 
 def _render_training_tab(st, active: dict[str, Any] | None) -> None:
@@ -760,38 +865,50 @@ def main() -> None:
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 1rem; padding-bottom: 1.2rem; }
+        .block-container { max-width: none; padding: 0.7rem 1.25rem 1rem; }
         section[data-testid="stSidebar"] { min-width: 250px; }
         div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d8dee9; padding: 0.65rem; border-radius: 6px; }
         .stTabs [data-baseweb="tab-list"] { gap: 0.75rem; }
+        .phm-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 0.6rem; }
+        .phm-header h1 { font-size: 2.05rem; line-height: 1.1; margin: 0; letter-spacing: 0; }
+        .phm-header p { margin: 0.25rem 0 0; color: #667085; }
+        .phm-status-chip { color: #344054; border: 1px solid #d0d5dd; border-radius: 6px; padding: 0.35rem 0.55rem; white-space: nowrap; }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.title("轴承 PHM 实验工作台")
-    st.caption("数据加载、模型训练、模型加载、推理评测、Benchmark 和运行记录。")
-
     active = _active_job(st)
+    status = str(active.get("status", "idle")) if active else "idle"
+    kind = str(active.get("kind", "-")) if active else "-"
+    st.markdown(
+        f"""
+        <div class="phm-header">
+          <div>
+            <h1>轴承 PHM 实验工作台</h1>
+            <p>数据加载、特征缓存、模型训练、模型加载、推理评测和 Benchmark。</p>
+          </div>
+          <div class="phm-status-chip">后台任务：{status} / {kind}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     with st.sidebar:
         _render_sidebar_summary(st, active)
 
-    status_area, workspace_area = st.columns([0.8, 1.8], gap="large")
-    with status_area:
-        _render_main_status_area(st, active)
-    with workspace_area:
-        data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
-            ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
-        )
-        with data_tab:
-            _render_data_tab(st, active)
-        with train_tab:
-            _render_training_tab(st, active)
-        with model_tab:
-            _render_model_tab(st)
-        with inference_tab:
-            _render_inference_tab(st, active)
-        with benchmark_tab:
-            _render_benchmark_tab(st, active)
+    data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
+        ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
+    )
+    with data_tab:
+        _render_data_tab(st, active)
+    with train_tab:
+        _render_training_tab(st, active)
+    with model_tab:
+        _render_model_tab(st)
+    with inference_tab:
+        _render_inference_tab(st, active)
+    with benchmark_tab:
+        _render_benchmark_tab(st, active)
+    _render_runtime_drawer(st, active)
 
 
 if __name__ == "__main__":

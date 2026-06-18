@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--full", action="store_true", help="use full cached/data-backed analysis when available")
     analyze.add_argument("--sample", action="store_true", help="run a small deterministic smoke analysis")
     analyze.add_argument("--output-dir", default="outputs/runs", help="directory for run artifacts")
+    analyze.add_argument("--run-dir", default=None, help="explicit directory for this analysis run")
 
     cache = subparsers.add_parser("cache", help="build or inspect paper feature caches")
     cache.add_argument("--task", choices=["rul", "fault", "all"], default="all")
@@ -178,8 +179,10 @@ def _load_full_feature_table(
 
 
 def _run_analyze(args: argparse.Namespace) -> int:
-    run_dir = _new_run_dir(args.output_dir, "analyze", args.task)
+    run_dir = Path(args.run_dir) if args.run_dir else _new_run_dir(args.output_dir, "analyze", args.task)
+    run_dir.mkdir(parents=True, exist_ok=True)
     figures_dir = run_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
     metrics: dict[str, Any] = {
         "command": "analyze",
         "task": args.task,

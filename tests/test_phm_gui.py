@@ -27,6 +27,7 @@ import pandas as pd
 
 from USTC.SSE.BearingPrediction.cli import build_parser, run_cli
 from USTC.SSE.BearingPrediction.gui import (
+    collect_feature_gallery,
     inspect_dataset_roots,
     inspect_uploaded_dataset,
     list_run_directories,
@@ -74,14 +75,44 @@ class PhmGuiSupportTest(unittest.TestCase):
         source = Path("src/USTC/SSE/BearingPrediction/gui.py").read_text(encoding="utf-8")
 
         self.assertIn('initial_sidebar_state="collapsed"', source)
-        self.assertIn("status_area, workspace_area = st.columns([0.8, 1.8]", source)
+        self.assertNotIn("status_area, workspace_area", source)
+        self.assertIn("def _render_runtime_drawer", source)
+        self.assertIn("_render_feature_gallery", source)
+        self.assertIn('max-width: none;', source)
         self.assertIn("def _render_sidebar_summary", source)
-        self.assertIn("def _render_main_status_area", source)
         sidebar_block = source.split("with st.sidebar:", maxsplit=1)[1].split(
-            "status_area, workspace_area", maxsplit=1
+            "data_tab, train_tab", maxsplit=1
         )[0]
         self.assertNotIn("_render_job_panel", sidebar_block)
         self.assertNotIn("_render_run_summary", sidebar_block)
+
+    def test_feature_gallery_discovers_latest_analysis_figures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old_run = root / "20260618_120000_analyze_all"
+            new_run = root / "20260618_130000_analyze_all"
+            for run_dir in (old_run, new_run):
+                figures = run_dir / "figures"
+                figures.mkdir(parents=True)
+                (run_dir / "config.json").write_text(
+                    json.dumps({"command": "analyze", "task": "all", "sample": False}),
+                    encoding="utf-8",
+                )
+            for filename in (
+                "rul_feature_heatmap.png",
+                "rul_feature_rank.png",
+                "fault_feature_heatmap.png",
+                "fault_feature_rank.png",
+            ):
+                (new_run / "figures" / filename).write_bytes(b"png")
+
+            gallery = collect_feature_gallery(output_root=root, fallback_root=root / "missing")
+
+            self.assertEqual(gallery["source_run"], str(new_run))
+            self.assertEqual(len(gallery["figures"]), 4)
+            titles = {item["title"] for item in gallery["figures"]}
+            self.assertIn("PHM2012 RUL 特征相关性热力图", titles)
+            self.assertIn("XJTU-SY Fault 特征排序", titles)
 
     def test_dataset_root_inspection_reports_local_roots_and_cache_status(self):
         with tempfile.TemporaryDirectory() as tmp:
