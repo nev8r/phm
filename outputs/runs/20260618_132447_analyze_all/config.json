@@ -1,0 +1,8 @@
+{
+  "command": "analyze",
+  "task": "all",
+  "feature_set": "domain",
+  "full": true,
+  "sample": false,
+  "output_dir": "outputs/runs"
+}
