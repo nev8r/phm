@@ -1,0 +1,428 @@
+%!TEX program = xelatex
+\documentclass[aspectratio=169,11pt]{ctexbeamer}
+
+\usepackage[bluetheme]{ustcbeamer}
+\input{ustctheme.tex}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{fontspec}
+
+\graphicspath{{figures/project/}{figures/}}
+
+\IfFontExistsTF{Arial}{\setmainfont{Arial}}{}
+\IfFontExistsTF{PingFang SC}{\setCJKmainfont{PingFang SC}}{}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  \vskip0.45ex
+  \begin{beamercolorbox}[wd=.62\paperwidth,ht=2.2ex,dp=0.7ex,leftskip=0.75em]{frametitle}
+    \usebeamerfont{frametitle}\insertframetitle
+  \end{beamercolorbox}
+}
+\setbeamerfont{normal text}{size=\normalsize}
+\setlength{\parskip}{0.25em}
+
+\definecolor{phmblue}{RGB}{0,64,152}
+\definecolor{phmlight}{RGB}{239,246,255}
+\definecolor{phmline}{RGB}{180,202,232}
+\definecolor{phmgreen}{RGB}{29,128,99}
+\definecolor{phmorange}{RGB}{214,116,32}
+\definecolor{phmgray}{RGB}{75,85,99}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+\newcommand{\takeaway}[1]{%
+  \vspace{0.2em}
+  \begin{beamercolorbox}[wd=\linewidth,rounded=true,sep=0.65em]{block body}
+    \color{phmblue}\bfseries #1
+  \end{beamercolorbox}
+}
+
+\newcommand{\metricbox}[3]{%
+  \begin{beamercolorbox}[wd=#1,rounded=true,sep=0.55em,center]{block body}
+    {\Large\bfseries\color{phmblue}#2}\par
+    {\scriptsize\color{phmgray}#3}
+  \end{beamercolorbox}
+}
+
+\newcommand{\smallcap}[1]{%
+  {\scriptsize\color{phmgray}#1}
+}
+
+\title[轴承 PHM 结题答辩]{轴承寿命预测与故障诊断系统}
+\subtitle{结题答辩}
+\author[周逸进]{汇报人：周逸进 \quad 小组成员：周逸进、朱德豪、蔡祎珏、邹扬}
+\institute[USTC]{中国科学技术大学 \quad 软件学院}
+\date{2026 年 6 月 18 日}
+
+\begin{document}
+
+\maketitleframe
+
+\section{背景与系统}
+
+\begin{frame}[t]{背景与意义}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.31\textwidth}
+      \begin{block}{设备问题}
+        \begin{itemize}
+          \item 轴承退化会引起振动、噪声和精度问题
+          \item 严重时导致停机和设备损坏
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \begin{block}{RUL 预测}
+        \begin{itemize}
+          \item 回答“还能运行多久”
+          \item 支持检修排期和备件准备
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.31\textwidth}
+      \begin{block}{Fault 检测}
+        \begin{itemize}
+          \item 回答“现在是否异常”
+          \item 用作早期报警和重点监控入口
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{1.3em}
+  \centering
+  \begin{tikzpicture}[x=1cm,y=1cm]
+    \node[draw=phmline, fill=phmlight, rounded corners, minimum width=3.2cm, minimum height=0.8cm] (a) at (0,0) {事后维修};
+    \node[draw=phmline, fill=phmlight, rounded corners, minimum width=3.2cm, minimum height=0.8cm] (b) at (4.3,0) {定期维护};
+    \node[draw=phmblue, fill=phmblue!8, rounded corners, very thick, minimum width=3.6cm, minimum height=0.8cm] (c) at (8.8,0) {\bfseries 预测性维护};
+    \draw[->, very thick, phmblue] (a) -- (b);
+    \draw[->, very thick, phmblue] (b) -- (c);
+  \end{tikzpicture}
+
+  \takeaway{本系统用轴承振动数据支撑两类决策：剩余寿命预测和故障状态判断。}
+\end{frame}
+
+\begin{frame}[t]{系统架构}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.36\textwidth}
+      \begin{block}{四层架构}
+        \begin{enumerate}
+          \item 数据接入层：读取 PHM2012 与 XJTU-SY 原始振动信号
+          \item 信号处理与特征层：窗口切分、频域变换、统计特征、标签构造
+          \item 任务模型层：RUL 回归分支与 Fault 分类分支
+          \item 训练评估层：训练、指标计算、曲线和结果输出
+        \end{enumerate}
+      \end{block}
+      \takeaway{两个实验不是零散脚本，而是同一套 PHM 数据流的两条任务分支。}
+    \end{column}
+    \begin{column}{0.61\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{uml_architecture.png}
+      \smallcap{图：轴承 PHM 系统 UML 架构}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{数据与特征}
+
+\begin{frame}[t]{PHM2012 数据集}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{table}
+        \footnotesize
+        \begin{tabularx}{\linewidth}{lccc}
+          \toprule
+          工况 & 转速 & 载荷 & 轴承数 \\
+          \midrule
+          Condition 1 & 1800 rpm & 4000 N & 7 \\
+          Condition 2 & 1650 rpm & 4200 N & 7 \\
+          Condition 3 & 1500 rpm & 5000 N & 3 \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+      \begin{block}{采样情况}
+        \begin{itemize}
+          \item 采样频率：25.6 kHz
+          \item 采集间隔：每 10 秒一次
+          \item 单次采集：0.1 秒，2560 点
+          \item 信号方向：水平与垂直振动
+        \end{itemize}
+      \end{block}
+      \smallskip
+      {\color{phmblue}\bfseries PHM2012 记录从健康到失效的过程，对应 RUL 回归任务。}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.70\textheight,keepaspectratio]{phm2012_dataset_overview.png}
+      \smallcap{图：PHM2012 数据集概况}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{PHM2012 特征工程}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.42\textwidth}
+      \begin{block}{单快照特征}
+        \begin{itemize}
+          \item Hann window 降低频谱泄漏
+          \item rFFT 后去掉 DC 分量
+          \item 取前 256 个 \texttt{log1p} 频域 bin
+          \item 叠加 20 维手工退化特征
+        \end{itemize}
+      \end{block}
+      \vspace{0.4em}
+      \metricbox{0.47\linewidth}{276 维}{单快照输入}
+      \hfill
+      \metricbox{0.47\linewidth}{32 步}{连续快照序列}
+      \smallskip
+      {\color{phmblue}\bfseries 序列输入由 32 个连续快照组成。}
+    \end{column}
+    \begin{column}{0.55\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{feature_analysis.png}
+      \smallcap{图：PHM2012 RUL 特征分析}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{XJTU-SY 数据集}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{table}
+        \footnotesize
+        \begin{tabularx}{\linewidth}{lccc}
+          \toprule
+          工况 & 转速 & 载荷 & 轴承数 \\
+          \midrule
+          Condition 1 & 2100 rpm / 35 Hz & 12 kN & 5 \\
+          Condition 2 & 2250 rpm / 37.5 Hz & 11 kN & 5 \\
+          Condition 3 & 2400 rpm / 40 Hz & 10 kN & 5 \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+      \begin{block}{采样情况}
+        \begin{itemize}
+          \item 15 个轴承，3 个工况，每工况 5 个
+          \item 采样频率：25.6 kHz
+          \item 采集间隔：每 1 分钟一次
+          \item 单次采集：1.28 秒，32768 点
+        \end{itemize}
+      \end{block}
+      \smallskip
+      {\color{phmblue}\bfseries 本系统主线将 XJTU-SY 组织为 Healthy/Faulty 二分类。}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.70\textheight,keepaspectratio]{xjtu_dataset_overview.png}
+      \smallcap{图：XJTU-SY 数据集概况}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{XJTU-SY 标签与特征}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \begin{block}{标签构造}
+        \begin{itemize}
+          \item 取每个轴承前 30\% 样本作为健康基线
+          \item 计算 RMS 均值和标准差
+          \item 后续样本连续超过 3$\sigma$ 阈值时，定义首次故障点 FOT
+          \item FOT 前为 Healthy，FOT 后为 Faulty
+        \end{itemize}
+      \end{block}
+      \begin{block}{输入形状}
+        双通道合计 552 维，8 个快照组成序列：\texttt{[B, 8, 552]}。
+      \end{block}
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{xjtu_feature_analysis.png}
+      \smallcap{图：XJTU-SY 特征组成}
+      \smallskip
+      {\color{phmblue}\bfseries RMS、频带能量和频谱分布用于刻画健康与故障边界。}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{训练复现}
+
+\begin{frame}[t]{RUL 训练配置与指标}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.40\textwidth}
+      \begin{block}{主线模型}
+        \begin{itemize}
+          \item CBAM-CNN-LSTM
+          \item CNN 提取局部模式
+          \item CBAM 对通道与时间位置加权
+          \item LSTM 建模 32 个快照的退化依赖
+        \end{itemize}
+      \end{block}
+      \begin{block}{训练设置}
+        200 个最大 epoch，best epoch = 124，设备使用 Mac MPS。
+      \end{block}
+    \end{column}
+    \begin{column}{0.57\textwidth}
+      \metricbox{0.31\linewidth}{6246}{训练窗口}
+      \hfill
+      \metricbox{0.31\linewidth}{1102}{验证窗口}
+      \hfill
+      \metricbox{0.31\linewidth}{17014}{测试窗口}
+      \vspace{0.6em}
+      \begin{table}
+        \footnotesize
+        \begin{tabularx}{\linewidth}{lY}
+          \toprule
+          指标 & 数值 \\
+          \midrule
+          输入形状 & [B, 32, 276] \\
+          Validation MSE / RMSE / MAE & 0.002183 / 0.0467 / 0.0216 \\
+          Test MSE / RMSE / MAE & 0.040336 / 0.2008 / 0.1550 \\
+          输出文件 & JSON + CSV + 图表 \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+      \takeaway{RUL 训练已经跑完全量数据，核心展示指标是 MSE、RMSE、MAE 和预测曲线。}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{RUL 训练输出}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{training_validation.png}
+      \smallcap{训练曲线：前期快速下降，best epoch = 124}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{phm2012_rul_prediction_curves.png}
+      \smallcap{预测曲线：整体跟随 RUL 下降趋势}
+    \end{column}
+  \end{columns}
+  \takeaway{当前结果能展示主线复现闭环；进一步追论文最优时，需要继续对齐跨轴承划分、随机种子和训练参数。}
+\end{frame}
+
+\begin{frame}[t]{Fault 训练配置与指标}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \begin{block}{主线模型}
+        \begin{itemize}
+          \item ResCNN-LSTM
+          \item 残差卷积提取局部模式
+          \item LSTM 聚合 8 个快照窗口
+          \item 分类头输出 Healthy / Faulty
+        \end{itemize}
+      \end{block}
+      \metricbox{0.31\linewidth}{35}{epoch}
+      \hfill
+      \metricbox{0.31\linewidth}{100}{batch}
+      \hfill
+      \metricbox{0.31\linewidth}{0.001}{LR}
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \metricbox{0.31\linewidth}{0.9963}{Accuracy}
+      \hfill
+      \metricbox{0.31\linewidth}{0.9949}{Macro-F1}
+      \hfill
+      \metricbox{0.31\linewidth}{0.9922}{Fault-F1}
+      \vspace{0.6em}
+      \begin{table}
+        \footnotesize
+        \begin{tabularx}{\linewidth}{lY}
+          \toprule
+          指标 & 数值 \\
+          \midrule
+          输入形状 & [B, 8, 552] \\
+          损失与优化器 & CrossEntropyLoss / AdamW \\
+          Test loss & 0.0214 \\
+          Weighted-F1 & 0.9963 \\
+          论文主线 Acc / F1 & 0.9639 / 0.9640 \\
+          \bottomrule
+        \end{tabularx}
+      \end{table}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Fault 混淆矩阵}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.52\textwidth}
+      \centering
+      \includegraphics[width=\linewidth,height=0.70\textheight,keepaspectratio]{xjtu_confusion_matrix.png}
+      \smallcap{混淆矩阵：[[1043, 3], [2, 318]]}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{block}{读图方式}
+        \begin{itemize}
+          \item Healthy 正确：1043
+          \item Healthy 误判为 Faulty：3
+          \item Faulty 正确：318
+          \item Faulty 误判为 Healthy：2
+        \end{itemize}
+      \end{block}
+      \begin{block}{答辩边界}
+        结果高不等于多故障类型诊断完成；当前任务是二分类，标签和输入特征都与 RMS、能量变化强相关。
+      \end{block}
+    \end{column}
+  \end{columns}
+  \takeaway{这张图说明故障检测闭环有效，但不能夸大为多类型故障识别。}
+\end{frame}
+
+\section{交付与总结}
+
+\begin{frame}[t]{成员分工}
+  \begin{table}
+    \small
+    \begin{tabularx}{\linewidth}{lclY}
+      \toprule
+      成员 & 贡献比例 & 模块责任 & 主要负责内容 \\
+      \midrule
+      蔡祎珏 & 25\% & 数据 & 数据加载、数据实体、PHM2012/XJTU-SY 数据适配、标签构造 \\
+      朱德豪 & 25\% & 训练 & Trainer/Evaluator、实验运行、指标记录、训练流程整理 \\
+      周逸进 & 25\% & 模型 & 模型结构、论文主线复现、项目整合、答辩材料组织 \\
+      邹扬 & 25\% & 工具与测试 & 工具函数、可视化图表、测试用例、Notebook 示例、实验结果整理和交付检查 \\
+      \bottomrule
+    \end{tabularx}
+  \end{table}
+  \vspace{0.6em}
+  \takeaway{项目按数据、训练、模型、工具测试四条线分工，代码头、文档和实验记录均可对应到责任模块。}
+\end{frame}
+
+\begin{frame}[t]{总结与展望}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.56\textwidth}
+      \begin{block}{已完成}
+        \begin{itemize}
+          \item PHM2012 RUL 预测：完整训练、指标、预测曲线
+          \item XJTU-SY Fault 检测：二分类训练、F1、混淆矩阵
+          \item 工程闭环：数据加载、特征工程、模型训练、评估输出、文档交付
+        \end{itemize}
+      \end{block}
+      \begin{block}{后续方向}
+        \begin{itemize}
+          \item RUL：继续加强跨轴承泛化和论文参数对齐
+          \item Fault：从 Healthy/Faulty 扩展到多故障类型诊断
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.40\textwidth}
+      \centering
+      \includegraphics[width=0.42\linewidth]{ustc_logo.pdf}
+      \vspace{1em}
+
+      {\Huge\bfseries\color{phmblue}谢谢老师！}
+
+      \vspace{0.6em}
+      {\large 轴承寿命预测与故障诊断系统}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}

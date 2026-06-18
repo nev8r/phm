@@ -1,0 +1,39 @@
+[project]
+name = "phm"
+version = "0.1.0"
+description = "A framework for bearing prognostics and health management tasks."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+authors = [
+    { name = "AndrewStudio", email = "andrewstudio@foxmail.com" },
+]
+dependencies = [
+    "colorama>=0.4.6,<0.5.0",
+    "matplotlib>=3.7.5,<3.8.0",
+    "numpy>=1.24.1,<1.25.0",
+    "pandas>=2.0.3,<2.1.0",
+    "scikit-learn>=1.4.0,<2.0.0",
+    "scipy>=1.10.1,<1.11.0",
+    "seaborn>=0.13.2,<0.14.0",
+    "tensorboard>=2.20.0,<3.0.0",
+    "torch>=2.10.0,<2.11.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0,<8.0.0",
+    "jupyter>=1.1.1,<2.0.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/USTC"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/USTC/SSE/BearingPrediction" = "phm"
+
+[tool.uv]
+package = true

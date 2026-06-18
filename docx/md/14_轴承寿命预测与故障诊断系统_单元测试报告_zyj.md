@@ -1,0 +1,33 @@
+# 轴承寿命预测与故障诊断系统：单元测试报告
+
+| 字段 | 内容 |
+|---|---|
+| 项目名称 | 轴承寿命预测与故障诊断系统 |
+| 小组成员 | zyj、zdh、cyj、zy |
+| 组长 | zyj |
+| 文档版本 | v1.0 |
+| 日期 | 2026年6月 |
+
+
+## 测试环境
+
+| 项 | 值 |
+|---|---|
+| Python | 3.11 |
+| 包管理 | uv |
+| 深度学习框架 | PyTorch 2.10 依赖范围 |
+| 命令 | `uv run python -m unittest discover -v` |
+
+## 测试结果记录
+
+| 测试文件 | 覆盖内容 | 预期 |
+|---|---|---|
+| `tests/test_feature_processors.py` | 特征处理器 | 输出维度与数值范围正确 |
+| `tests/test_paper_datasets.py` | 论文数据集构造 | 样本、标签、元数据一致 |
+| `tests/test_paper_models.py` | 主线模型 forward | 输出 shape 正确 |
+| `tests/test_trainer.py` | 训练器 | 单轮训练与指标记录正确 |
+| `tests/test_training_artifacts.py` | 训练产物 | 文件字段完整 |
+
+## 缺陷与处理
+
+测试中曾出现环境缺包、数据路径和缓存路径问题，已通过 uv 依赖、`data/loader_roots` 映射和相对缓存路径修复。结题版本要求所有测试通过后再提交交付材料。

@@ -1,0 +1,14 @@
+.DS_Store
+.agents/
+.idea/
+.venv/
+*.pyc
+*.pkl
+.ipynb_checkpoints
+examples/data/
+*.pt
+*.pth
+cache/
+runs/
+tb_logs/
+Cora/
