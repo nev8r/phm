@@ -699,6 +699,305 @@ def _evaluate_rul_by_bearing(
     return metric_rows, prediction_rows, predictions_by_bearing
 
 
+def _load_training_run_metadata(run_dir: Path | str) -> tuple[Path, dict[str, Any], dict[str, Any]]:
+    run_path = Path(run_dir)
+    config_path = run_path / "config.json"
+    summary_path = run_path / "model_summary.json"
+    if not config_path.exists():
+        raise FileNotFoundError(f"missing training config: {config_path}")
+    if not summary_path.exists():
+        raise FileNotFoundError(f"missing model summary: {summary_path}")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if config.get("command") != "train":
+        raise ValueError(f"run is not a training run: {run_path}")
+    return run_path, config, summary
+
+
+def _load_saved_standardizer(run_dir: Path, summary: dict[str, Any]) -> tuple[np.ndarray, np.ndarray]:
+    standardizer = run_dir / "standardizer.npz"
+    if not standardizer.exists() and summary.get("standardizer_path"):
+        candidate = Path(str(summary["standardizer_path"]))
+        standardizer = candidate if candidate.exists() else standardizer
+    if not standardizer.exists():
+        raise FileNotFoundError(f"missing standardizer: {standardizer}")
+    with np.load(standardizer, allow_pickle=False) as payload:
+        return payload["mean"].astype(np.float32), payload["std"].astype(np.float32)
+
+
+def _restore_training_run_model(
+    run_dir: Path,
+    config: dict[str, Any],
+    summary: dict[str, Any],
+    device: torch.device,
+) -> torch.nn.Module:
+    checkpoint = run_dir / "model_state.pt"
+    if not checkpoint.exists() and summary.get("model_state_path"):
+        candidate = Path(str(summary["model_state_path"]))
+        checkpoint = candidate if candidate.exists() else checkpoint
+    if not checkpoint.exists():
+        raise FileNotFoundError(f"missing model checkpoint: {checkpoint}")
+
+    task = str(config["task"])
+    input_dim = int(summary["input_dim"])
+    smoke = bool(config.get("sample")) or str(config.get("preset")) == "smoke"
+    model = _build_model(task, input_dim, smoke=smoke)
+    state_dict = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    model.load_state_dict(state_dict)
+    model.to(device)
+    return model
+
+
+def evaluate_saved_training_run(
+    run_dir: Path | str,
+    *,
+    device_name: str = "auto",
+    output_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    """Reload a saved training run and evaluate it on the fixed test split."""
+
+    run_path, config, summary = _load_training_run_metadata(run_dir)
+    task = str(config["task"])
+    sample = bool(config.get("sample", False))
+    seed = int(config.get("seed", 42))
+    sequence_length = int(summary.get("sequence_length", config.get("sequence_length", 8)))
+    batch_size = int(config.get("batch_size", 128))
+    prepared = prepare_sequence_data(
+        task,
+        sample=sample,
+        sequence_length=sequence_length,
+        batch_size=batch_size,
+        seed=seed,
+    )
+    saved_mean, saved_std = _load_saved_standardizer(run_path, summary)
+    if saved_mean.shape[0] != prepared.feature_cache.features.shape[1]:
+        raise ValueError(
+            "saved standardizer does not match the current feature dimension: "
+            f"{saved_mean.shape[0]} != {prepared.feature_cache.features.shape[1]}"
+        )
+
+    prepared.mean = saved_mean
+    prepared.std = saved_std
+    test_dataset = SequenceFeatureDataset(
+        prepared.feature_cache.features,
+        prepared.feature_cache.targets,
+        prepared.test_windows,
+        mean=saved_mean,
+        std=saved_std,
+    )
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    device = resolve_device(device_name)
+    model = _restore_training_run_model(run_path, config, summary, device)
+    criterion: torch.nn.Module = nn.MSELoss() if task == "rul" else nn.CrossEntropyLoss()
+
+    out_dir = Path(output_dir) if output_dir is not None else run_path / "gui_inference"
+    figures_dir = out_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    if task == "rul":
+        metrics, pred, true = _evaluate_rul_model(model, test_loader, device, criterion)
+        _render_rul_prediction_curve(figures_dir / "rul_prediction_curve.png", true, pred)
+        rul_bearings = _rul_test_bearings(prepared, sample)
+        bearing_metrics, bearing_predictions, predictions_by_bearing = _evaluate_rul_by_bearing(
+            model,
+            prepared,
+            device,
+            criterion,
+            rul_bearings,
+        )
+        _render_rul_prediction_by_bearing(figures_dir / "rul_prediction_by_bearing.png", predictions_by_bearing)
+        prediction_rows = [
+            {"index": index, "y_true": float(t), "y_pred": float(p)}
+            for index, (t, p) in enumerate(zip(true, pred))
+        ]
+        fieldnames = ["index", "y_true", "y_pred"]
+        figures = {
+            "rul_prediction_curve": str(figures_dir / "rul_prediction_curve.png"),
+            "rul_prediction_by_bearing": str(figures_dir / "rul_prediction_by_bearing.png"),
+        }
+        extra: dict[str, Any] = {
+            "test_scope": "paper_mainline_bearings" if not sample else "sample_last_bearing",
+            "test_bearings": rul_bearings,
+            "bearing_metrics": bearing_metrics,
+            "bearing_predictions_path": str(out_dir / "rul_bearing_predictions.csv"),
+        }
+        _write_predictions(
+            out_dir / "rul_bearing_predictions.csv",
+            bearing_predictions,
+            ["bearing", "index", "y_true", "y_pred"],
+        )
+    elif task == "fault":
+        metrics, prob, pred, true = _evaluate_fault_model(model, test_loader, device, criterion)
+        _render_fault_confusion_matrix(figures_dir / "fault_confusion_matrix.png", metrics["confusion_matrix"])
+        prediction_rows = [
+            {
+                "index": index,
+                "y_true": int(label),
+                "y_pred": int(label_pred),
+                "prob_healthy": float(item_prob[0]),
+                "prob_fault": float(item_prob[1]),
+            }
+            for index, (label, label_pred, item_prob) in enumerate(zip(true, pred, prob))
+        ]
+        fieldnames = ["index", "y_true", "y_pred", "prob_healthy", "prob_fault"]
+        figures = {"fault_confusion_matrix": str(figures_dir / "fault_confusion_matrix.png")}
+        extra = {}
+    else:
+        raise ValueError(f"unsupported task: {task}")
+
+    predictions_path = out_dir / "predictions.csv"
+    _write_predictions(predictions_path, prediction_rows, fieldnames)
+    result = {
+        "command": "evaluate_saved_training_run",
+        "task": task,
+        "source_run": str(run_path),
+        "output_dir": str(out_dir),
+        "device": str(device),
+        "metrics": metrics,
+        "figures": figures,
+        "predictions_path": str(predictions_path),
+        **extra,
+    }
+    write_json(out_dir / "metrics.json", result)
+    return result
+
+
+def _render_uploaded_rul_predictions(path: Path, predictions: np.ndarray) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+    ax.plot(predictions, label="Predicted RUL", linewidth=1.5)
+    ax.set_xlabel("Input window")
+    ax.set_ylabel("Normalized RUL")
+    ax.set_title("Uploaded feature CSV prediction")
+    ax.grid(alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def _render_uploaded_fault_predictions(path: Path, probabilities: np.ndarray) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(7.0, 3.6))
+    ax.plot(probabilities[:, 0], label="Healthy probability", linewidth=1.4)
+    ax.plot(probabilities[:, 1], label="Fault probability", linewidth=1.4)
+    ax.set_xlabel("Input window")
+    ax.set_ylabel("Probability")
+    ax.set_ylim(0.0, 1.05)
+    ax.set_title("Uploaded feature CSV prediction")
+    ax.grid(alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def predict_feature_csv_with_run(
+    run_dir: Path | str,
+    csv_path: Path | str,
+    *,
+    device_name: str = "auto",
+    output_dir: Path | str | None = None,
+) -> dict[str, Any]:
+    """Run demo prediction on a CSV whose numeric columns are already feature vectors."""
+
+    import pandas as pd
+
+    run_path, config, summary = _load_training_run_metadata(run_dir)
+    task = str(config["task"])
+    sequence_length = int(summary.get("sequence_length", config.get("sequence_length", 8)))
+    input_dim = int(summary["input_dim"])
+    frame = pd.read_csv(csv_path)
+    numeric = frame.select_dtypes(include=[np.number])
+    if numeric.shape[1] != input_dim:
+        raise ValueError(
+            "uploaded CSV must contain one numeric feature column per model input dimension: "
+            f"{numeric.shape[1]} != {input_dim}"
+        )
+    if len(numeric) < sequence_length:
+        raise ValueError(
+            "uploaded CSV does not contain enough feature snapshots for one sequence: "
+            f"{len(numeric)} < {sequence_length}"
+        )
+
+    features = numeric.to_numpy(dtype=np.float32)
+    windows = np.asarray(
+        [(start, start + sequence_length) for start in range(0, len(features) - sequence_length + 1)],
+        dtype=np.int64,
+    )
+    targets = np.zeros((len(features), 1), dtype=np.float32)
+    saved_mean, saved_std = _load_saved_standardizer(run_path, summary)
+    device = resolve_device(device_name)
+    model = _restore_training_run_model(run_path, config, summary, device)
+    dataset = SequenceFeatureDataset(features, targets, windows, mean=saved_mean, std=saved_std)
+    loader = DataLoader(dataset, batch_size=int(config.get("batch_size", 128)), shuffle=False, num_workers=0)
+
+    out_dir = Path(output_dir) if output_dir is not None else run_path / "gui_upload_prediction"
+    figures_dir = out_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    model.eval()
+    rows: list[dict[str, Any]] = []
+    if task == "rul":
+        predictions = []
+        with torch.no_grad():
+            for x, _ in loader:
+                y_hat = model(x.to(device=device, dtype=torch.float32))
+                predictions.extend(y_hat.detach().cpu().numpy().reshape(-1).tolist())
+        pred_array = np.asarray(predictions, dtype=np.float32)
+        figure_path = figures_dir / "uploaded_rul_prediction.png"
+        _render_uploaded_rul_predictions(figure_path, pred_array)
+        rows = [{"index": index, "y_pred": float(value)} for index, value in enumerate(pred_array)]
+        fieldnames = ["index", "y_pred"]
+        figures = {"uploaded_rul_prediction": str(figure_path)}
+    elif task == "fault":
+        probabilities = []
+        with torch.no_grad():
+            for x, _ in loader:
+                logits = model(x.to(device=device, dtype=torch.float32))
+                probabilities.append(torch.softmax(logits.detach().cpu(), dim=1).numpy())
+        prob_array = np.vstack(probabilities)
+        pred = prob_array.argmax(axis=1)
+        figure_path = figures_dir / "uploaded_fault_probability.png"
+        _render_uploaded_fault_predictions(figure_path, prob_array)
+        rows = [
+            {
+                "index": index,
+                "y_pred": int(label),
+                "prob_healthy": float(prob[0]),
+                "prob_fault": float(prob[1]),
+            }
+            for index, (label, prob) in enumerate(zip(pred, prob_array))
+        ]
+        fieldnames = ["index", "y_pred", "prob_healthy", "prob_fault"]
+        figures = {"uploaded_fault_probability": str(figure_path)}
+    else:
+        raise ValueError(f"unsupported task: {task}")
+
+    predictions_path = out_dir / "uploaded_predictions.csv"
+    _write_predictions(predictions_path, rows, fieldnames)
+    result = {
+        "command": "predict_feature_csv_with_run",
+        "task": task,
+        "source_run": str(run_path),
+        "source_csv": str(csv_path),
+        "output_dir": str(out_dir),
+        "prediction_count": len(rows),
+        "figures": figures,
+        "predictions_path": str(predictions_path),
+    }
+    write_json(out_dir / "metrics.json", result)
+    return result
+
+
 def run_paper_training(
     *,
     task: str,

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -66,6 +68,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = subparsers.add_parser("report", help="summarize a previous PHM run")
     report.add_argument("--run", required=True, help="path to outputs/runs/<run_id>")
+
+    gui = subparsers.add_parser("gui", help="launch the local Streamlit classroom demo GUI")
+    gui.add_argument("--port", type=int, default=8501, help="Streamlit server port")
+    gui.add_argument("--host", default="localhost", help="Streamlit bind address")
+    gui.add_argument("--headless", action=argparse.BooleanOptionalAction, default=True, help="run Streamlit headless")
     return parser
 
 
@@ -238,6 +245,25 @@ def _run_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_gui(args: argparse.Namespace) -> int:
+    gui_path = Path(__file__).with_name("gui.py")
+    command = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(gui_path),
+        "--server.port",
+        str(args.port),
+        "--server.address",
+        str(args.host),
+        "--server.headless",
+        "true" if args.headless else "false",
+    ]
+    completed = subprocess.run(command, check=False)
+    return int(completed.returncode)
+
+
 def run_cli(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -252,6 +278,8 @@ def run_cli(argv: list[str] | None = None) -> int:
         return _run_benchmark(args)
     if args.command == "report":
         return _run_report(args)
+    if args.command == "gui":
+        return _run_gui(args)
     raise ValueError(f"unknown command: {args.command}")
 
 
