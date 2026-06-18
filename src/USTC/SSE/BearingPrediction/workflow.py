@@ -242,6 +242,54 @@ def load_feature_cache_for_task(task: str, *, sample: bool = False, project_root
     return _load_full_feature_cache(task, project_root or find_project_root())
 
 
+def build_or_load_feature_cache(
+    task: str,
+    *,
+    force: bool = False,
+    project_root: Path | None = None,
+    phm_root: Path | str | None = None,
+    xjtu_root: Path | str | None = None,
+) -> dict[str, Any]:
+    project_root = project_root or find_project_root()
+    cache_dir = project_root / "cache" / "paper_features"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    if task == "rul":
+        cache_path = cache_dir / "phm2012_rul_fft256_full.npz"
+        source_root = Path(phm_root) if phm_root is not None else project_root / "data" / "loader_roots" / "phm2012"
+        build_phm2012_rul_feature_cache(
+            source_root,
+            cache_path,
+            fft_bins=256,
+            include_handcrafted=True,
+            force=force,
+        )
+    elif task == "fault":
+        cache_path = cache_dir / "xjtu_binary_fault_diagnosis_fft256_full.npz"
+        source_root = Path(xjtu_root) if xjtu_root is not None else project_root / "data" / "loader_roots" / "xjtu"
+        build_xjtu_binary_fault_diagnosis_feature_cache(
+            source_root,
+            cache_path,
+            fft_bins=256,
+            include_handcrafted=True,
+            force=force,
+        )
+    else:
+        raise ValueError(f"unsupported task: {task}")
+
+    raw = load_feature_cache(cache_path)
+    return {
+        "task": task,
+        "cache_path": str(cache_path),
+        "source_root": str(source_root),
+        "force": force,
+        "feature_shape": list(raw["features"].shape),
+        "target_shape": list(raw["targets"].shape),
+        "bearing_count": len(raw["ranges"]),
+        "file_count": int(raw["features"].shape[0]),
+        "metadata": raw.get("metadata", {}),
+    }
+
+
 def prepare_sequence_data(
     task: str,
     *,
@@ -908,7 +956,7 @@ def predict_feature_csv_with_run(
     device_name: str = "auto",
     output_dir: Path | str | None = None,
 ) -> dict[str, Any]:
-    """Run demo prediction on a CSV whose numeric columns are already feature vectors."""
+    """Run feature CSV inference with a saved training run."""
 
     import pandas as pd
 

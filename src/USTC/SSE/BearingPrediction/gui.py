@@ -1,7 +1,7 @@
 """
 Streamlit GUI support module
 
-this file is for serving classroom demo helpers for bearing PHM workflows
+this file is for serving an operational bearing PHM workbench
 
 created by zy
 
@@ -13,7 +13,9 @@ copyright USTC
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -22,24 +24,23 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from USTC.SSE.BearingPrediction.analysis import (
-    build_dataset_cards,
-    render_model_architecture_diagrams,
-    task_relationship_summary,
-)
-from USTC.SSE.BearingPrediction.workflow import (
-    evaluate_saved_training_run,
-    predict_feature_csv_with_run,
-    run_benchmark,
-    run_paper_training,
+from USTC.SSE.BearingPrediction.gui_jobs import (
+    DEFAULT_JOBS_ROOT,
+    list_jobs,
+    poll_job,
+    read_job_log,
+    start_cli_job,
 )
 
 
+DEFAULT_PHM_ROOT = Path("data/loader_roots/phm2012")
+DEFAULT_XJTU_ROOT = Path("data/loader_roots/xjtu")
 DEFAULT_BENCHMARK_RUN = Path("outputs/runs/20260618_153347_benchmark_all")
 DEFAULT_TRAIN_RUNS = {
     "rul": Path("outputs/runs/20260618_143026_train_rul"),
     "fault": Path("outputs/runs/20260618_153012_train_fault"),
 }
+GUI_OUTPUT_ROOT = Path("outputs/gui")
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -66,8 +67,205 @@ def _new_run_dir(output_root: Path | str, command: str, task: str) -> Path:
     while run_dir.exists():
         run_dir = root / f"{timestamp}_{command}_{task}_{counter}"
         counter += 1
-    (run_dir / "figures").mkdir(parents=True, exist_ok=False)
     return run_dir
+
+
+def _mtime(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _cache_status(cache_dir: Path | str, task: str) -> dict[str, Any]:
+    cache_dir = Path(cache_dir)
+    filename = {
+        "rul": "phm2012_rul_fft256_full.npz",
+        "fault": "xjtu_binary_fault_diagnosis_fft256_full.npz",
+    }[task]
+    path = cache_dir / filename
+    status: dict[str, Any] = {
+        "path": str(path),
+        "exists": path.exists(),
+        "mtime": _mtime(path),
+        "size_bytes": path.stat().st_size if path.exists() else 0,
+        "feature_shape": [],
+        "target_shape": [],
+    }
+    if path.exists():
+        try:
+            with np.load(path, allow_pickle=False) as cache:
+                status["feature_shape"] = list(cache["features"].shape) if "features" in cache.files else []
+                targets_key = "targets" if "targets" in cache.files else "labels"
+                status["target_shape"] = list(cache[targets_key].shape) if targets_key in cache.files else []
+        except (OSError, KeyError, ValueError):
+            status["read_error"] = True
+    return status
+
+
+def _inspect_phm2012_root(root: Path, cache_dir: Path | str) -> dict[str, Any]:
+    learning_dir = root / "Learning_set"
+    test_dir = root / "Full_Test_Set"
+    files = list(root.glob("Learning_set/Bearing*/acc_*.csv")) + list(root.glob("Full_Test_Set/Bearing*/acc_*.csv"))
+    bearing_dirs = {item.parent.name for item in files}
+    checks = {
+        "root_exists": root.exists(),
+        "Learning_set": learning_dir.exists(),
+        "Full_Test_Set": test_dir.exists(),
+        "acc_files": bool(files),
+        "bearing_folders": bool(bearing_dirs),
+    }
+    return {
+        "dataset": "PHM2012",
+        "task": "rul",
+        "root": str(root),
+        "valid": all(checks.values()),
+        "checks": checks,
+        "missing": [key for key, ok in checks.items() if not ok],
+        "bearing_count": len(bearing_dirs),
+        "file_count": len(files),
+        "split_count": int(learning_dir.exists()) + int(test_dir.exists()),
+        "cache": _cache_status(cache_dir, "rul"),
+    }
+
+
+def _inspect_xjtu_root(root: Path, cache_dir: Path | str) -> dict[str, Any]:
+    known_conditions = ("35Hz12kN", "37.5Hz11kN", "40Hz10kN")
+    condition_dirs = [root / name for name in known_conditions if (root / name).exists()]
+    files = []
+    for condition_dir in condition_dirs:
+        files.extend(condition_dir.glob("Bearing*/*.csv"))
+    bearing_dirs = {item.parent.name for item in files}
+    checks = {
+        "root_exists": root.exists(),
+        "condition_folders": bool(condition_dirs),
+        "bearing_folders": bool(bearing_dirs),
+        "csv_files": bool(files),
+    }
+    return {
+        "dataset": "XJTU-SY",
+        "task": "fault",
+        "root": str(root),
+        "valid": all(checks.values()),
+        "checks": checks,
+        "missing": [key for key, ok in checks.items() if not ok],
+        "bearing_count": len(bearing_dirs),
+        "file_count": len(files),
+        "condition_count": len(condition_dirs),
+        "cache": _cache_status(cache_dir, "fault"),
+    }
+
+
+def inspect_dataset_roots(
+    phm_root: Path | str = DEFAULT_PHM_ROOT,
+    xjtu_root: Path | str = DEFAULT_XJTU_ROOT,
+    *,
+    cache_dir: Path | str = Path("cache/paper_features"),
+) -> dict[str, dict[str, Any]]:
+    return {
+        "PHM2012": _inspect_phm2012_root(Path(phm_root), cache_dir),
+        "XJTU-SY": _inspect_xjtu_root(Path(xjtu_root), cache_dir),
+    }
+
+
+def _dataset_detection_from_names(names: list[str]) -> dict[str, Any]:
+    normalized = [name.replace("\\", "/").strip("/") for name in names if name and not name.endswith("/")]
+    lower = [name.lower() for name in normalized]
+    phm_checks = {
+        "Learning_set": any("learning_set/" in name for name in lower),
+        "Full_Test_Set": any("full_test_set/" in name for name in lower),
+        "acc_*.csv": any(Path(name).name.startswith("acc_") and name.endswith(".csv") for name in lower),
+        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
+    }
+    xjtu_conditions = ("35hz12kn", "37.5hz11kn", "40hz10kn")
+    xjtu_checks = {
+        "Condition folders": any(condition in name for condition in xjtu_conditions for name in lower),
+        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
+        "*.csv": any(name.endswith(".csv") for name in lower),
+    }
+    if all(phm_checks.values()):
+        return {
+            "valid": True,
+            "dataset": "PHM2012",
+            "message": "识别为 PHM2012 标准目录结构，可用于 RUL 特征缓存与训练。",
+            "evidence": [key for key, ok in phm_checks.items() if ok],
+            "missing": [],
+            "file_count": len(normalized),
+        }
+    if all(xjtu_checks.values()):
+        return {
+            "valid": True,
+            "dataset": "XJTU-SY",
+            "message": "识别为 XJTU-SY 标准目录结构，可用于故障诊断特征缓存与训练。",
+            "evidence": [key for key, ok in xjtu_checks.items() if ok],
+            "missing": [],
+            "file_count": len(normalized),
+        }
+    missing = [f"PHM2012:{key}" for key, ok in phm_checks.items() if not ok]
+    missing.extend([f"XJTU-SY:{key}" for key, ok in xjtu_checks.items() if not ok])
+    return {
+        "valid": False,
+        "dataset": "unknown",
+        "message": "未识别为当前支持的数据集结构；可上传 PHM2012/XJTU-SY zip，或上传特征 CSV 做推理。",
+        "evidence": [key for key, ok in {**phm_checks, **xjtu_checks}.items() if ok],
+        "missing": missing,
+        "file_count": len(normalized),
+    }
+
+
+def _inspect_single_csv(path: Path) -> dict[str, Any]:
+    try:
+        preview = pd.read_csv(path, nrows=256)
+    except Exception as exc:
+        return {
+            "valid": False,
+            "dataset": "single_csv",
+            "message": f"CSV 读取失败：{exc}",
+            "evidence": [],
+            "missing": ["readable CSV"],
+            "numeric_columns": 0,
+            "row_preview": 0,
+        }
+    numeric = preview.select_dtypes(include=[np.number])
+    valid = numeric.shape[1] > 0 and len(preview) > 0
+    return {
+        "valid": valid,
+        "dataset": "single_csv",
+        "message": "识别为特征 CSV；数值列数量需等于所选模型输入维度。" if valid else "CSV 中没有可用的数值特征列。",
+        "evidence": [f"{numeric.shape[1]} numeric columns", f"{len(preview)} preview rows"] if valid else [],
+        "missing": [] if valid else ["numeric feature columns"],
+        "numeric_columns": int(numeric.shape[1]),
+        "row_preview": int(len(preview)),
+    }
+
+
+def inspect_uploaded_dataset(path: Path | str) -> dict[str, Any]:
+    upload_path = Path(path)
+    if upload_path.is_dir():
+        names = [str(item.relative_to(upload_path)) for item in upload_path.rglob("*") if item.is_file()]
+        return _dataset_detection_from_names(names)
+    if upload_path.suffix.lower() == ".zip":
+        try:
+            with zipfile.ZipFile(upload_path) as archive:
+                return _dataset_detection_from_names(archive.namelist())
+        except zipfile.BadZipFile:
+            return {
+                "valid": False,
+                "dataset": "unknown",
+                "message": "zip 文件无法解压或格式损坏。",
+                "evidence": [],
+                "missing": ["valid zip archive"],
+                "file_count": 0,
+            }
+    if upload_path.suffix.lower() == ".csv":
+        return _inspect_single_csv(upload_path)
+    return {
+        "valid": False,
+        "dataset": "unknown",
+        "message": "当前仅支持 zip、目录或特征 CSV。",
+        "evidence": [],
+        "missing": ["zip", "directory", "csv"],
+        "file_count": 0,
+    }
 
 
 def list_run_directories(
@@ -162,108 +360,29 @@ def summarize_run(run_dir: Path | str) -> dict[str, Any]:
     return summary
 
 
-def _dataset_detection_from_names(names: list[str]) -> dict[str, Any]:
-    normalized = [name.replace("\\", "/").strip("/") for name in names if name and not name.endswith("/")]
-    lower = [name.lower() for name in normalized]
-    phm_checks = {
-        "Learning_set": any("learning_set/" in name for name in lower),
-        "Full_Test_Set": any("full_test_set/" in name for name in lower),
-        "acc_*.csv": any(Path(name).name.startswith("acc_") and name.endswith(".csv") for name in lower),
-        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
-    }
-    xjtu_conditions = ("35hz12kn", "37.5hz11kn", "40hz10kn")
-    xjtu_checks = {
-        "Condition folders": any(condition in name for condition in xjtu_conditions for name in lower),
-        "Bearing folders": any("bearing1_" in name or "bearing2_" in name or "bearing3_" in name for name in lower),
-        "*.csv": any(name.endswith(".csv") for name in lower),
-    }
-    if all(phm_checks.values()):
-        return {
-            "valid": True,
-            "dataset": "PHM2012",
-            "message": "识别为 PHM2012 标准目录结构，可用于 RUL 特征缓存与训练。",
-            "evidence": [key for key, ok in phm_checks.items() if ok],
-            "missing": [],
-            "file_count": len(normalized),
-        }
-    if all(xjtu_checks.values()):
-        return {
-            "valid": True,
-            "dataset": "XJTU-SY",
-            "message": "识别为 XJTU-SY 标准目录结构，可用于故障诊断特征缓存与训练。",
-            "evidence": [key for key, ok in xjtu_checks.items() if ok],
-            "missing": [],
-            "file_count": len(normalized),
-        }
-    missing = [f"PHM2012:{key}" for key, ok in phm_checks.items() if not ok]
-    missing.extend([f"XJTU-SY:{key}" for key, ok in xjtu_checks.items() if not ok])
+def validate_training_run(run_dir: Path | str, expected_task: str | None = None) -> dict[str, Any]:
+    path = Path(run_dir)
+    required = ["config.json", "metrics.json", "model_summary.json", "model_state.pt", "standardizer.npz"]
+    missing = [filename for filename in required if not (path / filename).exists()]
+    config = _load_json(path / "config.json")
+    metrics = _load_json(path / "metrics.json")
+    summary = _load_json(path / "model_summary.json")
+    task = str(config.get("task", summary.get("task", "")))
+    task_mismatch = bool(expected_task and task and expected_task != task)
     return {
-        "valid": False,
-        "dataset": "unknown",
-        "message": "未识别为当前支持的数据集结构；可上传 PHM2012/XJTU-SY zip，或上传特征 CSV 做演示预测。",
-        "evidence": [key for key, ok in {**phm_checks, **xjtu_checks}.items() if ok],
+        "path": str(path),
+        "valid": not missing and not task_mismatch and config.get("command") == "train",
+        "task": task,
+        "expected_task": expected_task or "",
+        "task_mismatch": task_mismatch,
         "missing": missing,
-        "file_count": len(normalized),
-    }
-
-
-def _inspect_single_csv(path: Path) -> dict[str, Any]:
-    try:
-        preview = pd.read_csv(path, nrows=256)
-    except Exception as exc:
-        return {
-            "valid": False,
-            "dataset": "single_csv",
-            "message": f"CSV 读取失败：{exc}",
-            "evidence": [],
-            "missing": ["readable CSV"],
-            "numeric_columns": 0,
-            "row_preview": 0,
-        }
-    numeric = preview.select_dtypes(include=[np.number])
-    valid = numeric.shape[1] > 0 and len(preview) > 0
-    return {
-        "valid": valid,
-        "dataset": "single_csv",
-        "message": (
-            "识别为特征 CSV：数值列可用于演示级预测；若要直接加载模型，数值列数量需等于模型输入维度。"
-            if valid
-            else "CSV 中没有可用的数值特征列。"
-        ),
-        "evidence": [f"{numeric.shape[1]} numeric columns", f"{len(preview)} preview rows"] if valid else [],
-        "missing": [] if valid else ["numeric feature columns"],
-        "numeric_columns": int(numeric.shape[1]),
-        "row_preview": int(len(preview)),
-    }
-
-
-def inspect_uploaded_dataset(path: Path | str) -> dict[str, Any]:
-    upload_path = Path(path)
-    if upload_path.is_dir():
-        names = [str(item.relative_to(upload_path)) for item in upload_path.rglob("*") if item.is_file()]
-        return _dataset_detection_from_names(names)
-    if upload_path.suffix.lower() == ".zip":
-        try:
-            with zipfile.ZipFile(upload_path) as archive:
-                return _dataset_detection_from_names(archive.namelist())
-        except zipfile.BadZipFile:
-            return {
-                "valid": False,
-                "dataset": "unknown",
-                "message": "zip 文件无法解压或格式损坏。",
-                "evidence": [],
-                "missing": ["valid zip archive"],
-                "file_count": 0,
-            }
-    if upload_path.suffix.lower() == ".csv":
-        return _inspect_single_csv(upload_path)
-    return {
-        "valid": False,
-        "dataset": "unknown",
-        "message": "当前仅支持 zip、目录或特征 CSV。",
-        "evidence": [],
-        "missing": ["zip", "directory", "csv"],
-        "file_count": 0,
+        "command": config.get("command", ""),
+        "model": summary.get("model", ""),
+        "input_dim": summary.get("input_dim", ""),
+        "sequence_length": summary.get("sequence_length", ""),
+        "parameter_count": summary.get("parameter_count", ""),
+        "metrics": metrics.get("test", {}),
+        "summary": summary,
     }
 
 
@@ -282,234 +401,362 @@ def _default_benchmark_run() -> Path | None:
     return runs[0]["path"] if runs else None
 
 
-def _selectbox_runs(st, label: str, runs: list[dict[str, Any]], preferred: Path | None = None) -> Path | None:
-    if not runs:
-        st.info("还没有可用 run。")
+def _phm_command(*args: str | Path) -> list[str]:
+    return [sys.executable, "-m", "USTC.SSE.BearingPrediction.cli", *[str(arg) for arg in args]]
+
+
+def _has_running_job(job: dict[str, Any] | None) -> bool:
+    return bool(job and job.get("status") in {"queued", "running"})
+
+
+def _active_job(st) -> dict[str, Any] | None:
+    job_dir = st.session_state.get("active_job_dir")
+    if not job_dir:
         return None
-    index = 0
-    if preferred is not None:
-        for idx, item in enumerate(runs):
-            if Path(item["path"]) == preferred:
-                index = idx
-                break
-    selected = st.selectbox(
-        label,
-        options=runs,
-        index=index,
-        format_func=lambda item: f"{item['name']}  {'sample' if item['sample'] else 'full'}",
-    )
-    return selected["path"] if selected else None
+    try:
+        job = poll_job(job_dir)
+    except FileNotFoundError:
+        st.session_state.pop("active_job_dir", None)
+        return None
+    if job.get("status") in {"succeeded", "failed"}:
+        st.session_state["last_job_dir"] = job_dir
+    return {**job, "job_dir": job_dir}
 
 
-def _show_metrics(st, metrics: dict[str, str]) -> None:
-    if not metrics:
+def _start_job(st, command: list[str], *, kind: str, task: str | None, run_dir: Path | str | None) -> None:
+    active = _active_job(st)
+    if _has_running_job(active):
+        st.warning("已有任务正在运行，请等待结束后再启动新任务。")
+        return
+    if kind == "train" and run_dir is not None:
+        st.session_state["selected_model_run"] = str(run_dir)
+    job = start_cli_job(command, kind=kind, task=task, run_dir=run_dir)
+    st.session_state["active_job_dir"] = str(job["job_dir"])
+    st.session_state["last_job_dir"] = str(job["job_dir"])
+    st.rerun()
+
+
+def _show_metrics(st, metrics: dict[str, Any]) -> None:
+    numeric = {key: value for key, value in metrics.items() if isinstance(value, (int, float))}
+    if not numeric:
         st.info("暂无指标。")
         return
-    columns = st.columns(min(len(metrics), 5))
-    for column, (name, value) in zip(columns, metrics.items()):
-        column.metric(name, value)
+    columns = st.columns(min(len(numeric), 5))
+    for column, (name, value) in zip(columns, numeric.items()):
+        column.metric(name, _format_float(value))
 
 
 def _show_figures(st, figures: dict[str, Path | str]) -> None:
     visible = [(name, Path(path)) for name, path in figures.items() if Path(path).exists()]
     if not visible:
-        st.info("暂无可展示图像。")
+        st.info("暂无图表。")
         return
     columns = st.columns(2)
     for index, (name, path) in enumerate(visible):
-        columns[index % 2].image(str(path), caption=name, use_container_width=True)
+        columns[index % 2].image(str(path), caption=name, width="stretch")
 
 
-def _show_benchmark(st, run_dir: Path | None) -> None:
-    if run_dir is None:
-        st.info("还没有 benchmark run。")
-        return
-    summary = summarize_run(run_dir)
-    rows = summary.get("benchmark_rows", [])
-    st.caption(str(run_dir))
-    if rows:
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+def _render_run_summary(st, run_dir: Path | str) -> None:
+    path = Path(run_dir)
+    summary = summarize_run(path)
+    st.caption(str(path))
+    _show_metrics(st, summary.get("raw_metrics", {}).get("test", {}))
+    if summary.get("command") == "benchmark" and summary.get("benchmark_rows"):
+        st.dataframe(pd.DataFrame(summary["benchmark_rows"]), width="stretch", hide_index=True)
     _show_figures(st, summary.get("figures", {}))
 
 
-def _render_overview(st) -> None:
-    asset_dir = Path("outputs/gui_demo/assets")
-    asset_dir.mkdir(parents=True, exist_ok=True)
-    figures = render_model_architecture_diagrams(asset_dir)
-    cards = build_dataset_cards()
-    relation = task_relationship_summary()
-    st.subheader("系统概览")
-    st.write("系统围绕轴承振动信号，完成数据加载、特征工程、任务建模、训练评估和结果可视化。")
-    dataset_columns = st.columns(2)
-    for column, (_, card) in zip(dataset_columns, cards.items()):
-        with column:
-            st.markdown(f"**{card['name']}**")
-            st.write(f"采样频率：{card['sampling_rate_hz']} Hz")
-            st.write(f"工况：{'；'.join(card['operating_conditions'])}")
-            st.write(f"任务：{', '.join(card['tasks'])}")
-            st.write(f"标签：{card['label_source']}")
-    st.markdown("**任务关系**")
-    st.write(relation["shared_pipeline"])
-    st.write(relation["relationship"])
-    _show_figures(st, {key: Path(value) for key, value in figures.items()})
-
-
-def _append_log(st, message: str) -> None:
-    st.session_state.setdefault("gui_logs", [])
-    st.session_state["gui_logs"].append(f"{datetime.now().strftime('%H:%M:%S')}  {message}")
-
-
-def _run_reload_action(st, task: str, run_dir: Path | None) -> None:
-    if run_dir is None:
-        st.warning("没有可加载的训练 run。")
+def _render_artifact_dir(st, artifact_dir: Path | str) -> None:
+    path = Path(artifact_dir)
+    metrics = _load_json(path / "metrics.json")
+    if not metrics:
+        st.info("输出目录还没有 metrics.json。")
         return
-    with st.spinner(f"加载 {task.upper()} 模型并复推理..."):
-        result = evaluate_saved_training_run(run_dir, device_name="auto")
-    st.session_state["last_result"] = result
-    _append_log(st, f"复推理完成：{result['output_dir']}")
+    st.caption(str(path))
+    _show_metrics(st, metrics.get("metrics", metrics.get("test", {})))
+    figures = metrics.get("figures", {})
+    if figures:
+        _show_figures(st, {key: Path(value) for key, value in figures.items()})
 
 
-def _run_train_demo_action(st, task: str) -> None:
-    run_dir = _new_run_dir("outputs/runs", "train", task)
-    with st.spinner(f"运行 {task.upper()} smoke 训练 demo..."):
-        run_paper_training(task=task, preset="smoke", sample=True, device_name="cpu", run_dir=run_dir)
-    st.session_state["selected_run_override"] = run_dir
-    _append_log(st, f"训练 demo 完成：{run_dir}")
+def _render_job_panel(st, job: dict[str, Any] | None) -> None:
+    st.subheader("任务状态")
+    if job is None:
+        st.info("当前没有运行中的后台任务。")
+        return
+    status = str(job.get("status", "unknown"))
+    st.write(f"状态：**{status}**")
+    st.write(f"类型：**{job.get('kind', '')}**")
+    st.write(f"任务：**{job.get('task', '') or '-'}**")
+    st.write(f"退出码：**{'-' if job.get('exit_code') is None else job.get('exit_code')}**")
+    if job.get("run_dir"):
+        st.caption(f"输出目录：{job['run_dir']}")
+    st.code(read_job_log(job["job_dir"], tail_bytes=8000) or "等待日志输出。", language="text")
+    if status in {"queued", "running"}:
+        time.sleep(1.0)
+        st.rerun()
 
 
-def _run_benchmark_demo_action(st) -> None:
-    run_dir = _new_run_dir("outputs/runs", "benchmark", "all")
-    with st.spinner("运行 sample benchmark demo..."):
-        run_benchmark(task="all", baselines="linear,forest", sample=True, run_dir=run_dir)
-    st.session_state["benchmark_run_override"] = run_dir
-    _append_log(st, f"benchmark demo 完成：{run_dir}")
+def _dataframe_status(st, status: dict[str, dict[str, Any]]) -> None:
+    rows = []
+    for name, item in status.items():
+        rows.append(
+            {
+                "dataset": name,
+                "valid": item["valid"],
+                "root": item["root"],
+                "bearings": item.get("bearing_count", 0),
+                "files": item.get("file_count", 0),
+                "conditions/splits": item.get("condition_count", item.get("split_count", 0)),
+                "cache": "ready" if item["cache"]["exists"] else "missing",
+                "cache_shape": str(item["cache"].get("feature_shape", [])),
+                "missing": ", ".join(item.get("missing", [])),
+            }
+        )
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+
+def _select_training_run(st, task: str | None = None, *, key_prefix: str = "training_run") -> Path | None:
+    runs = list_run_directories(command="train", task=task)
+    if not runs:
+        st.info("暂无训练 run。")
+        return None
+    current = st.session_state.get("selected_model_run")
+    index = 0
+    found_current = False
+    if current:
+        for idx, item in enumerate(runs):
+            if str(item["path"]) == str(current):
+                index = idx
+                found_current = True
+                break
+    current_key = Path(current).name if current else "none"
+    selected = st.selectbox(
+        "训练 run",
+        runs,
+        index=index,
+        format_func=lambda item: f"{item['name']}  {'sample' if item['sample'] else 'full'}",
+        key=f"{key_prefix}_select_{task or 'all'}_{current_key}",
+    )
+    if current and not found_current:
+        return Path(current)
+    st.session_state["selected_model_run"] = str(selected["path"])
+    return Path(selected["path"])
+
+
+def _render_data_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("数据加载")
+    phm_root = Path(st.text_input("PHM2012 根目录", value=str(st.session_state.get("phm_root", DEFAULT_PHM_ROOT))))
+    xjtu_root = Path(st.text_input("XJTU-SY 根目录", value=str(st.session_state.get("xjtu_root", DEFAULT_XJTU_ROOT))))
+    st.session_state["phm_root"] = str(phm_root)
+    st.session_state["xjtu_root"] = str(xjtu_root)
+    status = inspect_dataset_roots(phm_root, xjtu_root)
+    _dataframe_status(st, status)
+    force = st.checkbox("强制刷新缓存", value=False)
+    disabled = _has_running_job(active)
+    columns = st.columns(3)
+    cache_specs = [("rul", "构建 RUL 特征缓存"), ("fault", "构建 Fault 特征缓存"), ("all", "构建全部特征缓存")]
+    for column, (task, label) in zip(columns, cache_specs):
+        if column.button(label, disabled=disabled, width="stretch"):
+            run_dir = _new_run_dir(GUI_OUTPUT_ROOT / "cache", "cache", task)
+            command = _phm_command(
+                "cache",
+                "--task",
+                task,
+                "--phm-root",
+                phm_root,
+                "--xjtu-root",
+                xjtu_root,
+                "--run-dir",
+                run_dir,
+                *(["--force"] if force else []),
+            )
+            _start_job(st, command, kind="cache", task=task, run_dir=run_dir)
+
+
+def _render_training_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("训练")
+    with st.form("train_form"):
+        task = st.selectbox("任务", ["rul", "fault"], format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断")
+        data_mode = st.radio("数据规模", ["sample", "full"], horizontal=True, format_func=lambda value: "快速样本" if value == "sample" else "全量数据")
+        preset = st.selectbox("训练预设", ["smoke", "paper"], index=0 if data_mode == "sample" else 1)
+        device = st.selectbox("设备", ["auto", "mps", "cuda", "cpu"])
+        submitted = st.form_submit_button("开始训练", disabled=_has_running_job(active), width="stretch")
+    if submitted:
+        run_dir = _new_run_dir("outputs/runs", "train", task)
+        command = _phm_command(
+            "train",
+            "--task",
+            task,
+            "--preset",
+            preset,
+            "--device",
+            device,
+            "--run-dir",
+            run_dir,
+            "--sample" if data_mode == "sample" else "--full",
+        )
+        _start_job(st, command, kind="train", task=task, run_dir=run_dir)
+    latest = _default_train_run("rul") or _default_train_run("fault")
+    if latest:
+        st.markdown("**最近可用训练结果**")
+        _render_run_summary(st, latest)
+
+
+def _render_model_tab(st) -> None:
+    st.subheader("模型加载")
+    task_filter = st.radio("任务过滤", ["all", "rul", "fault"], horizontal=True, format_func=lambda value: "全部" if value == "all" else value.upper())
+    selected = _select_training_run(st, None if task_filter == "all" else task_filter, key_prefix="model_run")
+    if selected is None:
+        return
+    expected = None if task_filter == "all" else task_filter
+    validation = validate_training_run(selected, expected_task=expected)
+    columns = st.columns(5)
+    columns[0].metric("可用", "yes" if validation["valid"] else "no")
+    columns[1].metric("任务", validation["task"] or "-")
+    columns[2].metric("模型", validation["model"] or "-")
+    columns[3].metric("输入维度", str(validation["input_dim"] or "-"))
+    columns[4].metric("序列长度", str(validation["sequence_length"] or "-"))
+    if validation["missing"]:
+        st.error(f"缺少文件：{', '.join(validation['missing'])}")
+    if validation["task_mismatch"]:
+        st.error(f"任务不匹配：期望 {validation['expected_task']}，实际 {validation['task']}")
+    _render_run_summary(st, selected)
+
+
+def _save_uploaded_csv(uploaded) -> Path:
+    upload_dir = GUI_OUTPUT_ROOT / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    target = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uploaded.name}"
+    target.write_bytes(uploaded.getbuffer())
+    return target
+
+
+def _render_inference_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("推理与评测")
+    selected = _select_training_run(st, key_prefix="inference_run")
+    if selected is None:
+        return
+    validation = validate_training_run(selected)
+    if not validation["valid"]:
+        st.error("当前 run 不完整，不能用于评测或推理。")
+        return
+    device = st.selectbox("推理设备", ["auto", "mps", "cuda", "cpu"], key="infer_device")
+    disabled = _has_running_job(active)
+    if st.button("运行固定测试集评测", disabled=disabled, width="stretch"):
+        output_dir = _new_run_dir(GUI_OUTPUT_ROOT / "evaluations", "evaluate", validation["task"])
+        command = _phm_command("evaluate", "--run", selected, "--device", device, "--output-dir", output_dir)
+        _start_job(st, command, kind="evaluate", task=validation["task"], run_dir=output_dir)
+    st.divider()
+    csv_path_text = st.text_input("特征 CSV 路径", value="")
+    uploaded = st.file_uploader("或上传特征 CSV", type=["csv"])
+    csv_path: Path | None = Path(csv_path_text).expanduser() if csv_path_text else None
+    if uploaded is not None:
+        csv_path = _save_uploaded_csv(uploaded)
+        st.caption(f"已保存上传文件：{csv_path}")
+    if csv_path is not None and csv_path.exists():
+        inspection = inspect_uploaded_dataset(csv_path)
+        st.json(inspection)
+        if st.button("运行特征 CSV 推理", disabled=disabled, width="stretch"):
+            output_dir = _new_run_dir(GUI_OUTPUT_ROOT / "predictions", "predict", validation["task"])
+            command = _phm_command("predict", "--run", selected, "--csv", csv_path, "--device", device, "--output-dir", output_dir)
+            _start_job(st, command, kind="predict", task=validation["task"], run_dir=output_dir)
+    elif csv_path_text:
+        st.error("特征 CSV 路径不存在。")
+
+
+def _render_benchmark_tab(st, active: dict[str, Any] | None) -> None:
+    st.subheader("Benchmark 与运行记录")
+    with st.form("benchmark_form"):
+        task = st.selectbox("Benchmark 任务", ["all", "rul", "fault"], format_func=lambda value: "全部" if value == "all" else value.upper())
+        data_mode = st.radio("Benchmark 数据规模", ["sample", "full"], horizontal=True, format_func=lambda value: "快速样本" if value == "sample" else "全量数据")
+        baselines = st.text_input("Baselines", value="linear,forest")
+        submitted = st.form_submit_button("运行 Benchmark", disabled=_has_running_job(active), width="stretch")
+    if submitted:
+        run_dir = _new_run_dir("outputs/runs", "benchmark", task)
+        command = _phm_command(
+            "benchmark",
+            "--task",
+            task,
+            "--baselines",
+            baselines,
+            "--run-dir",
+            run_dir,
+            "--sample" if data_mode == "sample" else "--full",
+        )
+        _start_job(st, command, kind="benchmark", task=task, run_dir=run_dir)
+    benchmark_run = _default_benchmark_run()
+    if benchmark_run:
+        st.markdown("**最近可用 Benchmark**")
+        _render_run_summary(st, benchmark_run)
+    jobs = list_jobs(DEFAULT_JOBS_ROOT)
+    if jobs:
+        st.markdown("**后台任务记录**")
+        table = [
+            {
+                "job_id": item.get("job_id"),
+                "kind": item.get("kind"),
+                "task": item.get("task"),
+                "status": item.get("status"),
+                "exit_code": item.get("exit_code"),
+                "run_dir": item.get("run_dir"),
+                "created_at": item.get("created_at"),
+            }
+            for item in jobs[:20]
+        ]
+        st.dataframe(pd.DataFrame(table), width="stretch", hide_index=True)
 
 
 def main() -> None:
     import streamlit as st
 
     st.set_page_config(
-        page_title="轴承寿命预测与故障诊断系统演示台",
+        page_title="轴承 PHM 实验工作台",
         layout="wide",
         initial_sidebar_state="expanded",
     )
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 1.2rem; padding-bottom: 1.4rem; }
-        section[data-testid="stSidebar"] { min-width: 320px; }
-        div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d9e2ec; padding: 0.7rem; border-radius: 6px; }
-        .stTabs [data-baseweb="tab-list"] { gap: 1rem; }
+        .block-container { padding-top: 1rem; padding-bottom: 1.2rem; }
+        section[data-testid="stSidebar"] { min-width: 330px; }
+        div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #d8dee9; padding: 0.65rem; border-radius: 6px; }
+        .stTabs [data-baseweb="tab-list"] { gap: 0.75rem; }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.title("轴承寿命预测与故障诊断系统演示台")
-    st.caption("课堂展示入口：训练 demo、benchmark、模型复推理、上传结构检测。")
+    st.title("轴承 PHM 实验工作台")
+    st.caption("数据加载、模型训练、模型加载、推理评测、Benchmark 和运行记录。")
 
-    task = st.sidebar.radio("任务选择", ["rul", "fault"], format_func=lambda value: "RUL 寿命预测" if value == "rul" else "Fault 故障诊断")
-    train_runs = list_run_directories(command="train", task=task)
-    preferred = st.session_state.get("selected_run_override") or _default_train_run(task)
-    selected_run = _selectbox_runs(st.sidebar, "选择训练 run", train_runs, preferred=Path(preferred) if preferred else None)
-    benchmark_override = st.session_state.get("benchmark_run_override")
-    benchmark_run = Path(benchmark_override) if benchmark_override else _default_benchmark_run()
+    active = _active_job(st)
+    with st.sidebar:
+        _render_job_panel(st, active)
+        if st.button("刷新状态", width="stretch"):
+            st.rerun()
+        last_job_dir = st.session_state.get("last_job_dir")
+        if last_job_dir:
+            job = poll_job(last_job_dir)
+            if job.get("run_dir") and Path(job["run_dir"]).exists() and job.get("status") == "succeeded":
+                st.markdown("**最近输出**")
+                if (Path(job["run_dir"]) / "config.json").exists():
+                    _render_run_summary(st, job["run_dir"])
+                elif (Path(job["run_dir"]) / "metrics.json").exists():
+                    _render_artifact_dir(st, job["run_dir"])
 
-    if st.sidebar.button("加载 RUL 模型复推理", use_container_width=True):
-        _run_reload_action(st, "rul", _default_train_run("rul"))
-    if st.sidebar.button("运行 RUL 训练 Demo", use_container_width=True):
-        _run_train_demo_action(st, "rul")
-    if st.sidebar.button("运行 Benchmark Demo", use_container_width=True):
-        _run_benchmark_demo_action(st)
-    if st.sidebar.button("加载 Fault 模型复推理", use_container_width=True):
-        _run_reload_action(st, "fault", _default_train_run("fault"))
-
-    local_dir = st.sidebar.text_input("本地数据目录检测", value="")
-    uploaded = st.sidebar.file_uploader("上传 zip 或特征 CSV", type=["zip", "csv"])
-
-    overview_tab, train_tab, benchmark_tab, reload_tab, upload_tab = st.tabs(
-        ["系统概览", "训练 Demo", "Benchmark", "加载训练好的模型", "上传数据集"]
+    data_tab, train_tab, model_tab, inference_tab, benchmark_tab = st.tabs(
+        ["数据", "训练", "模型", "推理/评测", "Benchmark/运行记录"]
     )
-
-    with overview_tab:
-        _render_overview(st)
-
+    with data_tab:
+        _render_data_tab(st, active)
     with train_tab:
-        st.subheader("训练 Demo")
-        st.write("现场演示使用 sample/smoke 训练，完整结果从已保存 full run 加载。")
-        if selected_run is not None:
-            selected_summary = summarize_run(selected_run)
-            _show_metrics(st, selected_summary.get("metrics", {}))
-            _show_figures(st, selected_summary.get("figures", {}))
-        if st.button("运行当前任务训练 Demo", use_container_width=True):
-            _run_train_demo_action(st, task)
-            st.rerun()
-
+        _render_training_tab(st, active)
+    with model_tab:
+        _render_model_tab(st)
+    with inference_tab:
+        _render_inference_tab(st, active)
     with benchmark_tab:
-        st.subheader("Benchmark")
-        st.write("默认展示 full benchmark；现场按钮运行 sample baseline 方便演示。")
-        _show_benchmark(st, benchmark_run)
-        if st.button("运行 Sample Benchmark", use_container_width=True):
-            _run_benchmark_demo_action(st)
-            st.rerun()
-
-    with reload_tab:
-        st.subheader("加载训练好的模型")
-        st.write("加载 checkpoint 和 standardizer，在固定测试集重新推理并生成图表。")
-        if selected_run is not None:
-            st.caption(str(selected_run))
-            if st.button("加载当前选择 run 复推理", use_container_width=True):
-                _run_reload_action(st, task, selected_run)
-        result = st.session_state.get("last_result")
-        if result:
-            _show_metrics(
-                st,
-                {
-                    name.upper() if len(name) <= 4 else name: _format_float(value)
-                    for name, value in result.get("metrics", {}).items()
-                    if isinstance(value, (int, float))
-                },
-            )
-            _show_figures(st, {key: Path(value) for key, value in result.get("figures", {}).items()})
-            st.caption(result.get("output_dir", ""))
-
-    with upload_tab:
-        st.subheader("上传数据集")
-        st.write("支持 PHM2012/XJTU-SY 标准 zip 或目录检测；特征 CSV 可在列数匹配时做演示级预测。")
-        inspection: dict[str, Any] | None = None
-        upload_path: Path | None = None
-        if local_dir:
-            candidate = Path(local_dir).expanduser()
-            if candidate.exists():
-                inspection = inspect_uploaded_dataset(candidate)
-                upload_path = candidate
-            else:
-                st.error("本地目录不存在。")
-        if uploaded is not None:
-            temp_root = Path(tempfile.mkdtemp(prefix="phm_gui_upload_"))
-            upload_path = temp_root / uploaded.name
-            upload_path.write_bytes(uploaded.getbuffer())
-            inspection = inspect_uploaded_dataset(upload_path)
-        if inspection:
-            st.json(inspection)
-            if (
-                inspection.get("dataset") == "single_csv"
-                and inspection.get("valid")
-                and selected_run is not None
-                and upload_path is not None
-                and st.button("对特征 CSV 做演示预测", use_container_width=True)
-            ):
-                try:
-                    prediction = predict_feature_csv_with_run(selected_run, upload_path, device_name="auto")
-                except ValueError as exc:
-                    st.error(str(exc))
-                else:
-                    st.success(f"预测完成：{prediction['output_dir']}")
-                    _show_figures(st, {key: Path(value) for key, value in prediction.get("figures", {}).items()})
-
-    st.divider()
-    st.subheader("运行日志与输出目录")
-    logs = st.session_state.get("gui_logs", [])
-    st.code("\n".join(logs[-12:]) if logs else "等待操作。", language="text")
+        _render_benchmark_tab(st, active)
 
 
 if __name__ == "__main__":

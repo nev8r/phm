@@ -12,3 +12,10 @@ cache/
 runs/
 tb_logs/
 Cora/
+outputs/gui/cache/
+outputs/gui/evaluations/
+outputs/gui/jobs/
+outputs/gui/predictions/
+outputs/gui/recordings/tmp/
+outputs/gui/recordings/*_preview.png
+outputs/gui/uploads/

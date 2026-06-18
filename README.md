@@ -63,10 +63,10 @@ uv run phm train --task rul --preset paper --full --device auto
 uv run phm train --task fault --preset paper --full --device auto
 uv run phm benchmark --task all --baselines all --full
 uv run phm gui --port 8501
-uv run python scripts/record_gui_demo.py
+uv run python scripts/record_gui_workbench.py
 ```
 
-GUI 用于课堂演示：可以加载已训练模型复推理、运行 sample 训练 demo、展示 benchmark、检测上传数据结构；录屏输出在 `outputs/gui_demo/`。
+GUI 是本地实验工作台：支持数据根目录检测、特征缓存构建、模型训练、模型加载、固定测试集评测、特征 CSV 推理和 benchmark；录屏 smoke 输出在 `outputs/gui/recordings/`。
 
 
 ## 📚 论文复现

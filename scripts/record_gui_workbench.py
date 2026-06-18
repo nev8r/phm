@@ -1,7 +1,7 @@
 """
-Record the classroom Streamlit GUI demo
+Record the Streamlit GUI workbench smoke flow
 
-this file is for driving the local GUI with Playwright and saving a demo video
+this file is for driving the local GUI with Playwright and saving a workbench video
 
 created by zy
 
@@ -13,6 +13,7 @@ copyright USTC
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -73,18 +74,50 @@ def _install_chromium_if_needed() -> None:
     subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
 
 
-def _click_and_wait(page, role_name: str, done_text: str, timeout_ms: int = 180_000) -> None:
-    existing_count = page.locator("body").inner_text(timeout=30_000).count(done_text)
+def _latest_job(project_root: Path, kind: str, since: float) -> dict | None:
+    jobs_root = project_root / "outputs" / "gui" / "jobs"
+    if not jobs_root.exists():
+        return None
+    candidates = []
+    for job_path in jobs_root.glob("*/job.json"):
+        if job_path.stat().st_mtime < since - 2:
+            continue
+        try:
+            job = json.loads(job_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if job.get("kind") == kind:
+            candidates.append((job_path.stat().st_mtime, job))
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda item: item[0], reverse=True)[0][1]
+
+
+def _click_and_wait_job(page, project_root: Path, role_name: str, kind: str, timeout_seconds: int = 180) -> dict:
+    started = time.time()
     page.get_by_role("button", name=role_name).click(timeout=30_000)
-    page.wait_for_function(
-        "([text, count]) => document.body.innerText.split(text).length - 1 > count",
-        arg=[done_text, existing_count],
-        timeout=timeout_ms,
-    )
-    page.wait_for_timeout(1_000)
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        job = _latest_job(project_root, kind, started)
+        if job and job.get("status") in {"succeeded", "failed"}:
+            if job.get("status") != "succeeded":
+                raise RuntimeError(f"{kind} job failed: {job}")
+            page.wait_for_timeout(1_000)
+            return job
+        page.wait_for_timeout(500)
+    raise TimeoutError(f"{kind} job did not finish within {timeout_seconds} seconds")
 
 
-def _record_browser(url: str, video_dir: Path, minimum_seconds: int) -> Path:
+def _assert_evaluation_uses_training_run(project_root: Path, train_job: dict, evaluate_job: dict) -> None:
+    metrics_path = project_root / str(evaluate_job["run_dir"]) / "metrics.json"
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    expected = str(train_job["run_dir"])
+    actual = str(metrics.get("source_run", ""))
+    if actual != expected:
+        raise AssertionError(f"evaluation source run mismatch: {actual} != {expected}")
+
+
+def _record_browser(url: str, project_root: Path, video_dir: Path, minimum_seconds: int) -> Path:
     from playwright.sync_api import Error, sync_playwright
 
     video_tmp = video_dir / "tmp"
@@ -105,12 +138,20 @@ def _record_browser(url: str, video_dir: Path, minimum_seconds: int) -> Path:
         )
         page = context.new_page()
         page.goto(url, wait_until="networkidle", timeout=120_000)
-        page.get_by_text("系统概览").first.wait_for(timeout=60_000)
+        page.get_by_text("轴承 PHM 实验工作台").first.wait_for(timeout=60_000)
         page.wait_for_timeout(2_000)
-        _click_and_wait(page, "加载 RUL 模型复推理", "复推理完成")
-        _click_and_wait(page, "运行 RUL 训练 Demo", "训练 demo 完成")
-        _click_and_wait(page, "运行 Benchmark Demo", "benchmark demo 完成")
-        _click_and_wait(page, "加载 Fault 模型复推理", "复推理完成")
+        page.get_by_role("tab", name="数据").click()
+        page.get_by_text("PHM2012 根目录").first.wait_for(timeout=30_000)
+        page.get_by_role("tab", name="训练").click()
+        page.get_by_text("训练").first.wait_for(timeout=30_000)
+        train_job = _click_and_wait_job(page, project_root, "开始训练", "train")
+        page.get_by_role("tab", name="推理/评测").click()
+        page.get_by_text("推理与评测").first.wait_for(timeout=30_000)
+        evaluate_job = _click_and_wait_job(page, project_root, "运行固定测试集评测", "evaluate")
+        _assert_evaluation_uses_training_run(project_root, train_job, evaluate_job)
+        page.get_by_role("tab", name="Benchmark/运行记录").click()
+        page.get_by_text("Benchmark 与运行记录").first.wait_for(timeout=30_000)
+        _click_and_wait_job(page, project_root, "运行 Benchmark", "benchmark")
         remaining = minimum_seconds - int(time.monotonic() - started)
         if remaining > 0:
             page.wait_for_timeout(remaining * 1000)
@@ -121,7 +162,7 @@ def _record_browser(url: str, video_dir: Path, minimum_seconds: int) -> Path:
             raise RuntimeError("Playwright did not produce a video artifact")
         source = Path(video.path())
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    target = video_dir / f"{timestamp}_phm_gui_demo.webm"
+    target = video_dir / f"{timestamp}_phm_workbench_smoke.webm"
     source.replace(target)
     return target
 
@@ -153,10 +194,10 @@ def _convert_to_mp4(webm_path: Path) -> Path | None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Record the local PHM Streamlit GUI demo.")
+    parser = argparse.ArgumentParser(description="Record the local PHM Streamlit GUI workbench smoke flow.")
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=8501)
-    parser.add_argument("--output-dir", default="outputs/gui_demo")
+    parser.add_argument("--output-dir", default="outputs/gui/recordings")
     parser.add_argument("--minimum-seconds", type=int, default=35)
     return parser.parse_args()
 
@@ -170,7 +211,7 @@ def main() -> None:
     process = _start_gui(project_root, args.host, args.port)
     try:
         _wait_for_server(url, timeout_seconds=90)
-        webm_path = _record_browser(url, output_dir, args.minimum_seconds)
+        webm_path = _record_browser(url, project_root, output_dir, args.minimum_seconds)
         mp4_path = _convert_to_mp4(webm_path)
         print(f"webm={webm_path}")
         if mp4_path is not None:

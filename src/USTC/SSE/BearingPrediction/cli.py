@@ -34,6 +34,9 @@ from .analysis import (
     write_json,
 )
 from .workflow import run_benchmark as run_benchmark_workflow
+from .workflow import build_or_load_feature_cache
+from .workflow import evaluate_saved_training_run
+from .workflow import predict_feature_csv_with_run
 from .workflow import run_paper_training
 
 
@@ -51,6 +54,14 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--sample", action="store_true", help="run a small deterministic smoke analysis")
     analyze.add_argument("--output-dir", default="outputs/runs", help="directory for run artifacts")
 
+    cache = subparsers.add_parser("cache", help="build or inspect paper feature caches")
+    cache.add_argument("--task", choices=["rul", "fault", "all"], default="all")
+    cache.add_argument("--force", action="store_true", help="rebuild cache even when it already exists")
+    cache.add_argument("--phm-root", default=None, help="PHM2012 root directory")
+    cache.add_argument("--xjtu-root", default=None, help="XJTU-SY root directory")
+    cache.add_argument("--output-dir", default="outputs/gui/cache", help="directory for cache job artifacts")
+    cache.add_argument("--run-dir", default=None, help="explicit directory for this cache job")
+
     train = subparsers.add_parser("train", help="train a paper reproduction model")
     train.add_argument("--task", choices=["rul", "fault"], required=True)
     train.add_argument("--preset", choices=["paper", "smoke"], default="paper")
@@ -58,6 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--sample", action="store_true", help="run a short smoke training job")
     train.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     train.add_argument("--output-dir", default="outputs/runs", help="directory for run artifacts")
+    train.add_argument("--run-dir", default=None, help="explicit directory for this training run")
 
     benchmark = subparsers.add_parser("benchmark", help="compare baselines with shared splits and metrics")
     benchmark.add_argument("--task", choices=["rul", "fault", "all"], default="all")
@@ -65,11 +77,23 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--full", action="store_true", help="run full baseline matrix")
     benchmark.add_argument("--sample", action="store_true", help="run short smoke baselines")
     benchmark.add_argument("--output-dir", default="outputs/runs", help="directory for run artifacts")
+    benchmark.add_argument("--run-dir", default=None, help="explicit directory for this benchmark run")
 
     report = subparsers.add_parser("report", help="summarize a previous PHM run")
     report.add_argument("--run", required=True, help="path to outputs/runs/<run_id>")
 
-    gui = subparsers.add_parser("gui", help="launch the local Streamlit classroom demo GUI")
+    evaluate = subparsers.add_parser("evaluate", help="reload a training run and evaluate the fixed test split")
+    evaluate.add_argument("--run", required=True, help="training run directory")
+    evaluate.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
+    evaluate.add_argument("--output-dir", default=None, help="directory for evaluation artifacts")
+
+    predict = subparsers.add_parser("predict", help="run feature CSV inference with a saved training run")
+    predict.add_argument("--run", required=True, help="training run directory")
+    predict.add_argument("--csv", required=True, help="feature CSV path")
+    predict.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
+    predict.add_argument("--output-dir", default=None, help="directory for prediction artifacts")
+
+    gui = subparsers.add_parser("gui", help="launch the local Streamlit experiment workbench")
     gui.add_argument("--port", type=int, default=8501, help="Streamlit server port")
     gui.add_argument("--host", default="localhost", help="Streamlit bind address")
     gui.add_argument("--headless", action=argparse.BooleanOptionalAction, default=True, help="run Streamlit headless")
@@ -212,7 +236,7 @@ def _run_analyze(args: argparse.Namespace) -> int:
 
 
 def _run_train(args: argparse.Namespace) -> int:
-    run_dir = _new_run_dir(args.output_dir, "train", args.task)
+    run_dir = Path(args.run_dir) if args.run_dir else _new_run_dir(args.output_dir, "train", args.task)
     run_paper_training(
         task=args.task,
         preset=args.preset,
@@ -220,17 +244,44 @@ def _run_train(args: argparse.Namespace) -> int:
         device_name=args.device,
         run_dir=run_dir,
     )
+    print(f"run_dir={run_dir}")
     return 0
 
 
 def _run_benchmark(args: argparse.Namespace) -> int:
-    run_dir = _new_run_dir(args.output_dir, "benchmark", args.task)
+    run_dir = Path(args.run_dir) if args.run_dir else _new_run_dir(args.output_dir, "benchmark", args.task)
     run_benchmark_workflow(
         task=args.task,
         baselines=args.baselines,
         sample=bool(args.sample or not args.full),
         run_dir=run_dir,
     )
+    print(f"run_dir={run_dir}")
+    return 0
+
+
+def _run_cache(args: argparse.Namespace) -> int:
+    run_dir = Path(args.run_dir) if args.run_dir else _new_run_dir(args.output_dir, "cache", args.task)
+    tasks = _task_list(args.task)
+    results = {}
+    for task in tasks:
+        results[task] = build_or_load_feature_cache(
+            task,
+            force=bool(args.force),
+            phm_root=args.phm_root,
+            xjtu_root=args.xjtu_root,
+        )
+    config = {
+        "command": "cache",
+        "task": args.task,
+        "force": bool(args.force),
+        "phm_root": args.phm_root,
+        "xjtu_root": args.xjtu_root,
+    }
+    metrics = {"command": "cache", "task": args.task, "results": results}
+    write_json(run_dir / "config.json", config)
+    write_json(run_dir / "metrics.json", metrics)
+    print(f"run_dir={run_dir}")
     return 0
 
 
@@ -242,6 +293,27 @@ def _run_report(args: argparse.Namespace) -> int:
     metrics = run / "metrics.json"
     text = f"PHM run: {run}\nmetrics: {metrics if metrics.exists() else 'missing'}\n"
     summary.write_text(text, encoding="utf-8")
+    return 0
+
+
+def _run_evaluate(args: argparse.Namespace) -> int:
+    result = evaluate_saved_training_run(
+        args.run,
+        device_name=args.device,
+        output_dir=args.output_dir,
+    )
+    print(f"output_dir={result['output_dir']}")
+    return 0
+
+
+def _run_predict(args: argparse.Namespace) -> int:
+    result = predict_feature_csv_with_run(
+        args.run,
+        args.csv,
+        device_name=args.device,
+        output_dir=args.output_dir,
+    )
+    print(f"output_dir={result['output_dir']}")
     return 0
 
 
@@ -272,12 +344,18 @@ def run_cli(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "analyze":
         return _run_analyze(args)
+    if args.command == "cache":
+        return _run_cache(args)
     if args.command == "train":
         return _run_train(args)
     if args.command == "benchmark":
         return _run_benchmark(args)
     if args.command == "report":
         return _run_report(args)
+    if args.command == "evaluate":
+        return _run_evaluate(args)
+    if args.command == "predict":
+        return _run_predict(args)
     if args.command == "gui":
         return _run_gui(args)
     raise ValueError(f"unknown command: {args.command}")
@@ -285,6 +363,10 @@ def run_cli(argv: list[str] | None = None) -> int:
 
 def main() -> None:
     raise SystemExit(run_cli())
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
