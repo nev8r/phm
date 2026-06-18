@@ -123,6 +123,28 @@ class PhmGuiSupportTest(unittest.TestCase):
             self.assertIn("PHM2012 RUL 特征相关性热力图", titles)
             self.assertIn("XJTU-SY Fault 特征排序", titles)
 
+    def test_feature_gallery_uses_tsfresh_figures_for_tsfresh_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_dir = root / "20260618_140000_analyze_rul"
+            figures = run_dir / "figures"
+            figures.mkdir(parents=True)
+            (run_dir / "config.json").write_text(
+                json.dumps({"command": "analyze", "task": "rul", "feature_set": "tsfresh", "sample": True}),
+                encoding="utf-8",
+            )
+            (figures / "rul_feature_heatmap.png").write_bytes(b"domain")
+            (figures / "rul_tsfresh_minimal_rank.png").write_bytes(b"tsfresh")
+            (figures / "rul_tsfresh_minimal_profile.png").write_bytes(b"profile")
+
+            gallery = collect_feature_gallery(output_root=root, fallback_root=root / "missing")
+
+            titles = {item["title"] for item in gallery["figures"]}
+            paths = {Path(item["path"]).name for item in gallery["figures"]}
+            self.assertIn("PHM2012 RUL tsfresh Minimal 自动特征排序", titles)
+            self.assertIn("rul_tsfresh_minimal_rank.png", paths)
+            self.assertNotIn("rul_feature_heatmap.png", paths)
+
     def test_dataset_root_inspection_reports_local_roots_and_cache_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

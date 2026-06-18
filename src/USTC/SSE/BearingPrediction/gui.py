@@ -47,6 +47,20 @@ FEATURE_GALLERY_SPECS = [
     ("fault_feature_heatmap.png", "XJTU-SY Fault 特征相关性热力图", "XJTU-SY"),
     ("fault_feature_rank.png", "XJTU-SY Fault 特征排序", "XJTU-SY"),
 ]
+TSFRESH_GALLERY_SPECS = {
+    "tsfresh": [
+        ("rul_tsfresh_minimal_rank.png", "PHM2012 RUL tsfresh Minimal 自动特征排序", "PHM2012"),
+        ("rul_tsfresh_minimal_profile.png", "PHM2012 RUL tsfresh Minimal 审计规模", "PHM2012"),
+        ("fault_tsfresh_minimal_rank.png", "XJTU-SY Fault tsfresh Minimal 自动特征排序", "XJTU-SY"),
+        ("fault_tsfresh_minimal_profile.png", "XJTU-SY Fault tsfresh Minimal 审计规模", "XJTU-SY"),
+    ],
+    "advanced": [
+        ("rul_tsfresh_efficient_rank.png", "PHM2012 RUL tsfresh Efficient 自动特征排序", "PHM2012"),
+        ("rul_tsfresh_efficient_profile.png", "PHM2012 RUL tsfresh Efficient 审计规模", "PHM2012"),
+        ("fault_tsfresh_efficient_rank.png", "XJTU-SY Fault tsfresh Efficient 自动特征排序", "XJTU-SY"),
+        ("fault_tsfresh_efficient_profile.png", "XJTU-SY Fault tsfresh Efficient 审计规模", "XJTU-SY"),
+    ],
+}
 FALLBACK_FEATURE_GALLERY_SPECS = [
     ("feature_analysis.png", "PHM2012 RUL 特征分析", "PHM2012"),
     ("xjtu_feature_analysis.png", "XJTU-SY Fault 特征分析", "XJTU-SY"),
@@ -324,8 +338,11 @@ def collect_feature_gallery(
     for run in list_run_directories(output_root, command="analyze"):
         run_dir = Path(run["path"])
         figure_dir = run_dir / "figures"
+        config = _load_json(run_dir / "config.json")
+        feature_set = str(config.get("feature_set", "domain"))
+        specs = TSFRESH_GALLERY_SPECS.get(feature_set, FEATURE_GALLERY_SPECS)
         current = []
-        for filename, title, dataset in FEATURE_GALLERY_SPECS:
+        for filename, title, dataset in specs:
             path = figure_dir / filename
             if path.exists():
                 current.append({"title": title, "dataset": dataset, "path": str(path)})

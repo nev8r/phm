@@ -30,6 +30,7 @@ from .analysis import (
     compute_tsfresh_audit,
     render_feature_figures,
     render_model_architecture_diagrams,
+    render_tsfresh_audit_figures,
     task_relationship_summary,
     write_json,
 )
@@ -217,13 +218,19 @@ def _run_analyze(args: argparse.Namespace) -> int:
             max_domain_features=tsfresh_max_features,
         )
         feature_figures = render_feature_figures(figures_dir, analysis, feature_names, prefix=task)
+        tsfresh_figures = {}
+        if args.feature_set in {"tsfresh", "advanced"}:
+            tsfresh_figures = render_tsfresh_audit_figures(figures_dir, tsfresh_audit, prefix=task)
         metrics["analyses"][task] = {
             "source": source_meta,
             "feature_names": feature_names,
             "summary": _compact_feature_analysis_for_json(analysis),
             "tsfresh_audit": tsfresh_audit,
         }
-        metrics["figures"][task] = feature_figures
+        metrics["figures"][task] = {
+            "domain": feature_figures,
+            "tsfresh_audit": tsfresh_figures,
+        }
 
     config = {
         "command": "analyze",

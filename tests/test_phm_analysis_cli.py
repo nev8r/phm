@@ -24,6 +24,7 @@ from USTC.SSE.BearingPrediction.analysis import (
     compute_rul_labels,
     compute_tsfresh_audit,
     render_model_architecture_diagrams,
+    render_tsfresh_audit_figures,
     task_relationship_summary,
 )
 from USTC.SSE.BearingPrediction.cli import build_parser, run_cli
@@ -132,9 +133,9 @@ class PhmAnalysisCliTest(unittest.TestCase):
             code = run_cli([
                 "analyze",
                 "--task",
-                "all",
+                "rul",
                 "--feature-set",
-                "domain",
+                "tsfresh",
                 "--sample",
                 "--run-dir",
                 str(run_dir),
@@ -143,6 +144,28 @@ class PhmAnalysisCliTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertTrue((run_dir / "config.json").exists())
             self.assertTrue((run_dir / "figures" / "rul_feature_heatmap.png").exists())
+            self.assertTrue((run_dir / "figures" / "rul_tsfresh_minimal_rank.png").exists())
+
+    def test_tsfresh_audit_figures_use_mode_specific_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = {
+                "mode": "efficient",
+                "series_count": 4,
+                "selected_domain_feature_count": 6,
+                "extracted_feature_count": 42,
+                "elapsed_seconds": 1.25,
+                "estimated_input_memory_mb": 0.5,
+                "top_correlated_tsfresh_features": [
+                    {"feature": "rms__mean", "abs_pearson": 0.91},
+                    {"feature": "entropy__variance", "abs_pearson": 0.76},
+                ],
+            }
+
+            paths = render_tsfresh_audit_figures(Path(tmp), audit, prefix="fault")
+
+            self.assertEqual(paths["rank"].name, "fault_tsfresh_efficient_rank.png")
+            self.assertEqual(paths["profile"].name, "fault_tsfresh_efficient_profile.png")
+            self.assertGreater(paths["rank"].stat().st_size, 1000)
 
     def test_cli_parser_exposes_required_subcommands(self):
         parser = build_parser()

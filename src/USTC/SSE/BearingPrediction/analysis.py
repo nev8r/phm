@@ -477,6 +477,64 @@ def render_feature_figures(
     return {"ranking": ranking_path, "heatmap": heatmap_path}
 
 
+def render_tsfresh_audit_figures(
+    output_dir: Path | str,
+    audit: dict[str, Any],
+    *,
+    prefix: str,
+) -> dict[str, Path]:
+    """Render mode-specific tsfresh audit figures."""
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    mode = str(audit.get("mode", "minimal"))
+    ranking = list(audit.get("top_correlated_tsfresh_features", []))
+    top_items = ranking[: min(12, len(ranking))]
+
+    rank_path = out / f"{prefix}_tsfresh_{mode}_rank.png"
+    fig, ax = plt.subplots(figsize=(8.8, 4.6))
+    names = [str(item.get("feature", "")) for item in reversed(top_items)]
+    values = [float(item.get("abs_pearson", 0.0)) for item in reversed(top_items)]
+    if names:
+        ax.barh(names, values, color="#0f766e")
+    else:
+        ax.text(0.5, 0.5, "No tsfresh features", ha="center", va="center", transform=ax.transAxes)
+    ax.set_xlabel("|Pearson correlation with target|")
+    ax.set_title(f"{prefix.upper()} tsfresh {mode} feature relevance")
+    ax.set_xlim(0.0, max(1.0, max(values, default=0.0) * 1.05))
+    ax.tick_params(axis="y", labelsize=7)
+    fig.tight_layout()
+    fig.savefig(rank_path, dpi=180)
+    plt.close(fig)
+
+    profile_path = out / f"{prefix}_tsfresh_{mode}_profile.png"
+    profile = {
+        "selected domain": float(audit.get("selected_domain_feature_count", 0)),
+        "extracted tsfresh": float(audit.get("extracted_feature_count", 0)),
+        "series": float(audit.get("series_count", 0)),
+        "memory MB": float(audit.get("estimated_input_memory_mb", 0.0)),
+        "seconds": float(audit.get("elapsed_seconds", 0.0)),
+    }
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    labels = list(profile)
+    values = list(profile.values())
+    ax.bar(labels, values, color=["#2563eb", "#0f766e", "#7c3aed", "#ea580c", "#dc2626"])
+    ax.set_title(f"{prefix.upper()} tsfresh {mode} audit profile")
+    ax.set_ylabel("count / MB / seconds")
+    ax.tick_params(axis="x", labelrotation=20)
+    for index, value in enumerate(values):
+        ax.text(index, value, f"{value:.2g}", ha="center", va="bottom", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(profile_path, dpi=180)
+    plt.close(fig)
+    return {"rank": rank_path, "profile": profile_path}
+
+
 def render_model_architecture_diagrams(output_dir: Path | str) -> dict[str, Path]:
     """Generate stable PNG architecture diagrams without Graphviz."""
 
