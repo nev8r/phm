@@ -1,0 +1,16 @@
+name: linear_rul
+enabled: true
+version: v1
+
+requires_features: false
+
+outputs:
+  - type: linear_rul
+    name: linear_rul
+    params:
+      normalize: true
+      output_steps: true
+      output_seconds: true
+
+store:
+  write_csv: true

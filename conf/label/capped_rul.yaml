@@ -1,0 +1,17 @@
+name: capped_rul
+enabled: true
+version: v1
+
+requires_features: false
+
+outputs:
+  - type: capped_rul
+    name: capped_rul
+    params:
+      max_rul_steps: 125
+      normalize: true
+      output_steps: true
+      output_seconds: true
+
+store:
+  write_csv: true

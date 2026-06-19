@@ -74,6 +74,10 @@ def run_validate_cli(cfg: DictConfig) -> None:
         run_extract_features(cfg, context)
         return
 
+    if mode == "build_labels":
+        run_build_labels(cfg, context)
+        return
+
     stage = STAGE_FOR_MODE.get(mode, "a later stage")
     raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
 
@@ -84,12 +88,41 @@ def run_build_index(cfg: DictConfig, context: RunContext) -> None:
 
 
 def run_extract_features(cfg: DictConfig, context: RunContext) -> None:
+    index, split = build_index_artifacts(cfg, context)
+    build_feature_artifacts(cfg, context, index, split)
+    print(f"Feature extraction succeeded. Run directory: {context.run_dir}")
+
+
+def run_build_labels(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.infra.label.LabelBuilder import LabelBuilder
+    from USTC.SSE.BearingPrediction.infra.label.LabelStore import LabelStore
+
+    index, split = build_index_artifacts(cfg, context)
+    raw_features = None
+    cleaned_features = None
+    if bool(OmegaConf.select(cfg, "label.requires_features", default=False)):
+        raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
+
+    labels, label_spec, label_report, hi, fpt = LabelBuilder(cfg.label).build(
+        index=index,
+        raw_features=raw_features,
+        cleaned_features=cleaned_features,
+        split=split,
+    )
+    store = LabelStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "label.store.write_csv", default=True)),
+    )
+    store.save(labels, label_spec, label_report, hi=hi, fpt=fpt)
+    print(f"Label build succeeded. Run directory: {context.run_dir}")
+
+
+def build_feature_artifacts(cfg: DictConfig, context: RunContext, index, split):
     from USTC.SSE.BearingPrediction.infra.feature.FeatureCleaner import FeatureCleaner
     from USTC.SSE.BearingPrediction.infra.feature.FeatureExtractor import FeatureExtractor
     from USTC.SSE.BearingPrediction.infra.feature.FeatureReport import build_feature_report
     from USTC.SSE.BearingPrediction.infra.feature.FeatureStore import FeatureStore
 
-    index, split = build_index_artifacts(cfg, context)
     raw_features, feature_spec, backend_reports = FeatureExtractor(cfg.feature).extract(index)
     cleaner = FeatureCleaner(cfg.feature.cleaner)
     train_sample_uids = split.train_sample_uids if split is not None else None
@@ -108,7 +141,7 @@ def run_extract_features(cfg: DictConfig, context: RunContext) -> None:
         write_csv=bool(OmegaConf.select(cfg, "feature.store.write_csv", default=True)),
     )
     store.save(raw_features, cleaned_features, feature_spec, feature_report, cleaner.state_dict())
-    print(f"Feature extraction succeeded. Run directory: {context.run_dir}")
+    return raw_features, cleaned_features, feature_spec, feature_report
 
 
 def build_index_artifacts(cfg: DictConfig, context: RunContext):

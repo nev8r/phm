@@ -1,0 +1,1 @@
+"""Degradation infrastructure tests."""

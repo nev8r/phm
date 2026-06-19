@@ -1,0 +1,41 @@
+name: health_state_fpt
+enabled: true
+version: v1
+
+requires_features: true
+
+hi:
+  method: feature_column
+  source_column_candidates:
+    - mag__time__rms
+    - h__time__rms
+    - v__time__rms
+  smooth:
+    enabled: true
+    window: 3
+  direction: bad_high
+  normalize_per_bearing: true
+
+fpt:
+  method: three_sigma
+  healthy_ratio: 0.2
+  sigma_ratio: 3.0
+  min_delta: 0.0
+  consecutive_points: 3
+  fallback: healthy_ratio
+
+outputs:
+  - type: health_state
+    name: health_state
+    params:
+      state_names:
+        0: healthy
+        1: slight
+        2: moderate
+        3: severe
+      post_fpt_boundaries:
+        - 0.4
+        - 0.8
+
+store:
+  write_csv: true

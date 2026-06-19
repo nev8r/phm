@@ -1,0 +1,70 @@
+name: degradation_basic
+enabled: true
+version: v1
+
+requires_features: true
+
+hi:
+  method: feature_column
+  source_column_candidates:
+    - mag__time__rms
+    - h__time__rms
+    - v__time__rms
+  smooth:
+    enabled: true
+    window: 3
+  direction: bad_high
+  normalize_per_bearing: true
+
+fpt:
+  method: three_sigma
+  healthy_ratio: 0.2
+  sigma_ratio: 3.0
+  min_delta: 0.0
+  consecutive_points: 3
+  fallback: healthy_ratio
+
+outputs:
+  - type: linear_rul
+    name: linear_rul
+    params:
+      normalize: true
+      output_steps: true
+      output_seconds: true
+
+  - type: piecewise_rul
+    name: piecewise_rul
+    params:
+      normalize: true
+      output_steps: true
+      output_seconds: true
+
+  - type: health_state
+    name: health_state
+    params:
+      state_names:
+        0: healthy
+        1: slight
+        2: moderate
+        3: severe
+      post_fpt_boundaries:
+        - 0.4
+        - 0.8
+
+  - type: early_fault
+    name: early_fault
+    params:
+      normal_value: 0
+      abnormal_value: 1
+
+  - type: fault_type_stage
+    name: fault_type_stage
+    params:
+      enabled_for_dataset:
+        - XJTU-SY
+      severe_state_id: 3
+      normal_label: normal
+      degraded_label: degraded_unknown
+
+store:
+  write_csv: true
