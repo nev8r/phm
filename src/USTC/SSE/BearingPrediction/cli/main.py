@@ -70,11 +70,48 @@ def run_validate_cli(cfg: DictConfig) -> None:
         run_build_index(cfg, context)
         return
 
+    if mode == "extract_features":
+        run_extract_features(cfg, context)
+        return
+
     stage = STAGE_FOR_MODE.get(mode, "a later stage")
     raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
 
 
 def run_build_index(cfg: DictConfig, context: RunContext) -> None:
+    build_index_artifacts(cfg, context)
+    print(f"Index build succeeded. Run directory: {context.run_dir}")
+
+
+def run_extract_features(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.infra.feature.FeatureCleaner import FeatureCleaner
+    from USTC.SSE.BearingPrediction.infra.feature.FeatureExtractor import FeatureExtractor
+    from USTC.SSE.BearingPrediction.infra.feature.FeatureReport import build_feature_report
+    from USTC.SSE.BearingPrediction.infra.feature.FeatureStore import FeatureStore
+
+    index, split = build_index_artifacts(cfg, context)
+    raw_features, feature_spec, backend_reports = FeatureExtractor(cfg.feature).extract(index)
+    cleaner = FeatureCleaner(cfg.feature.cleaner)
+    train_sample_uids = split.train_sample_uids if split is not None else None
+    cleaned_features = cleaner.fit_transform(raw_features, train_sample_uids=train_sample_uids)
+    cleaner_fit_scope = "train_only" if split is not None else "all_no_split"
+    feature_report = build_feature_report(
+        raw_features=raw_features,
+        cleaned_features=cleaned_features,
+        feature_set=str(cfg.feature.name),
+        backend_reports=backend_reports,
+        cleaner=cleaner,
+        cleaner_fit_scope=cleaner_fit_scope,
+    )
+    store = FeatureStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "feature.store.write_csv", default=True)),
+    )
+    store.save(raw_features, cleaned_features, feature_spec, feature_report, cleaner.state_dict())
+    print(f"Feature extraction succeeded. Run directory: {context.run_dir}")
+
+
+def build_index_artifacts(cfg: DictConfig, context: RunContext):
     from USTC.SSE.BearingPrediction.infra.index.IndexBuilder import IndexBuilder
     from USTC.SSE.BearingPrediction.infra.index.IndexValidator import IndexValidator
     from USTC.SSE.BearingPrediction.infra.split.SplitRegistry import build_splitter
@@ -86,14 +123,14 @@ def run_build_index(cfg: DictConfig, context: RunContext) -> None:
     index.to_csv(context.artifacts.path("index/sample_index.csv"), index=False)
     context.artifacts.write_json("index/index_report.json", index_report)
 
+    split = None
     if bool(OmegaConf.select(cfg, "split.enabled", default=False)):
         splitter = build_splitter(cfg.split)
         split = splitter.split(index)
         context.artifacts.mkdir("split")
         context.artifacts.write_json("split/split.json", split.to_dict())
         context.artifacts.write_json("split/split_report.json", split.report())
-
-    print(f"Index build succeeded. Run directory: {context.run_dir}")
+    return index, split
 
 
 def parse_cli_args(argv: Sequence[str]) -> Tuple[str, List[str]]:

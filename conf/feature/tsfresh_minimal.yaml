@@ -1,0 +1,25 @@
+name: tsfresh_minimal
+enabled: true
+version: v1
+
+backends:
+  - name: tsfresh_minimal
+    type: tsfresh
+    params:
+      fc_parameters: minimal
+      n_jobs: 0
+      chunksize: null
+      disable_progressbar: true
+      include_magnitude: false
+      prefix: tsfresh
+
+cleaner:
+  enabled: true
+  imputer: median
+  scaler: standard
+  drop_constant: true
+  constant_threshold: 1.0e-12
+  fit_scope: train_only
+
+store:
+  write_csv: true

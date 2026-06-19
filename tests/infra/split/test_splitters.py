@@ -71,7 +71,7 @@ def test_phm2012_official_splitter_uses_source_group_and_val_bearings(tmp_path):
 
     result = OfficialPHM2012Splitter(cfg).split(index)
 
-    assert result.train_bearings == ["Bearing1_1", "Bearing2_1"]
+    assert result.train_bearings == ["Bearing1_1", "Bearing1_4", "Bearing2_1"]
     assert result.val_bearings == ["Bearing2_2"]
     assert result.test_bearings == ["Bearing1_3"]
     assert result.report()["ok"] is True

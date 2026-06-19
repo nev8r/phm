@@ -1,5 +1,5 @@
 """
-Test the Stage 1 build_index CLI.
+Test the Stage 2 extract_features CLI.
 """
 
 import json
@@ -11,7 +11,7 @@ import pandas as pd
 from tests.infra.dataset_fixtures import create_fake_phm2012_root, create_fake_xjtu_root
 
 
-def test_cli_build_index_writes_xjtu_index_and_split_artifacts(tmp_path):
+def test_cli_extract_features_writes_manual_feature_artifacts_with_split(tmp_path):
     dataset_root = create_fake_xjtu_root(tmp_path / "xjtu")
     artifact_root = tmp_path / "artifacts"
     bp = shutil.which("bp")
@@ -21,9 +21,10 @@ def test_cli_build_index_writes_xjtu_index_and_split_artifacts(tmp_path):
             bp,
             "--config-name",
             "smoke",
-            "mode=build_index",
+            "mode=extract_features",
             "dataset=xjtu_sy",
             "split=xjtu_leave_one_bearing_out",
+            "feature=manual_basic",
             f"dataset.root={dataset_root}",
             f"project.artifact_root={artifact_root}",
             "split.condition_id=35Hz12kN",
@@ -37,19 +38,21 @@ def test_cli_build_index_writes_xjtu_index_and_split_artifacts(tmp_path):
 
     assert result.returncode == 0, result.stderr
     run_dir = sorted((artifact_root / "runs").iterdir())[0]
-    index = pd.read_parquet(run_dir / "index" / "sample_index.parquet")
-    index_report = json.loads((run_dir / "index" / "index_report.json").read_text())
-    split = json.loads((run_dir / "split" / "split.json").read_text())
-    split_report = json.loads((run_dir / "split" / "split_report.json").read_text())
+    raw = pd.read_parquet(run_dir / "features" / "raw_features.parquet")
+    cleaned = pd.read_parquet(run_dir / "features" / "cleaned_features.parquet")
+    report = json.loads((run_dir / "features" / "feature_report.json").read_text())
 
-    assert len(index) == 7
-    assert (run_dir / "index" / "sample_index.csv").exists()
-    assert index_report["ok"] is True
-    assert split["test_bearings"] == ["Bearing1_5"]
-    assert split_report["ok"] is True
+    assert (run_dir / "index" / "sample_index.parquet").exists()
+    assert (run_dir / "split" / "split.json").exists()
+    assert (run_dir / "features" / "feature_spec.json").exists()
+    assert (run_dir / "features" / "cleaner_state.pkl").exists()
+    assert len(raw) == 7
+    assert len(cleaned) == 7
+    assert report["ok"] is True
+    assert report["cleaner_fit_scope"] == "train_only"
 
 
-def test_cli_build_index_writes_phm2012_index_without_split(tmp_path):
+def test_cli_extract_features_writes_tsfresh_features_without_split(tmp_path):
     dataset_root = create_fake_phm2012_root(tmp_path / "phm2012")
     artifact_root = tmp_path / "artifacts"
     bp = shutil.which("bp")
@@ -59,9 +62,10 @@ def test_cli_build_index_writes_phm2012_index_without_split(tmp_path):
             bp,
             "--config-name",
             "smoke",
-            "mode=build_index",
+            "mode=extract_features",
             "dataset=phm2012",
             "split=none",
+            "feature=tsfresh_minimal",
             f"dataset.root={dataset_root}",
             f"project.artifact_root={artifact_root}",
         ],
@@ -72,9 +76,9 @@ def test_cli_build_index_writes_phm2012_index_without_split(tmp_path):
 
     assert result.returncode == 0, result.stderr
     run_dir = sorted((artifact_root / "runs").iterdir())[0]
-    index = pd.read_csv(run_dir / "index" / "sample_index.csv")
-    index_report = json.loads((run_dir / "index" / "index_report.json").read_text())
+    report = json.loads((run_dir / "features" / "feature_report.json").read_text())
+    cleaned = pd.read_parquet(run_dir / "features" / "cleaned_features.parquet")
 
-    assert len(index) == 6
-    assert index_report["dataset"] == "PHM2012"
     assert not (run_dir / "split").exists()
+    assert any(column.startswith("tsfresh__h__") for column in cleaned.columns)
+    assert report["cleaner_fit_scope"] == "all_no_split"

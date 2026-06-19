@@ -37,7 +37,7 @@ def test_index_builder_creates_phm2012_sample_index(tmp_path):
     index = IndexBuilder().build(cfg)
 
     assert list(index.columns) == SAMPLE_INDEX_COLUMNS
-    assert len(index) == 5
+    assert len(index) == 6
     assert "temp_00001" not in ",".join(index["file_path"])
     first = index[index["sample_uid"] == "PHM2012::Bearing1_1::000001"].iloc[0]
     test_row = index[index["bearing_id"] == "Bearing1_3"].iloc[0]

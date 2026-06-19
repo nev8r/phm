@@ -16,10 +16,11 @@ dependencies = [
     "pandas>=2.0.3,<2.1.0",
     "pyarrow>=15,<22",
     "scikit-learn>=1.4.0,<2.0.0",
-    "scipy>=1.10.1,<1.11.0",
+    "scipy>=1.14,<1.15",
     "seaborn>=0.13.2,<0.14.0",
     "tensorboard>=2.20.0,<3.0.0",
     "torch>=2.10.0,<2.11.0",
+    "tsfresh>=0.21,<0.22",
 ]
 
 [project.scripts]
