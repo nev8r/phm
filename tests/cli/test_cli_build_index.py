@@ -76,5 +76,6 @@ def test_cli_build_index_writes_phm2012_index_without_split(tmp_path):
     index_report = json.loads((run_dir / "index" / "index_report.json").read_text())
 
     assert len(index) == 6
+    assert "Bearing1_4" in set(index["bearing_id"])
     assert index_report["dataset"] == "PHM2012"
     assert not (run_dir / "split").exists()
