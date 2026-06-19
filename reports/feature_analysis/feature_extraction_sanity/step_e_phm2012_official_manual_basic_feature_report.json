@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "feature_set": "manual_basic",
+  "num_samples": 24889,
+  "num_raw_features": 45,
+  "num_cleaned_features": 45,
+  "num_dropped_features": 0,
+  "dropped_features": [],
+  "num_nan_before_cleaning": 0,
+  "num_inf_before_cleaning": 0,
+  "cleaner_enabled": true,
+  "cleaner_fit_scope": "train_only",
+  "backends": [
+    {
+      "name": "manual_basic",
+      "type": "manual_processor",
+      "fc_parameters": null,
+      "num_features": 45
+    }
+  ]
+}

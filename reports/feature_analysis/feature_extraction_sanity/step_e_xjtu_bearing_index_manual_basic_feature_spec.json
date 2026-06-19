@@ -1,0 +1,49 @@
+{
+  "name": "manual_basic",
+  "backends": [
+    {
+      "name": "manual_basic",
+      "type": "manual_processor",
+      "params": {
+        "include_magnitude": true,
+        "time": {
+          "enabled": true,
+          "features": [
+            "mean",
+            "std",
+            "rms",
+            "mean_abs",
+            "ptp",
+            "skewness",
+            "kurtosis",
+            "crest_factor",
+            "impulse_factor",
+            "clearance_factor"
+          ]
+        },
+        "spectral": {
+          "enabled": true,
+          "features": [
+            "centroid",
+            "bandwidth",
+            "rms_frequency",
+            "peak_frequency",
+            "entropy"
+          ],
+          "include_dc": false
+        }
+      }
+    }
+  ],
+  "cleaner": {
+    "enabled": true,
+    "imputer": "median",
+    "scaler": "standard",
+    "drop_constant": true,
+    "constant_threshold": 1e-12,
+    "fit_scope": "train_only"
+  },
+  "version": "v1",
+  "created_by": "Stage2 FeatureExtractor",
+  "hash": "8854bd21772f"
+}
