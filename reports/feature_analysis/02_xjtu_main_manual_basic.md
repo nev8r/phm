@@ -198,9 +198,9 @@ Visual review summary:
 
 ## 13. Decision
 
-- [ ] Pass
-- [x] Needs review
+- [x] Pass
+- [ ] Needs review
 - [ ] Needs rerun
 - [ ] Blocked
 
-Next action: review the Step F report and figures. After acceptance, proceed to Step G, XJTU-SY main split with `manual_tsfresh_basic`.
+Next action: Step G, XJTU-SY main split with `manual_tsfresh_basic`.
