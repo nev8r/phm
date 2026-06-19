@@ -1,0 +1,24 @@
+name: fault_type_stage_tabular
+enabled: true
+version: v1
+
+task_type: multiclass_classification
+input_mode: tabular
+
+feature_source: cleaned
+feature_columns:
+  include: all
+  include_patterns: []
+  exclude_patterns: []
+  exclude_columns: []
+
+target:
+  columns:
+    - fault_type_stage_id
+  name_column: fault_type_stage_name
+  dtype: int64
+  num_classes: auto
+
+store:
+  write_csv: true
+  save_arrays: false

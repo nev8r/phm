@@ -1,0 +1,29 @@
+name: health_state_tabular
+enabled: true
+version: v1
+
+task_type: multiclass_classification
+input_mode: tabular
+
+feature_source: cleaned
+feature_columns:
+  include: all
+  include_patterns: []
+  exclude_patterns: []
+  exclude_columns: []
+
+target:
+  columns:
+    - health_state_id
+  name_column: health_state_name
+  dtype: int64
+  num_classes: 4
+  class_names:
+    0: healthy
+    1: slight
+    2: moderate
+    3: severe
+
+store:
+  write_csv: true
+  save_arrays: false

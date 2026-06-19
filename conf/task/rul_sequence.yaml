@@ -1,0 +1,40 @@
+name: rul_sequence
+enabled: true
+version: v1
+
+task_type: regression
+input_mode: feature_sequence
+
+feature_source: cleaned
+feature_columns:
+  include: all
+  include_patterns: []
+  exclude_patterns: []
+  exclude_columns: []
+
+sequence:
+  length: 8
+  stride: 1
+  target_position: last
+  drop_incomplete: true
+  allow_cross_bearing: false
+  allow_cross_split: false
+
+target:
+  columns:
+    - piecewise_rul_norm
+  dtype: float32
+
+metadata:
+  keep_columns:
+    - sample_uid
+    - dataset
+    - bearing_id
+    - condition_id
+    - source_group
+    - sample_id
+    - timestep
+
+store:
+  write_csv: true
+  save_arrays: false

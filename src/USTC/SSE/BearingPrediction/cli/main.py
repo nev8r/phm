@@ -78,6 +78,10 @@ def run_validate_cli(cfg: DictConfig) -> None:
         run_build_labels(cfg, context)
         return
 
+    if mode == "inspect_task":
+        run_inspect_task(cfg, context)
+        return
+
     stage = STAGE_FOR_MODE.get(mode, "a later stage")
     raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
 
@@ -94,14 +98,56 @@ def run_extract_features(cfg: DictConfig, context: RunContext) -> None:
 
 
 def run_build_labels(cfg: DictConfig, context: RunContext) -> None:
-    from USTC.SSE.BearingPrediction.infra.label.LabelBuilder import LabelBuilder
-    from USTC.SSE.BearingPrediction.infra.label.LabelStore import LabelStore
-
     index, split = build_index_artifacts(cfg, context)
     raw_features = None
     cleaned_features = None
     if bool(OmegaConf.select(cfg, "label.requires_features", default=False)):
         raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
+
+    build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
+    print(f"Label build succeeded. Run directory: {context.run_dir}")
+
+
+def run_inspect_task(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.infra.task.TaskBuilder import TaskBuilder
+    from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
+
+    index, split = build_index_artifacts(cfg, context)
+    if not bool(OmegaConf.select(cfg, "feature.enabled", default=False)):
+        raise ValueError("mode=inspect_task requires an enabled feature config")
+    raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
+    labels, _, _, _, _ = build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
+
+    feature_source = str(OmegaConf.select(cfg, "task.feature_source", default="cleaned"))
+    if feature_source == "cleaned":
+        features_for_task = cleaned_features
+    elif feature_source == "raw":
+        features_for_task = raw_features
+    else:
+        raise ValueError(f"Unsupported task.feature_source: {feature_source}")
+
+    datamodule = TaskBuilder(cfg.task).build(
+        features=features_for_task,
+        labels=labels,
+        split_result=split,
+    )
+    store = TaskStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "task.store.write_csv", default=True)),
+    )
+    store.save(
+        manifest=datamodule.task_manifest,
+        task_spec=datamodule.task_spec,
+        task_report=datamodule.task_report,
+        feature_columns=datamodule.feature_columns,
+        target_columns=datamodule.target_columns,
+    )
+    print(f"Task inspection succeeded. Run directory: {context.run_dir}")
+
+
+def build_label_artifacts(cfg: DictConfig, context: RunContext, index, split, raw_features=None, cleaned_features=None):
+    from USTC.SSE.BearingPrediction.infra.label.LabelBuilder import LabelBuilder
+    from USTC.SSE.BearingPrediction.infra.label.LabelStore import LabelStore
 
     labels, label_spec, label_report, hi, fpt = LabelBuilder(cfg.label).build(
         index=index,
@@ -114,7 +160,7 @@ def run_build_labels(cfg: DictConfig, context: RunContext) -> None:
         write_csv=bool(OmegaConf.select(cfg, "label.store.write_csv", default=True)),
     )
     store.save(labels, label_spec, label_report, hi=hi, fpt=fpt)
-    print(f"Label build succeeded. Run directory: {context.run_dir}")
+    return labels, label_spec, label_report, hi, fpt
 
 
 def build_feature_artifacts(cfg: DictConfig, context: RunContext, index, split):
