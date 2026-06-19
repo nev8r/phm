@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "analysis_name": "full_feature_analysis_3tasks",
+  "feature_source": "raw",
+  "fit_scope": "train_only",
+  "num_features": 44,
+  "num_ranked_features": 44,
+  "enabled_sections": [
+    "summary",
+    "rul_correlation",
+    "degradation_scores",
+    "health_state",
+    "early_fault"
+  ],
+  "fault_type_skipped": false,
+  "num_leakage_warnings": 1,
+  "num_feature_cards": 44,
+  "plots_enabled": true
+}

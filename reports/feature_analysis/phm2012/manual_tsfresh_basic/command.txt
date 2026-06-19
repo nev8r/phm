@@ -1,0 +1,10 @@
+uv run bp --config-name smoke \
+  mode=analyze_features \
+  dataset=phm2012 \
+  split=phm2012_official \
+  feature=manual_tsfresh_basic \
+  label=degradation_three_tasks \
+  analysis=full_feature_analysis_3tasks \
+  run.name=phm2012_3tasks_manual_tsfresh \
+  project.artifact_root=artifacts/feature_analysis \
+  dataset.root=data/loader_roots/phm2012

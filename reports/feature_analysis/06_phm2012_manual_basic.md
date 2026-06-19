@@ -247,9 +247,9 @@ All requested selected aggregate curves were generated and copied. All copied PN
 
 ## 16. Decision
 
-- [ ] Pass
-- [x] Needs review
+- [x] Pass
+- [ ] Needs review
 - [ ] Needs rerun
 - [ ] Blocked
 
-Next action: review Step J PHM2012 `manual_basic` findings. After acceptance, proceed to Step K, PHM2012 `manual_tsfresh_basic` comparison attempt.
+Next action: Step K, PHM2012 `manual_tsfresh_basic` comparison attempt.
