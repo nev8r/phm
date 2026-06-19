@@ -232,6 +232,6 @@ All copied PNG files were checked as nonblank.
 - [ ] Needs more evidence before deciding.
 - [ ] Blocked and deferred.
 
-Status: needs review.
+Status: accepted for final summary.
 
 Next action: Step L, final feature-analysis summary across XJTU-SY and PHM2012.

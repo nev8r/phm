@@ -21,7 +21,8 @@ This file records all feature-analysis runs that are copied into `reports/featur
 | Step H | xjtu_sy | xjtu_leave_one_bearing_out | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | xjtu_condition_wise_manual_basic | done |
 | Step I | xjtu_sy | xjtu_cross_condition | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | xjtu_cross_condition_3tasks_manual_basic | done |
 | Step J | phm2012 | phm2012_official | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | phm2012_3tasks_manual_basic | done |
-| Step K | phm2012 | phm2012_official | manual_tsfresh_basic | degradation_three_tasks | full_feature_analysis_3tasks | phm2012_3tasks_manual_tsfresh | needs-review |
+| Step K | phm2012 | phm2012_official | manual_tsfresh_basic | degradation_three_tasks | full_feature_analysis_3tasks | phm2012_3tasks_manual_tsfresh | done |
+| Step L | summary | all completed analysis reports | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | final_feature_analysis_summary | needs-review |
 
 ## Status Values
 
