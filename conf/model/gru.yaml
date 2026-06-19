@@ -1,0 +1,13 @@
+name: gru
+enabled: true
+type: torch
+class_name: GRURegressor
+
+params:
+  hidden_size: 64
+  num_layers: 1
+  dropout: 0.0
+  bidirectional: false
+
+input_adapter:
+  name: sequence_only

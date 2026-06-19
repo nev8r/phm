@@ -48,8 +48,12 @@ class TaskDataset(Dataset):
             "sample_uid": str(row["target_sample_uid"]),
             "target_sample_uid": str(row["target_sample_uid"]),
             "example_uid": str(row["example_uid"]),
+            "split": str(row["split"]),
+            "dataset": str(row["dataset"]),
             "bearing_id": str(row["bearing_id"]),
+            "condition_id": str(row["condition_id"]),
             "timestep": int(row["target_timestep"]),
+            "target_timestep": int(row["target_timestep"]),
         }
 
     def _tabular_x(self, row) -> torch.Tensor:

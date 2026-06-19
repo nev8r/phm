@@ -1,0 +1,10 @@
+name: mlp
+enabled: true
+type: torch
+class_name: MLP
+
+params:
+  hidden_size: 64
+
+input_adapter:
+  name: flatten_if_sequence

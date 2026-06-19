@@ -1,0 +1,3 @@
+"""
+Checkpoint infrastructure tests.
+"""

@@ -1,0 +1,3 @@
+"""
+Metric infrastructure tests.
+"""

@@ -22,6 +22,8 @@ run:
     - smoke
     - infra
 
+checkpoint: null
+
 hydra:
   job:
     chdir: false

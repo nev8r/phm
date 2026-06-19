@@ -1,0 +1,50 @@
+name: debug
+enabled: true
+
+device: cpu
+dtype: float32
+seed: 42
+
+max_epochs: 2
+batch_size: 4
+num_workers: 0
+pin_memory: false
+
+optimizer:
+  name: adam
+  lr: 0.01
+  weight_decay: 0.0
+
+scheduler:
+  name: none
+
+loss:
+  name: auto
+
+metrics:
+  name: auto
+
+monitor:
+  split: val
+  metric: loss
+  mode: min
+
+gradient:
+  clip_norm: null
+
+eval:
+  every_n_epochs: 1
+  evaluate_train: true
+  evaluate_test_at_end: true
+
+checkpoint:
+  enabled: true
+  save_best: true
+  save_last: true
+  resume_from: null
+
+prediction:
+  save_train: true
+  save_val: true
+  save_test: true
+  write_csv: false

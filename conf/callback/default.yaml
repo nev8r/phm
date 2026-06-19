@@ -1,0 +1,5 @@
+name: default
+enabled: true
+callbacks:
+  - checkpoint
+  - metric_logger

@@ -1,0 +1,6 @@
+name: debug
+enabled: true
+callbacks:
+  - checkpoint
+  - metric_logger
+  - nan_guard

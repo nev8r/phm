@@ -82,6 +82,18 @@ def run_validate_cli(cfg: DictConfig) -> None:
         run_inspect_task(cfg, context)
         return
 
+    if mode == "train":
+        run_train(cfg, context)
+        return
+
+    if mode == "eval":
+        run_eval(cfg, context)
+        return
+
+    if mode == "run":
+        run_train(cfg, context)
+        return
+
     stage = STAGE_FOR_MODE.get(mode, "a later stage")
     raise NotImplementedError(f"mode={mode} will be implemented in {stage}")
 
@@ -109,28 +121,9 @@ def run_build_labels(cfg: DictConfig, context: RunContext) -> None:
 
 
 def run_inspect_task(cfg: DictConfig, context: RunContext) -> None:
-    from USTC.SSE.BearingPrediction.infra.task.TaskBuilder import TaskBuilder
     from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
 
-    index, split = build_index_artifacts(cfg, context)
-    if not bool(OmegaConf.select(cfg, "feature.enabled", default=False)):
-        raise ValueError("mode=inspect_task requires an enabled feature config")
-    raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
-    labels, _, _, _, _ = build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
-
-    feature_source = str(OmegaConf.select(cfg, "task.feature_source", default="cleaned"))
-    if feature_source == "cleaned":
-        features_for_task = cleaned_features
-    elif feature_source == "raw":
-        features_for_task = raw_features
-    else:
-        raise ValueError(f"Unsupported task.feature_source: {feature_source}")
-
-    datamodule = TaskBuilder(cfg.task).build(
-        features=features_for_task,
-        labels=labels,
-        split_result=split,
-    )
+    datamodule = build_task_datamodule_artifacts(cfg, context)
     store = TaskStore(
         context.artifacts,
         write_csv=bool(OmegaConf.select(cfg, "task.store.write_csv", default=True)),
@@ -143,6 +136,73 @@ def run_inspect_task(cfg: DictConfig, context: RunContext) -> None:
         target_columns=datamodule.target_columns,
     )
     print(f"Task inspection succeeded. Run directory: {context.run_dir}")
+
+
+def run_train(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.engine.trainer.ConfigurableTrainer import ConfigurableTrainer
+    from USTC.SSE.BearingPrediction.infra.model.ModelFactory import ModelFactory
+    from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
+
+    datamodule = build_task_datamodule_artifacts(cfg, context)
+    TaskStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "task.store.write_csv", default=True)),
+    ).save(
+        manifest=datamodule.task_manifest,
+        task_spec=datamodule.task_spec,
+        task_report=datamodule.task_report,
+        feature_columns=datamodule.feature_columns,
+        target_columns=datamodule.target_columns,
+    )
+    model, model_spec = ModelFactory(cfg.model).build(datamodule=datamodule, task_cfg=cfg.task)
+    ConfigurableTrainer(cfg, context, datamodule, model, model_spec).train()
+    print(f"Training succeeded. Run directory: {context.run_dir}")
+
+
+def run_eval(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.engine.trainer.ConfigurableTrainer import ConfigurableTrainer
+    from USTC.SSE.BearingPrediction.infra.model.ModelFactory import ModelFactory
+    from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
+
+    checkpoint = OmegaConf.select(cfg, "checkpoint", default=None)
+    if checkpoint in (None, "null", ""):
+        raise ValueError("mode=eval requires checkpoint=/path/to/checkpoint")
+    datamodule = build_task_datamodule_artifacts(cfg, context)
+    TaskStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "task.store.write_csv", default=True)),
+    ).save(
+        manifest=datamodule.task_manifest,
+        task_spec=datamodule.task_spec,
+        task_report=datamodule.task_report,
+        feature_columns=datamodule.feature_columns,
+        target_columns=datamodule.target_columns,
+    )
+    model, model_spec = ModelFactory(cfg.model).build(datamodule=datamodule, task_cfg=cfg.task)
+    ConfigurableTrainer(cfg, context, datamodule, model, model_spec).evaluate_checkpoint(str(checkpoint))
+    print(f"Evaluation succeeded. Run directory: {context.run_dir}")
+
+
+def build_task_datamodule_artifacts(cfg: DictConfig, context: RunContext):
+    from USTC.SSE.BearingPrediction.infra.task.TaskBuilder import TaskBuilder
+
+    index, split = build_index_artifacts(cfg, context)
+    if not bool(OmegaConf.select(cfg, "feature.enabled", default=False)):
+        raise ValueError("task modes require an enabled feature config")
+    raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
+    labels, _, _, _, _ = build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
+    feature_source = str(OmegaConf.select(cfg, "task.feature_source", default="cleaned"))
+    if feature_source == "cleaned":
+        features_for_task = cleaned_features
+    elif feature_source == "raw":
+        features_for_task = raw_features
+    else:
+        raise ValueError(f"Unsupported task.feature_source: {feature_source}")
+    return TaskBuilder(cfg.task).build(
+        features=features_for_task,
+        labels=labels,
+        split_result=split,
+    )
 
 
 def build_label_artifacts(cfg: DictConfig, context: RunContext, index, split, raw_features=None, cleaned_features=None):

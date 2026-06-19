@@ -1,0 +1,5 @@
+name: binary_classification
+metrics:
+  - Accuracy
+  - MacroF1
+  - WeightedF1
