@@ -1,0 +1,52 @@
+{
+  "ok": true,
+  "name": "phm2012_official",
+  "num_train_samples": 7534,
+  "num_val_samples": 4330,
+  "num_test_samples": 13025,
+  "train_bearings": [
+    "Bearing1_1",
+    "Bearing1_2",
+    "Bearing2_1",
+    "Bearing2_2",
+    "Bearing3_1",
+    "Bearing3_2"
+  ],
+  "val_bearings": [
+    "Bearing1_3",
+    "Bearing2_3"
+  ],
+  "test_bearings": [
+    "Bearing1_4",
+    "Bearing1_5",
+    "Bearing1_6",
+    "Bearing1_7",
+    "Bearing2_4",
+    "Bearing2_5",
+    "Bearing2_6",
+    "Bearing2_7",
+    "Bearing3_3"
+  ],
+  "checks": [
+    {
+      "name": "no_sample_overlap",
+      "ok": true
+    },
+    {
+      "name": "no_bearing_overlap",
+      "ok": true
+    },
+    {
+      "name": "non_empty_train",
+      "ok": true
+    },
+    {
+      "name": "non_empty_test",
+      "ok": true
+    },
+    {
+      "name": "non_empty_val",
+      "ok": true
+    }
+  ]
+}

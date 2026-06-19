@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "name": "xjtu_leave_one_bearing_out",
+  "num_train_samples": 442,
+  "num_val_samples": 122,
+  "num_test_samples": 52,
+  "train_bearings": [
+    "Bearing1_1",
+    "Bearing1_2",
+    "Bearing1_3"
+  ],
+  "val_bearings": [
+    "Bearing1_4"
+  ],
+  "test_bearings": [
+    "Bearing1_5"
+  ],
+  "checks": [
+    {
+      "name": "no_sample_overlap",
+      "ok": true
+    },
+    {
+      "name": "no_bearing_overlap",
+      "ok": true
+    },
+    {
+      "name": "non_empty_train",
+      "ok": true
+    },
+    {
+      "name": "non_empty_test",
+      "ok": true
+    },
+    {
+      "name": "non_empty_val",
+      "ok": true
+    }
+  ]
+}

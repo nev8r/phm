@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "dataset": "XJTU-SY",
+  "num_rows": 9216,
+  "num_bearings": 15,
+  "checks": [
+    {
+      "name": "required_columns_present",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "non_empty",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "sample_uid_unique",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "file_path_exists",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "no_null_dataset",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "no_null_bearing_id",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "no_null_sample_id",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "timestep_non_negative",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "timestep_monotonic_within_bearing",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "expected_points_positive",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "sampling_rate_positive",
+      "ok": true,
+      "message": ""
+    },
+    {
+      "name": "no_duplicate_bearing_sample",
+      "ok": true,
+      "message": ""
+    }
+  ]
+}
