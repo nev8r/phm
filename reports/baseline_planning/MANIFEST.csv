@@ -1,0 +1,2 @@
+step_id,scope,output,source,artifact_root,status,notes
+StepO,planning,baseline_planning_docs_and_experiment_matrix,reports/feature_analysis/summary,reports/baseline_planning,needs-review,Baseline planning specification derived from completed feature-analysis cycle; no training outputs included.
