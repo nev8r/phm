@@ -1,0 +1,10 @@
+# Selected aggregate curves for Step J
+
+copied,h__time__mean_abs,figures/curves/h__time__mean_abs.png
+copied,h__time__std,figures/curves/h__time__std.png
+copied,h__time__rms,figures/curves/h__time__rms.png
+copied,mag__time__mean,figures/curves/mag__time__mean.png
+copied,mag__time__mean_abs,figures/curves/mag__time__mean_abs.png
+copied,mag__time__rms,figures/curves/mag__time__rms.png
+copied,v__time__mean_abs,figures/curves/v__time__mean_abs.png
+copied,v__time__std,figures/curves/v__time__std.png

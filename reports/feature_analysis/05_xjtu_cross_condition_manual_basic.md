@@ -258,9 +258,9 @@ All copied PNG files were checked as nonblank.
 
 ## 15. Decision
 
-- [ ] Pass
-- [x] Needs review
+- [x] Pass
+- [ ] Needs review
 - [ ] Needs rerun
 - [ ] Blocked
 
-Next action: review Step I cross-condition robustness findings. After acceptance, proceed to Step J, PHM2012 official `manual_basic` three-task analysis.
+Next action: Step J, PHM2012 official `manual_basic` three-task analysis.
