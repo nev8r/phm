@@ -195,9 +195,9 @@ Figure review summary:
 
 ## 10. Decision
 
-- [ ] Pass
-- [x] Needs review
+- [x] Pass
+- [ ] Needs review
 - [ ] Needs rerun
 - [ ] Blocked
 
-Next action: review condition-wise stability findings. After acceptance, proceed to Step I, XJTU-SY cross-condition `manual_basic` robustness analysis.
+Next action: Step I, XJTU-SY cross-condition `manual_basic` robustness analysis.
