@@ -60,6 +60,14 @@ def test_task_dataset_returns_tabular_and_sequence_tensors_with_metadata():
     assert str(sequence_item["y"].dtype) == "torch.int64"
     assert sequence_item["example_uid"] == "all::Bearing1_1::000000-000002"
     assert sequence_item["sample_uid"] == "s2"
+    assert tabular_item["split"] == "all"
+    assert tabular_item["dataset"] == "XJTU-SY"
+    assert tabular_item["condition_id"] == "35Hz12kN"
+    assert tabular_item["target_timestep"] == 0
+    assert sequence_item["split"] == "all"
+    assert sequence_item["dataset"] == "XJTU-SY"
+    assert sequence_item["condition_id"] == "35Hz12kN"
+    assert sequence_item["target_timestep"] == 2
 
 
 def test_data_module_exposes_split_mapping_and_dimensions():
