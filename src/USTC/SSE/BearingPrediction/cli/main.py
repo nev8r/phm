@@ -35,7 +35,7 @@ STAGE_FOR_MODE = {
     "train": "Stage 5",
     "eval": "Stage 5",
     "run": "Stage 5",
-    "analyze_features": "Stage 7",
+    "analyze_features": "Stage 6",
 }
 
 
@@ -78,6 +78,10 @@ def run_validate_cli(cfg: DictConfig) -> None:
         run_build_labels(cfg, context)
         return
 
+    if mode == "analyze_features":
+        run_analyze_features(cfg, context)
+        return
+
     if mode == "inspect_task":
         run_inspect_task(cfg, context)
         return
@@ -118,6 +122,43 @@ def run_build_labels(cfg: DictConfig, context: RunContext) -> None:
 
     build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
     print(f"Label build succeeded. Run directory: {context.run_dir}")
+
+
+def run_analyze_features(cfg: DictConfig, context: RunContext) -> None:
+    from USTC.SSE.BearingPrediction.analysis.AnalysisBuilder import AnalysisBuilder
+    from USTC.SSE.BearingPrediction.analysis.AnalysisStore import AnalysisStore
+
+    index, split = build_index_artifacts(cfg, context)
+    if not bool(OmegaConf.select(cfg, "feature.enabled", default=False)):
+        raise ValueError("mode=analyze_features requires an enabled feature config")
+    if not bool(OmegaConf.select(cfg, "label.enabled", default=False)):
+        raise ValueError("mode=analyze_features requires an enabled label config")
+
+    raw_features, cleaned_features, _, _ = build_feature_artifacts(cfg, context, index, split)
+    labels, _, _, hi, fpt = build_label_artifacts(cfg, context, index, split, raw_features, cleaned_features)
+    feature_source = str(OmegaConf.select(cfg, "analysis.feature_source", default="raw"))
+    if feature_source == "raw":
+        features_for_analysis = raw_features
+    elif feature_source == "cleaned":
+        features_for_analysis = cleaned_features
+    else:
+        raise ValueError(f"Unsupported analysis.feature_source: {feature_source}")
+
+    outputs = AnalysisBuilder(cfg.analysis).build(
+        features=features_for_analysis,
+        labels=labels,
+        index=index,
+        split_result=split,
+        hi=hi,
+        fpt=fpt,
+    )
+    store = AnalysisStore(
+        context.artifacts,
+        write_csv=bool(OmegaConf.select(cfg, "analysis.store.write_csv", default=True)),
+        write_figures=bool(OmegaConf.select(cfg, "analysis.store.write_figures", default=True)),
+    )
+    store.save(outputs)
+    print(f"Feature analysis succeeded. Run directory: {context.run_dir}")
 
 
 def run_inspect_task(cfg: DictConfig, context: RunContext) -> None:

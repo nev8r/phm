@@ -1,0 +1,42 @@
+name: task_feature_analysis
+enabled: true
+version: v1
+
+feature_source: raw
+
+scope:
+  fit_scope: train_only
+  report_splits:
+    - train
+    - val
+    - test
+
+summary:
+  enabled: true
+
+rul_correlation:
+  enabled: true
+  target_column: piecewise_rul_norm
+  methods:
+    - spearman
+
+health_state:
+  enabled: true
+  target_column: health_state_id
+
+early_fault:
+  enabled: true
+  target_column: early_fault
+
+ranking:
+  enabled: true
+
+leakage:
+  enabled: true
+
+plots:
+  enabled: false
+
+store:
+  write_csv: true
+  write_figures: false

@@ -1,0 +1,42 @@
+name: health_state_feature_analysis
+enabled: true
+version: v1
+
+feature_source: raw
+
+scope:
+  fit_scope: train_only
+  report_splits:
+    - train
+    - val
+    - test
+
+targets:
+  health_state_id: health_state_id
+  health_state_name: health_state_name
+
+health_state:
+  enabled: true
+  target_column: health_state_id
+
+separability:
+  enabled: true
+  mutual_information: true
+  fisher_score: true
+  anova_f: true
+  kruskal: false
+
+boxplots:
+  enabled: true
+  top_k: 10
+
+ranking:
+  enabled: true
+  score:
+    mutual_information_weight: 0.4
+    fisher_score_weight: 0.4
+    anova_weight: 0.2
+
+store:
+  write_csv: true
+  write_figures: true

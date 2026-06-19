@@ -1,0 +1,60 @@
+name: full_feature_analysis
+enabled: true
+version: v1
+
+feature_source: raw
+
+scope:
+  fit_scope: train_only
+  report_splits:
+    - train
+    - val
+    - test
+    - all
+
+summary:
+  enabled: true
+
+rul_correlation:
+  enabled: true
+  target_column: piecewise_rul_norm
+  methods:
+    - pearson
+    - spearman
+    - kendall
+
+degradation_scores:
+  enabled: true
+  interpolation_points: 100
+
+health_state:
+  enabled: true
+  target_column: health_state_id
+
+early_fault:
+  enabled: true
+  target_column: early_fault
+
+fault_type:
+  enabled: true
+  target_column: fault_type_stage_id
+  name_column: fault_type_stage_name
+  skip_if_missing: true
+
+ranking:
+  enabled: true
+  output_top_k: 50
+
+leakage:
+  enabled: true
+  warn_if_feature_used_for_label: true
+  warn_if_scope_not_train_only: true
+
+plots:
+  enabled: true
+  max_bearings: 5
+  top_k: 10
+
+store:
+  write_csv: true
+  write_figures: true

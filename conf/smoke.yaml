@@ -3,6 +3,7 @@ defaults:
   - split: none
   - feature: none
   - label: none
+  - analysis: feature_basic
   - task: none
   - model: none
   - trainer: none

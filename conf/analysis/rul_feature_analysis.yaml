@@ -1,0 +1,46 @@
+name: rul_feature_analysis
+enabled: true
+version: v1
+
+feature_source: raw
+
+scope:
+  fit_scope: train_only
+  report_splits:
+    - train
+    - val
+    - test
+
+targets:
+  rul_columns:
+    - linear_rul_norm
+    - piecewise_rul_norm
+
+rul_correlation:
+  enabled: true
+  target_column: piecewise_rul_norm
+  methods:
+    - pearson
+    - spearman
+    - kendall
+
+degradation_scores:
+  enabled: true
+  monotonicity: true
+  robustness: true
+  trendability: true
+  prognosability: true
+  interpolation_points: 100
+
+ranking:
+  enabled: true
+  score:
+    abs_spearman_weight: 0.35
+    monotonicity_weight: 0.25
+    robustness_weight: 0.20
+    trendability_weight: 0.20
+  target_column: piecewise_rul_norm
+
+store:
+  write_csv: true
+  write_figures: true
