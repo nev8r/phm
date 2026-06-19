@@ -1,0 +1,13 @@
+uv run bp --config-name smoke \
+  mode=analyze_features \
+  dataset=xjtu_sy \
+  split=xjtu_leave_one_bearing_out \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  analysis=full_feature_analysis_3tasks \
+  run.name=xjtu_c1_3tasks_manual_basic \
+  project.artifact_root=artifacts/feature_analysis \
+  dataset.root=data/loader_roots/xjtu \
+  split.condition_id=35Hz12kN \
+  split.test_bearing_id=Bearing1_5 \
+  split.val_bearing_id=Bearing1_4

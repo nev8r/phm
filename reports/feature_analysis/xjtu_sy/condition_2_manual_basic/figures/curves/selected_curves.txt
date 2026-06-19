@@ -1,0 +1,14 @@
+copied:
+mag__time__std
+mag__time__rms
+h__time__rms
+h__time__mean_abs
+mag__time__ptp
+v__time__ptp
+h__time__ptp
+mag__time__mean
+mag__time__mean_abs
+h__time__std
+
+missing:
+none

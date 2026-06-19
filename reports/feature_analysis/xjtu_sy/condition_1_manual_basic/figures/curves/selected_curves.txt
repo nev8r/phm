@@ -1,0 +1,13 @@
+copied:
+mag__time__mean
+mag__time__mean_abs
+v__time__mean_abs
+v__spectral__entropy
+mag__spectral__entropy
+mag__time__rms
+h__time__mean_abs
+
+missing:
+mag__spectral__centroid
+h__time__rms
+h__time__std
