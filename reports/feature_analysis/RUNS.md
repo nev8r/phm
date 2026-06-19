@@ -13,7 +13,7 @@ This file records all feature-analysis runs that are copied into `reports/featur
 
 | Step | Dataset | Split | Feature | Label | Analysis | Run Name | Status |
 |---|---|---|---|---|---|---|---|
-| Step C | env | none | none | none | none | environment_check | pending |
+| Step C | env | none | none | none | none | environment_check | done |
 | Step D | xjtu_sy | xjtu_bearing_index_split | none | none | none | xjtu_index_split_sanity | pending |
 | Step E | xjtu_sy | xjtu_bearing_index_split | manual_basic | none | none | xjtu_feature_extraction_manual_basic | pending |
 | Step F | xjtu_sy | xjtu_bearing_index_split | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | xjtu_all_conditions_3tasks_manual_basic | pending |
