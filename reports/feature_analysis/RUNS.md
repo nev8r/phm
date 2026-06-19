@@ -29,3 +29,7 @@ This file records all feature-analysis runs that are copied into `reports/featur
 - `done`: run completed and report artifacts were copied.
 - `needs-review`: run completed but findings need manual review.
 - `blocked`: run could not complete or should not be used.
+
+## Blocked Runs
+
+- Step G is blocked because full XJTU-SY `manual_tsfresh_basic` extraction was killed before feature extraction completed. The current mainline continues with `manual_basic`; full-size tsfresh comparison is deferred.

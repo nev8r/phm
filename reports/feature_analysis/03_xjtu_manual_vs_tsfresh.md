@@ -120,10 +120,9 @@ The current Step G plan explicitly said not to modify the feature backend. Becau
 
 ## 11. Decision
 
-- [ ] `manual_tsfresh_basic` adds useful features and should be used in later baselines.
-- [ ] `manual_tsfresh_basic` does not add clear value; keep `manual_basic` as the main feature set for now.
-- [ ] Needs condition-wise or PHM2012 comparison before deciding.
-- [ ] Needs rerun.
-- [x] Blocked: full XJTU-SY `manual_tsfresh_basic` extraction is killed before features are produced.
+- [x] Blocked and deferred: full XJTU-SY `manual_tsfresh_basic` extraction is killed before features are produced.
+- [x] Keep `manual_basic` as the XJTU-SY main feature set for the current three-task analysis.
+- [x] Defer full-size tsfresh comparison to a later engineering step with batching, downsampling, or windowed extraction.
+- [ ] Rerun Step G now.
 
-Next action: decide whether to allow a memory-aware tsfresh backend change or revise the Step G scope.
+Next action: proceed to Step H with `manual_basic` condition-wise XJTU-SY analysis.
