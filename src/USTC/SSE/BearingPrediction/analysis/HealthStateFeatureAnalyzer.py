@@ -27,14 +27,16 @@ class HealthStateFeatureAnalyzer:
         for column in feature_columns(features):
             x = safe_numeric(data[column]).fillna(0.0)
             anova_f, anova_p = _anova(x, y)
-            rows.append({
+            row = {
                 "feature": column,
                 "mutual_information": _mutual_information(x, y),
                 "fisher_score": _fisher_score(x, y),
                 "anova_f": anova_f,
                 "anova_p": anova_p,
                 "class_count": int(y.nunique()),
-            })
+            }
+            row.update(_class_stats(x, y))
+            rows.append(row)
         return pd.DataFrame(rows)
 
 
@@ -62,8 +64,30 @@ def _anova(x: pd.Series, y: pd.Series):
     groups = [group.to_numpy(dtype=float) for _, group in x.groupby(y) if len(group) > 0]
     if len(groups) < 2 or all(len(group) < 2 for group in groups):
         return 0.0, 1.0
+    if all(float(np.std(group)) <= np.finfo(float).eps for group in groups):
+        means = np.array([float(np.mean(group)) for group in groups])
+        if len(np.unique(means)) > 1:
+            return 1.0e12, 0.0
+        return 0.0, 1.0
     result = stats.f_oneway(*groups)
-    return float(0.0 if np.isnan(result.statistic) else result.statistic), float(1.0 if np.isnan(result.pvalue) else result.pvalue)
+    statistic = float(result.statistic)
+    pvalue = float(result.pvalue)
+    if np.isnan(statistic):
+        statistic = 0.0
+    if np.isinf(statistic):
+        statistic = 1.0e12
+    if np.isnan(pvalue):
+        pvalue = 1.0
+    return statistic, pvalue
+
+
+def _class_stats(x: pd.Series, y: pd.Series) -> Dict:
+    stats_by_class: Dict[str, float] = {}
+    for label, group in x.groupby(y):
+        label_text = str(int(label)) if float(label).is_integer() else str(label)
+        stats_by_class[f"state_{label_text}_mean"] = float(group.mean()) if len(group) else 0.0
+        stats_by_class[f"state_{label_text}_std"] = float(group.std(ddof=0)) if len(group) else 0.0
+    return stats_by_class
 
 
 def _empty() -> pd.DataFrame:

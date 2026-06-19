@@ -10,11 +10,13 @@ from omegaconf import DictConfig, OmegaConf
 from USTC.SSE.BearingPrediction.analysis.AnalysisSpec import AnalysisSpec
 from USTC.SSE.BearingPrediction.analysis.DegradationScoreAnalyzer import DegradationScoreAnalyzer
 from USTC.SSE.BearingPrediction.analysis.EarlyFaultFeatureAnalyzer import EarlyFaultFeatureAnalyzer
+from USTC.SSE.BearingPrediction.analysis.FeatureCards import build_feature_cards
 from USTC.SSE.BearingPrediction.analysis.FaultTypeFeatureAnalyzer import FaultTypeFeatureAnalyzer
 from USTC.SSE.BearingPrediction.analysis.FeatureRanking import build_feature_ranking
 from USTC.SSE.BearingPrediction.analysis.FeatureSummaryAnalyzer import FeatureSummaryAnalyzer
 from USTC.SSE.BearingPrediction.analysis.HealthStateFeatureAnalyzer import HealthStateFeatureAnalyzer
 from USTC.SSE.BearingPrediction.analysis.LeakageGuard import LeakageGuard
+from USTC.SSE.BearingPrediction.analysis.RecommendationReport import build_feature_recommendations
 from USTC.SSE.BearingPrediction.analysis.RulFeatureAnalyzer import RulFeatureAnalyzer
 from USTC.SSE.BearingPrediction.analysis._helpers import feature_columns, fit_subset, label_source_features
 
@@ -88,6 +90,7 @@ class AnalysisBuilder:
             fault_type_scores=fault_type_scores,
             label_source_features=source_features,
         )
+        feature_cards = build_feature_cards(feature_ranking, source_features)
         spec = AnalysisSpec(
             name=str(OmegaConf.select(self.cfg, "name", default="analysis")),
             version=str(OmegaConf.select(self.cfg, "version", default="v1")),
@@ -105,7 +108,16 @@ class AnalysisBuilder:
             "enabled_sections": sections,
             "fault_type_skipped": bool(fault_type_skipped),
             "num_leakage_warnings": int(len(leakage_report["warnings"])),
+            "num_feature_cards": int(len(feature_cards)),
+            "plots_enabled": bool(OmegaConf.select(self.cfg, "plots.enabled", default=False)),
         }
+        feature_recommendations = build_feature_recommendations(
+            feature_cards=feature_cards,
+            feature_ranking=feature_ranking,
+            leakage_report=leakage_report,
+            analysis_report=report,
+            top_k=int(OmegaConf.select(self.cfg, "recommendations.top_k", default=5)),
+        )
         return {
             "analysis_spec": spec,
             "analysis_report": report,
@@ -116,6 +128,16 @@ class AnalysisBuilder:
             "early_fault_scores": early_fault_scores if early_fault_scores is not None else pd.DataFrame(),
             "fault_type_scores": fault_type_scores if fault_type_scores is not None else pd.DataFrame(),
             "feature_ranking": feature_ranking,
+            "feature_cards": feature_cards,
+            "feature_recommendations": feature_recommendations,
             "leakage_report": leakage_report,
+            "plot_payload": {
+                "enabled": bool(OmegaConf.select(self.cfg, "plots.enabled", default=False)),
+                "features": features,
+                "labels": labels,
+                "fpt": fpt,
+                "top_k": int(OmegaConf.select(self.cfg, "plots.top_k", default=10)),
+                "max_bearings": int(OmegaConf.select(self.cfg, "plots.max_bearings", default=5)),
+            },
             "figures": [],
         }

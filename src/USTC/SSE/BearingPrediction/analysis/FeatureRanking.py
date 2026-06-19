@@ -2,6 +2,7 @@
 Feature ranking utilities.
 """
 
+import math
 from typing import Optional, Set
 
 import pandas as pd
@@ -32,9 +33,14 @@ def build_feature_ranking(
     ranking["rank_rul"] = _rank(ranking["rul_score"])
     ranking["rank_health"] = _rank(ranking["health_score"])
     ranking["rank_early_fault"] = _rank(ranking["early_fault_score"])
+    ranking["rank_fault_type"] = _rank(ranking["fault_type_score"])
     ranking["rank_overall"] = _rank(ranking["overall_score"])
     ranking["is_label_source"] = ranking["feature"].isin(label_source_features)
-    ranking["recommended_for"] = ranking.apply(_recommended_for, axis=1)
+    ranking["label_source_warning"] = ranking["is_label_source"].map(
+        lambda value: "Used as HI source for FPT-based labels; do not overclaim independent detection ability." if value else ""
+    )
+    limits = _recommendation_limits(ranking)
+    ranking["recommended_for"] = ranking.apply(lambda row: _recommended_for(row, limits), axis=1)
     return ranking.sort_values(["rank_overall", "feature"]).reset_index(drop=True)
 
 
@@ -69,9 +75,9 @@ def _health_scores(health: Optional[pd.DataFrame]) -> pd.DataFrame:
         return pd.DataFrame(columns=["feature", "health_score"])
     data = health.copy()
     data["health_score"] = (
-        0.4 * minmax(data.get("mutual_information", 0.0))
-        + 0.4 * minmax(data.get("fisher_score", 0.0))
-        + 0.2 * minmax(data.get("anova_f", 0.0))
+        0.4 * minmax(_column_or_zero(data, "mutual_information"))
+        + 0.4 * minmax(_column_or_zero(data, "fisher_score"))
+        + 0.2 * minmax(_column_or_zero(data, "anova_f"))
     )
     return data[["feature", "health_score"]]
 
@@ -80,7 +86,8 @@ def _early_scores(early: Optional[pd.DataFrame]) -> pd.DataFrame:
     if early is None or early.empty:
         return pd.DataFrame(columns=["feature", "early_fault_score"])
     data = early.copy()
-    data["early_fault_score"] = 0.5 * minmax(data["cohens_d"].abs()) + 0.5 * minmax(data["auc"])
+    auc_column = "auc_abs" if "auc_abs" in data.columns else "auc"
+    data["early_fault_score"] = 0.5 * minmax(data["cohens_d"].abs()) + 0.5 * minmax(data[auc_column])
     return data[["feature", "early_fault_score"]]
 
 
@@ -88,7 +95,7 @@ def _fault_type_scores(fault: Optional[pd.DataFrame]) -> pd.DataFrame:
     if fault is None or fault.empty:
         return pd.DataFrame(columns=["feature", "fault_type_score"])
     data = fault.copy()
-    data["fault_type_score"] = 0.5 * minmax(data.get("mutual_information", 0.0)) + 0.5 * minmax(data.get("fisher_score", 0.0))
+    data["fault_type_score"] = 0.5 * minmax(_column_or_zero(data, "mutual_information")) + 0.5 * minmax(_column_or_zero(data, "fisher_score"))
     return data[["feature", "fault_type_score"]]
 
 
@@ -96,14 +103,39 @@ def _rank(series: pd.Series) -> pd.Series:
     return series.rank(method="min", ascending=False).astype(int)
 
 
-def _recommended_for(row) -> str:
+def _recommendation_limits(ranking: pd.DataFrame) -> dict:
+    return {
+        task: _top_limit(ranking[score_column])
+        for task, score_column in [
+            ("RUL", "rul_score"),
+            ("HealthState", "health_score"),
+            ("EarlyFault", "early_fault_score"),
+            ("FaultType", "fault_type_score"),
+        ]
+    }
+
+
+def _top_limit(series: pd.Series) -> int:
+    nonzero = int((series > 0).sum())
+    if nonzero == 0:
+        return 0
+    return max(1, int(math.ceil(nonzero * 0.2)))
+
+
+def _recommended_for(row, limits: dict) -> str:
     recommendations = []
-    if row["rul_score"] > 0:
+    if row["rul_score"] > 0 and row["rank_rul"] <= limits["RUL"]:
         recommendations.append("RUL")
-    if row["health_score"] > 0:
+    if row["health_score"] > 0 and row["rank_health"] <= limits["HealthState"]:
         recommendations.append("HealthState")
-    if row["early_fault_score"] > 0:
+    if row["early_fault_score"] > 0 and row["rank_early_fault"] <= limits["EarlyFault"]:
         recommendations.append("EarlyFault")
-    if row["fault_type_score"] > 0:
+    if row["fault_type_score"] > 0 and row["rank_fault_type"] <= limits["FaultType"]:
         recommendations.append("FaultType")
     return ",".join(recommendations)
+
+
+def _column_or_zero(data: pd.DataFrame, column: str) -> pd.Series:
+    if column in data.columns:
+        return data[column]
+    return pd.Series([0.0] * len(data), index=data.index)

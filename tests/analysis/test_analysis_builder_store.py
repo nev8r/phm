@@ -36,6 +36,40 @@ def _labels():
     return labels
 
 
+def _hi():
+    return pd.DataFrame({
+        "sample_uid": ["s0", "s1", "s2"],
+        "hi_source_column": ["feature_good", "feature_good", "feature_good"],
+    })
+
+
+def _fpt():
+    return {
+        "results": [
+            {
+                "dataset": "XJTU-SY",
+                "bearing_id": "Bearing1_1",
+                "condition_id": "35Hz12kN",
+                "fpt_index": 1,
+                "fpt_sample_uid": "s1",
+                "fpt_timestep": 1,
+                "success": True,
+                "fallback_used": False,
+            },
+            {
+                "dataset": "XJTU-SY",
+                "bearing_id": "Bearing1_2",
+                "condition_id": "35Hz12kN",
+                "fpt_index": 1,
+                "fpt_sample_uid": "s4",
+                "fpt_timestep": 1,
+                "success": True,
+                "fallback_used": False,
+            },
+        ]
+    }
+
+
 def test_analysis_builder_creates_outputs_and_skips_missing_fault_type():
     cfg = OmegaConf.create({
         "name": "full_feature_analysis",
@@ -53,12 +87,18 @@ def test_analysis_builder_creates_outputs_and_skips_missing_fault_type():
         "plots": {"enabled": False},
     })
 
-    outputs = AnalysisBuilder(cfg).build(_features(), _labels(), index=_features(), split_result=None, hi=None, fpt=None)
+    outputs = AnalysisBuilder(cfg).build(_features(), _labels(), index=_features(), split_result=None, hi=_hi(), fpt=_fpt())
 
     assert outputs["analysis_spec"]["hash"]
     assert outputs["analysis_report"]["ok"] is True
     assert outputs["analysis_report"]["fault_type_skipped"] is True
     assert not outputs["feature_ranking"].empty
+    assert not outputs["feature_cards"].empty
+    assert outputs["feature_recommendations"].startswith("# Feature Recommendations")
+    assert "label_source_warning" in outputs["feature_ranking"].columns
+    source_card = outputs["feature_cards"][outputs["feature_cards"]["feature"] == "feature_good"].iloc[0]
+    assert source_card["is_label_source"] is True or bool(source_card["is_label_source"]) is True
+    assert "HI source" in source_card["label_source_warning"]
 
 
 def test_analysis_builder_does_not_treat_internal_split_column_as_feature():
@@ -107,14 +147,21 @@ def test_analysis_store_writes_artifacts(tmp_path):
         "fault_type": {"enabled": True, "target_column": "fault_type_stage_id", "skip_if_missing": True},
         "ranking": {"enabled": True},
         "leakage": {"enabled": True},
-        "plots": {"enabled": False},
+        "plots": {"enabled": True, "top_k": 2, "max_bearings": 2},
     })
-    outputs = AnalysisBuilder(cfg).build(_features(), _labels(), index=_features(), split_result=None, hi=None, fpt=None)
+    outputs = AnalysisBuilder(cfg).build(_features(), _labels(), index=_features(), split_result=None, hi=_hi(), fpt=_fpt())
 
-    AnalysisStore(ArtifactManager(tmp_path), write_csv=True, write_figures=False).save(outputs)
+    AnalysisStore(ArtifactManager(tmp_path), write_csv=True, write_figures=True).save(outputs)
 
     assert (tmp_path / "analysis" / "analysis_spec.json").exists()
     assert (tmp_path / "analysis" / "analysis_report.json").exists()
     assert (tmp_path / "analysis" / "feature_summary.csv").exists()
     assert (tmp_path / "analysis" / "feature_ranking.parquet").exists()
+    assert (tmp_path / "analysis" / "feature_cards.csv").exists()
+    assert (tmp_path / "analysis" / "feature_recommendations.md").exists()
+    assert (tmp_path / "analysis" / "figures" / "rul_top_features.png").exists()
+    assert (tmp_path / "analysis" / "figures" / "health_state_boxplots.png").exists()
+    assert (tmp_path / "analysis" / "figures" / "early_fault_effects.png").exists()
+    assert (tmp_path / "analysis" / "figures" / "feature_recommendation_matrix.png").exists()
+    assert any((tmp_path / "analysis" / "figures" / "curves").glob("*.png"))
     assert json.loads((tmp_path / "analysis" / "analysis_report.json").read_text())["ok"] is True

@@ -27,14 +27,19 @@ class EarlyFaultFeatureAnalyzer:
             x = safe_numeric(data[column]).fillna(0.0)
             healthy = x[y == 0]
             fault = x[y == 1]
-            auc = _direction_free_auc(y, x)
+            auc_raw = _auc(y, x)
+            auc_effective = max(auc_raw, 1.0 - auc_raw)
             rows.append({
                 "feature": column,
                 "healthy_mean": float(healthy.mean()) if len(healthy) else 0.0,
                 "fault_mean": float(fault.mean()) if len(fault) else 0.0,
                 "mean_shift": float(fault.mean() - healthy.mean()) if len(healthy) and len(fault) else 0.0,
                 "cohens_d": _cohens_d(healthy, fault),
-                "auc": auc,
+                "auc": auc_effective,
+                "auc_raw": auc_raw,
+                "auc_abs": auc_effective,
+                "healthy_std": float(healthy.std(ddof=0)) if len(healthy) else 0.0,
+                "fault_std": float(fault.std(ddof=0)) if len(fault) else 0.0,
             })
         return pd.DataFrame(rows)
 
@@ -48,12 +53,14 @@ def _cohens_d(healthy: pd.Series, fault: pd.Series) -> float:
     return float((fault.mean() - healthy.mean()) / pooled)
 
 
-def _direction_free_auc(y: pd.Series, x: pd.Series) -> float:
+def _auc(y: pd.Series, x: pd.Series) -> float:
     if y.nunique() < 2:
         return 0.5
-    auc = float(roc_auc_score(y, x))
-    return max(auc, 1.0 - auc)
+    return float(roc_auc_score(y, x))
 
 
 def _empty() -> pd.DataFrame:
-    return pd.DataFrame(columns=["feature", "healthy_mean", "fault_mean", "mean_shift", "cohens_d", "auc"])
+    return pd.DataFrame(columns=[
+        "feature", "healthy_mean", "fault_mean", "mean_shift", "cohens_d",
+        "auc", "auc_raw", "auc_abs", "healthy_std", "fault_std",
+    ])

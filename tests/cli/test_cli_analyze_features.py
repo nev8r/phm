@@ -34,7 +34,8 @@ def test_cli_analyze_features_xjtu_full_analysis(tmp_path):
             "split.condition_id=35Hz12kN",
             "split.test_bearing_id=Bearing1_5",
             "split.val_bearing_id=Bearing1_4",
-            "analysis.plots.enabled=false",
+            "analysis.plots.top_k=2",
+            "analysis.plots.max_bearings=2",
         ],
         text=True,
         capture_output=True,
@@ -54,9 +55,16 @@ def test_cli_analyze_features_xjtu_full_analysis(tmp_path):
         "health_state_separability.csv",
         "early_fault_scores.csv",
         "feature_ranking.csv",
+        "feature_cards.csv",
+        "feature_recommendations.md",
         "leakage_report.json",
+        "figures/rul_top_features.png",
+        "figures/health_state_boxplots.png",
+        "figures/early_fault_effects.png",
+        "figures/feature_recommendation_matrix.png",
     ]:
         assert (run_dir / "analysis" / name).exists()
+    assert any((run_dir / "analysis" / "figures" / "curves").glob("*.png"))
     assert report["ok"] is True
 
 

@@ -80,6 +80,8 @@ def test_health_state_analyzer_scores_separable_feature():
 
     assert good["fisher_score"] > bad["fisher_score"]
     assert good["class_count"] == 4
+    assert "state_0_mean" in result.columns
+    assert "state_3_std" in result.columns
 
 
 def test_early_fault_analyzer_scores_sensitive_feature():
@@ -88,6 +90,9 @@ def test_early_fault_analyzer_scores_sensitive_feature():
 
     assert good["cohens_d"] > 0
     assert good["auc"] > 0.8
+    assert "auc_abs" in result.columns
+    assert "healthy_std" in result.columns
+    assert "fault_std" in result.columns
 
 
 def test_leakage_guard_marks_hi_source_feature():
@@ -113,7 +118,7 @@ def test_feature_ranking_contains_required_columns_and_recommendations():
         label_source_features={"feature_good"},
     )
 
-    for column in ["rul_score", "health_score", "early_fault_score", "overall_score", "recommended_for"]:
+    for column in ["rul_score", "health_score", "early_fault_score", "fault_type_score", "overall_score", "rank_fault_type", "recommended_for", "label_source_warning"]:
         assert column in ranking.columns
     assert ranking.iloc[0]["rank_overall"] == 1
     assert ranking[ranking["feature"] == "feature_good"].iloc[0]["is_label_source"] is True or bool(ranking[ranking["feature"] == "feature_good"].iloc[0]["is_label_source"]) is True

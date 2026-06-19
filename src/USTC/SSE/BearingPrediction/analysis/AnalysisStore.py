@@ -6,6 +6,7 @@ from typing import Dict
 
 import pandas as pd
 
+from USTC.SSE.BearingPrediction.analysis.PlotBuilder import PlotBuilder
 from USTC.SSE.BearingPrediction.infra.artifact.ArtifactManager import ArtifactManager
 
 
@@ -18,6 +19,7 @@ class AnalysisStore:
         "early_fault_scores",
         "fault_type_scores",
         "feature_ranking",
+        "feature_cards",
     ]
 
     JSON_KEYS = [
@@ -42,6 +44,7 @@ class AnalysisStore:
                 frame.to_parquet(self.artifacts.path(f"analysis/{key}.parquet"), index=False)
                 if self.write_csv:
                     frame.to_csv(self.artifacts.path(f"analysis/{key}.csv"), index=False)
+        if isinstance(outputs.get("feature_recommendations"), str):
+            self.artifacts.write_text("analysis/feature_recommendations.md", outputs["feature_recommendations"])
         if self.write_figures:
-            for path in outputs.get("figures", []) or []:
-                del path
+            outputs["figures"] = PlotBuilder().build(self.artifacts.path("analysis"), outputs)
