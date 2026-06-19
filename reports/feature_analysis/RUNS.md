@@ -23,8 +23,9 @@ This file records all feature-analysis runs that are copied into `reports/featur
 | Step J | phm2012 | phm2012_official | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | phm2012_3tasks_manual_basic | done |
 | Step K | phm2012 | phm2012_official | manual_tsfresh_basic | degradation_three_tasks | full_feature_analysis_3tasks | phm2012_3tasks_manual_tsfresh | done |
 | Step L | summary | all completed analysis reports | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | final_feature_analysis_summary | done |
-| Step M | technical_doc | feature_analysis_summary | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | latex_feature_analysis_technical_report | needs-review |
-| Step M-R | technical_doc | feature_analysis_summary | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | latex_feature_analysis_deep_revision | needs-review |
+| Step M | technical_doc | feature_analysis_summary | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | latex_feature_analysis_technical_report | done |
+| Step M-R | technical_doc | feature_analysis_summary | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | latex_feature_analysis_deep_revision | done |
+| Step N | technical_doc_build | latex_report | manual_basic | degradation_three_tasks | full_feature_analysis_3tasks | latex_build_check | needs-review |
 
 ## Status Values
 

@@ -34,6 +34,18 @@ make clean
 
 The source uses `ctexart`, so compile with XeLaTeX.
 
+## Compilation Status
+
+- Latest recorded QA: `build_check.md`
+- Command:
+
+```bash
+make
+```
+
+- Status: pass
+- Notes: source QA and rendered-page spot checks passed; generated PDF and LaTeX auxiliary files are intentionally not committed by default.
+
 ## Contents
 
 - `main.tex`: report entry point.
