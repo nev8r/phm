@@ -4,6 +4,7 @@ Split registry for Stage 1 CLI integration.
 
 from omegaconf import DictConfig, OmegaConf
 
+from USTC.SSE.BearingPrediction.infra.split.BearingIndexSplitter import BearingIndexSplitter
 from USTC.SSE.BearingPrediction.infra.split.CrossConditionSplitter import CrossConditionSplitter
 from USTC.SSE.BearingPrediction.infra.split.LeaveOneBearingOutSplitter import LeaveOneBearingOutSplitter
 from USTC.SSE.BearingPrediction.infra.split.OfficialPHM2012Splitter import OfficialPHM2012Splitter
@@ -11,6 +12,8 @@ from USTC.SSE.BearingPrediction.infra.split.OfficialPHM2012Splitter import Offic
 
 def build_splitter(cfg: DictConfig):
     name = str(OmegaConf.select(cfg, "name", default=""))
+    if name == "xjtu_bearing_index_split":
+        return BearingIndexSplitter(cfg)
     if name == "xjtu_leave_one_bearing_out":
         return LeaveOneBearingOutSplitter(cfg)
     if name == "xjtu_cross_condition":

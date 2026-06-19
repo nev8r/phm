@@ -1,0 +1,16 @@
+name: xjtu_bearing_index_split
+enabled: true
+
+# Empty means all XJTU-SY conditions found in the index.
+condition_ids: []
+
+train_bearing_indices:
+  - 1
+  - 2
+  - 3
+
+val_bearing_indices:
+  - 4
+
+test_bearing_indices:
+  - 5

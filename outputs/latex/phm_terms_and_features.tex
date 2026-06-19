@@ -1,0 +1,893 @@
+%!TEX program = xelatex
+\documentclass[UTF8,11pt]{ctexart}
+
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fontspec}
+\usepackage{fancyhdr}
+
+\IfFontExistsTF{PingFang SC}{\setCJKmainfont{PingFang SC}}{}
+\IfFontExistsTF{Arial}{\setmainfont{Arial}}{}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  urlcolor=blue!55!black,
+  citecolor=blue!55!black
+}
+
+\definecolor{phmblue}{RGB}{0,64,152}
+\definecolor{phmgray}{RGB}{71,85,105}
+\definecolor{phmlight}{RGB}{239,246,255}
+\definecolor{phmline}{RGB}{180,202,232}
+\definecolor{phmgreen}{RGB}{22,120,83}
+\definecolor{phmorange}{RGB}{194,95,20}
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\term}[1]{\textbf{\color{phmblue}#1}}
+\newcommand{\warn}[1]{\textbf{\color{phmorange}#1}}
+\newcommand{\good}[1]{\textbf{\color{phmgreen}#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\emergencystretch}{2em}
+\setlength{\headheight}{14pt}
+\sloppy
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{轴承 PHM 项目术语与特征说明}
+\rhead{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.2em,topsep=0.25em}
+\setlist[enumerate]{leftmargin=1.8em,itemsep=0.25em,topsep=0.25em}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{2em}
+
+\title{\heiti 轴承寿命预测与故障诊断系统\\术语、标签、特征与分析指标详解}
+\author{PHM 项目文档}
+\date{2026 年 6 月 19 日}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本文档面向不熟悉轴承故障诊断和 PHM 的读者，解释本项目中出现的核心名词、数据形态、标签构造、FPT 与 3$\sigma$ 原则、RUL、健康状态、早期故障检测、故障类型阶段、特征工程、特征分析指标和实验产物。阅读目标是：即使读者不是本领域人员，也能理解本项目为什么要从振动信号中提取特征，为什么要构造 RUL 和健康状态标签，以及为什么某些特征适合寿命预测、某些特征更适合早期故障检测。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{先用一句话理解本项目}
+
+本项目研究的是\term{滚动轴承预测性维护}。轴承在机器中负责支撑旋转部件。它从健康到失效通常不是瞬间发生，而是经历一个逐渐退化的过程：开始时振动很平稳，随后出现微小冲击或频率成分变化，最后振动幅值和冲击明显增大，设备接近失效。
+
+本项目要做两类判断：
+\begin{enumerate}
+  \item \term{还能用多久？} 这对应 \term{RUL}（Remaining Useful Life，剩余使用寿命）预测。
+  \item \term{现在处于什么状态？} 这对应健康状态评估、早期故障检测和故障类型阶段识别。
+\end{enumerate}
+
+项目中数据流可以概括为：
+\[
+\text{原始振动 CSV}
+\rightarrow
+\text{样本索引}
+\rightarrow
+\text{窗口/快照级特征}
+\rightarrow
+\text{RUL/健康状态/早期故障标签}
+\rightarrow
+\text{任务数据集}
+\rightarrow
+\text{模型训练与分析}
+\]
+
+其中最容易混淆的一点是：\warn{原始数据本身通常只是振动信号，不直接告诉我们每一时刻是 healthy、slight、moderate 还是 severe。} 项目里的许多标签是根据轴承全寿命顺序、HI（健康指标）和 FPT（首次可预测时间）构造出来的伪标签或任务标签。
+
+\section{PHM 是什么}
+
+\term{PHM} 是 Prognostics and Health Management 的缩写，中文常译为\term{故障预测与健康管理}。它不是单纯的“分类器”或“回归器”，而是一整套面向设备运维的技术体系。
+
+\begin{longtable}{L{3.2cm}L{11.2cm}}
+\toprule
+名词 & 通俗解释 \\
+\midrule
+\endhead
+\term{Diagnosis} 诊断 & 判断设备现在是否已经异常、异常属于哪一类。例如：轴承是否有外圈故障。 \\
+\term{Prognosis} 预测 & 判断设备未来还能安全运行多久。例如：还剩 30 分钟、50 个采样周期或 20\% 寿命。 \\
+\term{Health Management} 健康管理 & 把诊断和预测结果用于维修计划、备件安排、停机风险控制。 \\
+\term{Predictive Maintenance} 预测性维护 & 不等坏了再修，也不固定周期盲目换件，而是根据状态和寿命预测安排维修。 \\
+\bottomrule
+\end{longtable}
+
+本项目中的 PHM 主要落在两个任务上：
+\begin{itemize}
+  \item \term{RUL 回归}：输出一个连续数值，表示剩余寿命。
+  \item \term{状态/故障分类}：输出离散类别，例如 healthy / slight / moderate / severe，或者 early fault 的 0/1。
+\end{itemize}
+
+\section{轴承和振动信号的基本概念}
+
+\subsection{轴承为什么能从振动里看出问题}
+
+轴承由内圈、外圈、滚动体和保持架组成。理想情况下，旋转很平稳；当某个部件出现点蚀、裂纹、剥落或磨损时，滚动体经过缺陷位置会产生冲击，冲击会传到传感器上，表现为加速度信号的变化。
+
+\begin{longtable}{L{3.5cm}L{10.8cm}}
+\toprule
+术语 & 含义 \\
+\midrule
+\endhead
+内圈 Inner Race & 与转轴一起旋转的轴承圈。内圈故障常随旋转调制，特征频率复杂。 \\
+外圈 Outer Race & 通常固定在轴承座上。外圈缺陷经过滚动体时会产生周期性冲击。 \\
+滚动体 Ball/Roller & 在内圈和外圈之间滚动的球或滚子。滚动体故障可能导致宽频冲击。 \\
+保持架 Cage & 分隔滚动体的结构。保持架故障可能引起低频调制或不稳定冲击。 \\
+振动加速度 & 本项目主要使用的信号类型，单位可理解为“振动强弱随时间变化的记录”。 \\
+水平/垂直通道 & 两个传感器方向。XJTU-SY 和 PHM2012 都有水平、垂直两个振动方向。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{一个 CSV 文件在项目里代表什么}
+
+本项目把一个原始振动 CSV 文件视为一个\term{振动快照}或\term{样本}。这个样本不是一个单点，而是一小段连续振动信号。
+
+\begin{itemize}
+  \item XJTU-SY：每个 CSV 通常是一次采集快照，包含水平和垂直两列振动信号。
+  \item PHM2012：每个 \code{acc_*.csv} 通常包含时间列和水平/垂直加速度列；当前框架只保留最后两列加速度。
+\end{itemize}
+
+项目中的样本级索引字段包括：
+\begin{longtable}{L{3.8cm}L{10.5cm}}
+\toprule
+字段 & 解释 \\
+\midrule
+\endhead
+\code{sample_uid} & 样本唯一 ID。后续 features、labels、task dataset 都靠它对齐。 \\
+\code{dataset} & 数据集名称，例如 \code{XJTU-SY} 或 \code{PHM2012}。 \\
+\code{bearing_id} & 轴承 ID，例如 \code{Bearing1_1}。同一个轴承内部样本必须按时间顺序处理。 \\
+\code{condition_id} & 工况 ID，例如转速和载荷组合 \code{35Hz12kN}。 \\
+\code{source_group} & PHM2012 中区分 \code{Learning_set} 与 \code{Full_Test_Set}；XJTU-SY 通常为空。 \\
+\code{sample_id} & 原始文件编号或快照编号。 \\
+\code{timestep} & 项目内部的时间顺序编号。它不一定是秒，但保证同一轴承内从早到晚递增。 \\
+\bottomrule
+\end{longtable}
+
+\section{数据集术语}
+
+\subsection{XJTU-SY}
+
+XJTU-SY 是一个滚动轴承加速退化全寿命数据集，包含 15 个轴承，分为 3 个工况，每个工况 5 个轴承。项目中常用的划分方式是：同一工况下 5 个轴承，每次留 1 个轴承测试，其余轴承用于训练/验证。
+
+\begin{longtable}{L{3.3cm}L{11cm}}
+\toprule
+名词 & 项目中的含义 \\
+\midrule
+\endhead
+\code{35Hz12kN} & 转速约 35 Hz、载荷 12 kN 的工况。 \\
+\code{Bearing1_1}--\code{Bearing1_5} & 该工况下的 5 个轴承。 \\
+\code{fault_element} & XJTU-SY 官方轴承级故障元素说明，例如 Outer Race Fault、Cage Fault。它不是逐样本标签。 \\
+\code{xjtu_leave_one_bearing_out} & 同一工况下留一个轴承做测试的划分方式。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{PHM2012 / PRONOSTIA}
+
+PHM2012 是 IEEE PHM 2012 Challenge 使用的 PRONOSTIA 轴承全寿命数据。它同样是 run-to-failure 数据，但不适合强行做故障类型识别，因为没有像 XJTU-SY 那样的官方轴承级 fault element 标签。
+
+\begin{longtable}{L{3.3cm}L{11cm}}
+\toprule
+名词 & 项目中的含义 \\
+\midrule
+\endhead
+\code{Learning_set} & PHM2012 官方训练/学习集合。 \\
+\code{Full_Test_Set} & PHM2012 官方测试/验证集合。 \\
+\code{acc_*.csv} & 加速度文件。当前框架读取最后两列作为水平、垂直振动。 \\
+\code{temp_*.csv} & 温度文件。当前框架暂不纳入核心特征。 \\
+\code{phm2012_official} & 优先按官方 train/test 结构划分。 \\
+\bottomrule
+\end{longtable}
+
+\section{标签、任务和目标变量}
+
+\subsection{标签 label 是什么}
+
+在机器学习里，\term{标签}是模型要学习预测的目标。输入是特征，输出是标签。例如：
+\[
+\text{特征} = [\text{RMS}, \text{kurtosis}, \text{spectral entropy}, \ldots]
+\quad\Rightarrow\quad
+\text{标签} = \text{RUL 或健康状态}
+\]
+
+轴承数据里，原始 CSV 通常没有每个快照的精确健康标签。因此项目用以下信息构造标签：
+\begin{itemize}
+  \item 同一轴承内部的时间顺序。
+  \item 轴承最终失效这一事实。
+  \item 由特征构造的健康指标 HI。
+  \item 由 HI 计算出的 FPT。
+  \item XJTU-SY 的轴承级 fault element。
+\end{itemize}
+
+\subsection{RUL：Remaining Useful Life}
+
+\term{RUL} 是 Remaining Useful Life，中文是\term{剩余使用寿命}。它回答：\term{从当前时刻到失效还剩多久？}
+
+项目中有三种相关字段：
+\begin{longtable}{L{4cm}L{10.2cm}}
+\toprule
+字段 & 解释 \\
+\midrule
+\endhead
+\code{linear_rul_steps} & 线性 RUL 的剩余样本步数。越接近失效越小。 \\
+\code{linear_rul_seconds} & 将剩余步数乘以样本间隔后的秒数。 \\
+\code{linear_rul_norm} & 归一化到 $[0,1]$ 的线性 RUL，开始时接近 1，失效时为 0。 \\
+\code{piecewise_rul_steps} & 分段 RUL 的剩余步数。FPT 前保持平台，FPT 后下降。 \\
+\code{piecewise_rul_seconds} & 分段 RUL 的秒数版本。 \\
+\code{piecewise_rul_norm} & 归一化到 $[0,1]$ 的分段 RUL，是 Stage 6 默认分析目标。 \\
+\bottomrule
+\end{longtable}
+
+\subsubsection{线性 RUL}
+
+如果一个轴承一共有 $N$ 个样本，第 $t$ 个样本的剩余步数为：
+\[
+\text{linear\_rul\_steps}(t)=N-1-t
+\]
+归一化后：
+\[
+\text{linear\_rul\_norm}(t)=\frac{N-1-t}{N-1}
+\]
+
+直观理解：从第一天开始就认为寿命在均匀下降。这很简单，但有时不符合物理直觉，因为健康早期的振动可能长期稳定。
+
+\subsubsection{分段 RUL}
+
+分段 RUL 引入 FPT。FPT 前认为设备仍处于健康或稳定阶段，RUL 不明显下降；FPT 后才进入明显退化阶段：
+\[
+\text{piecewise\_rul\_norm}(t)=
+\begin{cases}
+1, & t < t_{\mathrm{FPT}} \\
+\frac{N-1-t}{N-1-t_{\mathrm{FPT}}}, & t \ge t_{\mathrm{FPT}}
+\end{cases}
+\]
+
+这更接近项目的直觉：轴承不是从第一分钟就线性坏掉，而是先稳定运行，之后进入可观测退化。
+
+\subsection{退化 degradation}
+
+\term{退化}指设备健康程度随时间变差的过程。它不是某个单一标签，而是一个物理过程。退化通常表现为：
+\begin{itemize}
+  \item 振动能量上升，例如 RMS、std、mean abs 变大。
+  \item 冲击增强，例如 kurtosis、crest factor、impulse factor 增大。
+  \item 频谱结构变化，例如 spectral centroid 或 entropy 改变。
+  \item 不同健康阶段之间的分布逐渐错开。
+\end{itemize}
+
+项目通过 HI、FPT、RUL、健康状态、早期故障等多个对象来描述退化。
+
+\subsection{HI：Health Indicator}
+
+\term{HI} 是 Health Indicator，中文可称为\term{健康指标}。它把一个或多个特征转换成一条随时间变化的健康曲线，用来描述“轴承坏到什么程度”。
+
+当前项目的 \code{degradation_basic} 使用 \term{feature-column HI}：
+\begin{enumerate}
+  \item 优先选择 \code{mag__time__rms}，如果不存在则选择 \code{h__time__rms}，再不存在则选择 \code{v__time__rms}。
+  \item 如果 \code{direction=bad_high}，数值越大表示越坏；如果 \code{bad_low}，会取相反数。
+  \item 对同一轴承内的 HI 做滑动平均平滑，默认窗口为 3。
+  \item 对每个轴承单独做 min-max 归一化，得到 \code{hi_norm}。
+\end{enumerate}
+
+用公式表示，若原始 HI 为 $h_t$，平滑窗口为 $w=3$：
+\[
+\tilde{h}_t = \frac{1}{|\mathcal{W}_t|}\sum_{i\in\mathcal{W}_t}h_i
+\]
+归一化为：
+\[
+h^{\mathrm{norm}}_t=\frac{\tilde{h}_t-\min(\tilde{h})}{\max(\tilde{h})-\min(\tilde{h})}
+\]
+
+\warn{重要注意：如果某个特征被用作 HI source，那么它在 FPT、健康状态、早期故障标签上表现好，存在循环定义风险。项目会在 \code{feature_ranking.csv} 和 \code{feature_cards.csv} 中标注 \code{is_label_source=true}。}
+
+\subsection{FPT：First Predictable Time}
+
+\term{FPT} 是 First Predictable Time，中文可理解为\term{首次可预测时间}或\term{首次明显退化点}。它不是最终失效点，而是设备从“看起来健康”进入“退化已经可观测”的分界点。
+
+通俗理解：
+\begin{itemize}
+  \item FPT 前：信号基本像健康状态，模型很难可靠预测退化。
+  \item FPT 后：退化趋势开始显现，RUL 预测和状态评估更有意义。
+\end{itemize}
+
+\subsection{3$\sigma$ 原则 / Three Sigma}
+
+当前项目用 3$\sigma$ 原则检测 FPT。做法如下：
+\begin{enumerate}
+  \item 取每个轴承前 \code{healthy_ratio=0.2} 的样本作为健康基线。
+  \item 计算健康基线 HI 的均值 $\mu$ 和标准差 $\sigma$。
+  \item 阈值为：
+  \[
+  \theta = \mu + 3\sigma + \Delta_{\min}
+  \]
+  当前默认 \code{sigma_ratio=3.0}，\code{min_delta=0.0}。
+  \item 从前到后找连续 \code{consecutive_points=3} 个点都超过阈值的位置。
+  \item 第一个满足条件的位置就是 FPT。
+  \item 如果找不到，使用 fallback。当前默认 fallback 是 \code{healthy_ratio}，即健康段结束处。
+\end{enumerate}
+
+为什么叫 3$\sigma$？如果健康期波动大致服从稳定分布，均值加 3 倍标准差以上通常属于很不寻常的偏离。连续多个点越过阈值，比单个点越过更稳健，可以减少偶然尖峰造成误报。
+
+\subsection{健康状态 Health State}
+
+健康状态是把轴承寿命阶段离散化。当前项目默认四类：
+\begin{longtable}{L{3cm}L{4cm}L{7cm}}
+\toprule
+\code{health_state_id} & 名称 & 含义 \\
+\midrule
+\endhead
+0 & \code{healthy} & FPT 前，认为处于健康或稳定阶段。 \\
+1 & \code{slight} & FPT 后早期退化，退化刚开始。 \\
+2 & \code{moderate} & FPT 后中期退化，趋势更明显。 \\
+3 & \code{severe} & FPT 后晚期退化，接近失效。 \\
+\bottomrule
+\end{longtable}
+
+项目中，FPT 后的剩余退化过程按照进度比例切分。默认边界为 0.4 和 0.8：
+\[
+\text{progress}=\frac{t-t_{\mathrm{FPT}}}{N-1-t_{\mathrm{FPT}}}
+\]
+\begin{itemize}
+  \item $t<t_{\mathrm{FPT}}$：healthy。
+  \item $0\le \text{progress}<0.4$：slight。
+  \item $0.4\le \text{progress}<0.8$：moderate。
+  \item $\text{progress}\ge 0.8$：severe。
+\end{itemize}
+
+\subsection{早期故障 Early Fault}
+
+\term{早期故障检测}在当前项目里是一个二分类标签：
+\[
+\text{early\_fault}(t)=
+\begin{cases}
+0, & t<t_{\mathrm{FPT}} \\
+1, & t\ge t_{\mathrm{FPT}}
+\end{cases}
+\]
+
+它回答的是：\term{当前样本是否已经进入 FPT 后的异常/退化阶段？}
+
+注意它不是“故障已经严重”的意思。它更像是早期报警：一旦过了 FPT，就认为需要重点监控。
+
+\subsection{故障类型阶段 Fault Type Stage}
+
+\term{fault type stage} 是项目为 XJTU-SY 做的弱故障类型阶段标签。它结合健康状态和轴承级 fault element：
+\begin{itemize}
+  \item 健康状态为 0：标为 \code{normal}。
+  \item 中间退化阶段：标为 \code{degraded_unknown}。
+  \item severe 阶段：使用 XJTU-SY 的轴承级 fault element，例如 outer race、inner race、cage 等。
+\end{itemize}
+
+\warn{PHM2012 不应强做 fault type，因为它没有同等的官方 fault element 标签。} 当前分析配置中如果 PHM2012 缺少 \code{fault_type_stage_name}，会在 \code{analysis_report.json} 中记录 \code{fault_type_skipped=true}。
+
+\section{数据划分和泄漏}
+
+\subsection{Train / Validation / Test}
+
+\begin{longtable}{L{3cm}L{11.2cm}}
+\toprule
+集合 & 作用 \\
+\midrule
+\endhead
+Train 训练集 & 用来拟合模型、估计标准化参数、做特征 ranking。 \\
+Validation 验证集 & 用来调参、早停、选择模型。 \\
+Test 测试集 & 只用于最终评估，不能用于选择特征或调参。 \\
+\bottomrule
+\end{longtable}
+
+本项目特别强调：\term{特征选择、标准化参数、特征 ranking 应尽量只用 train split。} 如果提前看 test label 来挑特征，结果会显得很好，但泛化评估不可信。
+
+\subsection{数据泄漏 Data Leakage}
+
+\term{数据泄漏}指模型或分析过程使用了本不应该提前知道的信息。例如：
+\begin{itemize}
+  \item 用测试集均值和标准差标准化训练集。
+  \item 用测试集标签挑选最好的特征。
+  \item 用某个特征构造标签，又宣称同一个特征独立发现了该标签。
+\end{itemize}
+
+本项目最需要标注的是 \term{label-source leakage}。例如 \code{mag__time__rms} 被用作 HI source，FPT 和 early fault 标签又由 HI 构造，那么 \code{mag__time__rms} 在 early fault 上表现好并不意外。它仍可用，但论文和报告中必须说明。
+
+\section{原始信号、通道和特征命名}
+
+\subsection{通道命名}
+
+当前 manual 特征使用三类通道：
+\begin{longtable}{L{2.5cm}L{11.7cm}}
+\toprule
+通道 & 含义 \\
+\midrule
+\endhead
+\code{h} & horizontal，水平方向振动。 \\
+\code{v} & vertical，垂直方向振动。 \\
+\code{mag} & magnitude，水平和垂直的合成幅值，计算为 $\sqrt{h^2+v^2}$。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{特征列命名规则}
+
+manual 特征列遵循：
+\[
+\code{channel\_\_domain\_\_feature}
+\]
+例如：
+\begin{itemize}
+  \item \code{h__time__rms}：水平通道的时间域 RMS。
+  \item \code{v__spectral__entropy}：垂直通道的频域谱熵。
+  \item \code{mag__time__kurtosis}：合成幅值通道的时间域峭度。
+\end{itemize}
+
+tsfresh 特征列遵循：
+\[
+\code{tsfresh\_\_kind\_\_calculator\_\_params}
+\]
+其中 \code{kind} 通常是 \code{h} 或 \code{v}，例如某个通道的均值、方差、FFT 系数、自相关等。
+
+\section{时间域特征}
+
+时间域特征直接在原始振动序列 $x_1,x_2,\ldots,x_N$ 上计算。它们容易理解，适合向非专业读者解释。
+
+\subsection{manual\_basic 当前启用的时间域特征}
+
+令 $x_i$ 是一个快照内第 $i$ 个振动采样点，$N$ 是该快照采样点数，$|x_i|$ 是绝对值。
+
+\begin{longtable}{L{3.5cm}L{4.2cm}L{6.5cm}}
+\toprule
+特征名 & 公式/定义 & 非专业解释与用途 \\
+\midrule
+\endhead
+\code{mean} & $\bar{x}=\frac{1}{N}\sum_i x_i$ & 平均振动偏置。若传感器零点偏移或信号不对称，mean 会变化。通常不是最强故障特征。 \\
+\code{std} & $\sqrt{\frac{1}{N}\sum_i(x_i-\bar{x})^2}$ & 振动离散程度。退化加剧时，振动波动通常更大，适合 RUL 和健康状态。 \\
+\code{rms} & $\sqrt{\frac{1}{N}\sum_i x_i^2}$ & 均方根，代表振动能量强度。轴承越坏，RMS 常越高，是最常用退化特征之一。 \\
+\code{mean_abs} & $\frac{1}{N}\sum_i |x_i|$ & 平均绝对振动幅值。比 mean 更能反映振动强度，适合 RUL 和健康状态。 \\
+\code{ptp} & $\max(x)-\min(x)$ & peak-to-peak，峰峰值。反映一个快照内最大振动跨度，对冲击和严重退化敏感。 \\
+\code{skewness} & 三阶标准化矩 & 偏度，描述波形是否向某一侧偏。可反映不对称冲击，但解释性弱于 RMS。 \\
+\code{kurtosis} & 四阶标准化矩 & 峭度，描述尖峰/重尾程度。对局部冲击非常敏感，常用于早期故障检测。 \\
+\code{crest_factor} & $\frac{\max |x_i|}{\mathrm{RMS}}$ & 峰值因子。看“最高尖峰”相对整体能量有多突出，适合发现突然冲击。 \\
+\code{impulse_factor} & $\frac{\max |x_i|}{\mathrm{mean\_abs}}$ & 脉冲因子。类似 crest factor，但以平均绝对幅值为基准，对尖峰敏感。 \\
+\code{clearance_factor} & $\frac{\max |x_i|}{(\frac{1}{N}\sum_i\sqrt{|x_i|})^2}$ & 裕度因子。常用于滚动轴承冲击类故障，对尖锐冲击敏感。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{代码支持但 manual\_basic 未默认启用的时间域特征}
+
+\begin{longtable}{L{3.5cm}L{10.7cm}}
+\toprule
+特征名 & 解释 \\
+\midrule
+\endhead
+\code{var} & 方差，等于 std 的平方，表示振动波动能量。 \\
+\code{max} & 最大值，可能受单个异常点影响。 \\
+\code{min} & 最小值，常与 max/ptp 配合理解。 \\
+\code{shape_factor} & $\mathrm{RMS}/\mathrm{mean\_abs}$，形状因子，反映波形形态。 \\
+\bottomrule
+\end{longtable}
+
+\section{频域特征}
+
+频域特征先把时域信号通过 rFFT 转成频谱。频谱可以理解为：振动能量分布在哪些频率上。
+
+对每个快照，项目计算一侧实数 FFT：
+\[
+X_k = \mathrm{rFFT}(x)_k,\quad P_k=|X_k|^2
+\]
+其中 $P_k$ 是第 $k$ 个频率 bin 的功率。默认 \code{include_dc=false}，也就是去掉 0 Hz 的直流分量。
+
+\subsection{manual\_basic 当前启用的频域特征}
+
+\begin{longtable}{L{3.8cm}L{4.4cm}L{6.1cm}}
+\toprule
+特征名 & 公式/定义 & 非专业解释与用途 \\
+\midrule
+\endhead
+\code{centroid} & $\sum_k f_k p_k$ & 频谱质心。把频谱看作质量分布，centroid 是能量中心频率。退化可能导致能量向高频或低频迁移。 \\
+\code{bandwidth} & $\sqrt{\sum_k(f_k-c)^2p_k}$ & 频谱带宽。表示能量围绕质心分散得多宽。冲击和宽频噪声会影响它。 \\
+\code{rms_frequency} & $\sqrt{\sum_k f_k^2p_k}$ & RMS 频率。表示频率成分的均方根位置，常用于频率结构变化分析。 \\
+\code{peak_frequency} & $\arg\max_{f_k} P_k$ & 功率最大的频率。看当前最强的振动频率在哪里。 \\
+\code{entropy} & $-\sum_k p_k\log(p_k)/\log K$ & 谱熵。频谱越分散、越复杂，熵越高；频谱集中在少数频率时熵低。 \\
+\bottomrule
+\end{longtable}
+
+这里 $p_k=P_k/\sum_j P_j$ 是归一化频谱功率，$c$ 是 centroid。
+
+\subsection{代码支持但 manual\_basic 未默认启用的频域特征}
+
+\begin{longtable}{L{3.5cm}L{10.7cm}}
+\toprule
+特征名 & 解释 \\
+\midrule
+\endhead
+\code{flatness} & 谱平坦度。频谱越像白噪声，flatness 越高；越像单一尖峰，flatness 越低。 \\
+\code{rolloff} & 谱滚降频率。累计能量达到某个比例（默认 85\%）时对应的频率。 \\
+\bottomrule
+\end{longtable}
+
+\section{manual\_basic 的完整特征列}
+
+\code{manual_basic} 当前启用 3 个通道，每个通道 10 个时间域特征和 5 个频域特征，因此一共：
+\[
+3\times(10+5)=45
+\]
+个 manual 特征。
+
+\subsection{时间域 30 个特征列}
+
+\begin{longtable}{L{4.4cm}L{9.7cm}}
+\toprule
+通道 & 特征列 \\
+\midrule
+\endhead
+\code{h} & \code{h__time__mean}, \code{h__time__std}, \code{h__time__rms}, \code{h__time__mean_abs}, \code{h__time__ptp}, \code{h__time__skewness}, \code{h__time__kurtosis}, \code{h__time__crest_factor}, \code{h__time__impulse_factor}, \code{h__time__clearance_factor} \\
+\code{v} & \code{v__time__mean}, \code{v__time__std}, \code{v__time__rms}, \code{v__time__mean_abs}, \code{v__time__ptp}, \code{v__time__skewness}, \code{v__time__kurtosis}, \code{v__time__crest_factor}, \code{v__time__impulse_factor}, \code{v__time__clearance_factor} \\
+\code{mag} & \code{mag__time__mean}, \code{mag__time__std}, \code{mag__time__rms}, \code{mag__time__mean_abs}, \code{mag__time__ptp}, \code{mag__time__skewness}, \code{mag__time__kurtosis}, \code{mag__time__crest_factor}, \code{mag__time__impulse_factor}, \code{mag__time__clearance_factor} \\
+\bottomrule
+\end{longtable}
+
+\subsection{频域 15 个特征列}
+
+\begin{longtable}{L{4.4cm}L{9.7cm}}
+\toprule
+通道 & 特征列 \\
+\midrule
+\endhead
+\code{h} & \code{h__spectral__centroid}, \code{h__spectral__bandwidth}, \code{h__spectral__rms_frequency}, \code{h__spectral__peak_frequency}, \code{h__spectral__entropy} \\
+\code{v} & \code{v__spectral__centroid}, \code{v__spectral__bandwidth}, \code{v__spectral__rms_frequency}, \code{v__spectral__peak_frequency}, \code{v__spectral__entropy} \\
+\code{mag} & \code{mag__spectral__centroid}, \code{mag__spectral__bandwidth}, \code{mag__spectral__rms_frequency}, \code{mag__spectral__peak_frequency}, \code{mag__spectral__entropy} \\
+\bottomrule
+\end{longtable}
+
+\section{tsfresh 特征}
+
+\term{tsfresh} 是一个自动时间序列特征提取库。它会从时间序列中计算大量统计、频域、复杂度和自相关特征。项目提供：
+\begin{itemize}
+  \item \code{tsfresh_minimal}：最小特征集合，速度快、解释简单。
+  \item \code{tsfresh_efficient}：更丰富的特征集合，覆盖更多统计特征，但列数多、解释成本更高。
+  \item \code{manual_tsfresh_basic}：manual 特征 + tsfresh minimal 的组合。
+\end{itemize}
+
+\subsection{tsfresh minimal 的特征计算器}
+
+当前环境中 \code{MinimalFCParameters} 包含：
+\begin{longtable}{L{4.2cm}L{10cm}}
+\toprule
+计算器 & 通俗解释 \\
+\midrule
+\endhead
+\code{sum_values} & 所有采样点求和。 \\
+\code{median} & 中位数。 \\
+\code{mean} & 均值。 \\
+\code{length} & 序列长度。 \\
+\code{standard_deviation} & 标准差。 \\
+\code{variance} & 方差。 \\
+\code{root_mean_square} & RMS。 \\
+\code{maximum} & 最大值。 \\
+\code{absolute_maximum} & 绝对值最大值。 \\
+\code{minimum} & 最小值。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{tsfresh efficient 的特征类型}
+
+\code{EfficientFCParameters} 当前包含 73 类计算器，其中许多计算器会展开成多个参数列。它覆盖：
+\begin{itemize}
+  \item 基本统计：mean、median、variance、standard deviation、skewness、kurtosis。
+  \item 能量和变化：abs energy、mean abs change、absolute sum of changes。
+  \item 重复和计数：duplicate、value count、range count、count above/below mean。
+  \item 自相关和局部相关：autocorrelation、partial autocorrelation、agg autocorrelation。
+  \item 频域：FFT coefficient、FFT aggregated、Welch density、fourier entropy。
+  \item 小波和峰值：cwt coefficients、number of peaks、number cwt peaks。
+  \item 趋势和稳定性：linear trend、augmented Dickey-Fuller、large standard deviation。
+  \item 复杂度和信息量：permutation entropy、Lempel-Ziv complexity、binned entropy。
+\end{itemize}
+
+非专业读者可以这样理解：manual 特征像是“人工挑选的少数可解释指标”；tsfresh 像是“自动生成的候选指标库”。tsfresh 可能找到有用信号，但每个特征的物理意义通常不如 RMS、kurtosis、spectral entropy 直观。
+
+\subsection{tsfresh efficient 当前计算器名称总览}
+
+下面列出项目当前环境中 \code{EfficientFCParameters} 的计算器名称。这里的“计算器”不是最终列名；很多计算器会因为不同参数组合展开成多列。例如 \code{autocorrelation} 会按多个 lag 展开，\code{fft_coefficient} 会按不同 coeff 和 attr 展开。
+
+\begin{longtable}{L{4.2cm}L{10cm}}
+\toprule
+类别 & 计算器名称 \\
+\midrule
+\endhead
+基础统计 & \code{sum_values}, \code{median}, \code{mean}, \code{length}, \code{standard_deviation}, \code{variance}, \code{variation_coefficient}, \code{maximum}, \code{minimum}, \code{absolute_maximum}, \code{root_mean_square}, \code{skewness}, \code{kurtosis} \\
+重复与计数 & \code{has_duplicate}, \code{has_duplicate_max}, \code{has_duplicate_min}, \code{value_count}, \code{range_count}, \code{count_above}, \code{count_below}, \code{count_above_mean}, \code{count_below_mean}, \code{ratio_value_number_to_time_series_length} \\
+极值位置 & \code{first_location_of_maximum}, \code{last_location_of_maximum}, \code{first_location_of_minimum}, \code{last_location_of_minimum}, \code{longest_strike_above_mean}, \code{longest_strike_below_mean} \\
+变化与能量 & \code{abs_energy}, \code{absolute_sum_of_changes}, \code{mean_abs_change}, \code{mean_change}, \code{mean_second_derivative_central}, \code{cid_ce}, \code{number_crossing_m}, \code{number_peaks}, \code{number_cwt_peaks}, \code{mean_n_absolute_max} \\
+分布与分位数 & \code{quantile}, \code{index_mass_quantile}, \code{large_standard_deviation}, \code{ratio_beyond_r_sigma}, \code{variance_larger_than_standard_deviation}, \code{symmetry_looking}, \code{benford_correlation} \\
+重复值统计 & \code{percentage_of_reoccurring_values_to_all_values}, \code{percentage_of_reoccurring_datapoints_to_all_datapoints}, \code{sum_of_reoccurring_values}, \code{sum_of_reoccurring_data_points} \\
+相关与自回归 & \code{autocorrelation}, \code{agg_autocorrelation}, \code{partial_autocorrelation}, \code{ar_coefficient}, \code{c3}, \code{time_reversal_asymmetry_statistic} \\
+频域与谱特征 & \code{fft_coefficient}, \code{fft_aggregated}, \code{spkt_welch_density}, \code{fourier_entropy} \\
+小波与局部形态 & \code{cwt_coefficients}, \code{change_quantiles} \\
+趋势与平稳性 & \code{linear_trend}, \code{agg_linear_trend}, \code{linear_trend_timewise}, \code{augmented_dickey_fuller} \\
+复杂度与信息量 & \code{binned_entropy}, \code{permutation_entropy}, \code{lempel_ziv_complexity}, \code{energy_ratio_by_chunks}, \code{query_similarity_count} \\
+非线性动力学 & \code{friedrich_coefficients}, \code{max_langevin_fixed_point} \\
+\bottomrule
+\end{longtable}
+
+如果后续使用 \code{tsfresh_efficient}，建议先用 Stage 6 的 \code{feature_summary.csv} 删除常数列和异常列，再用 \code{feature_ranking.csv} 和 \code{feature_cards.csv} 选择少量稳定、可解释的特征。不要直接把上千列 tsfresh 特征全部放进论文解释中。
+
+\section{特征清洗和标准化}
+
+特征提取后，项目会进入 \term{FeatureCleaner}：
+\begin{enumerate}
+  \item \term{median impute}：用训练集特征中位数填补 NaN/Inf。
+  \item \term{standard scale}：标准化为均值 0、标准差 1。
+  \item \term{drop constant}：删除训练集中几乎不变的常数特征。
+  \item \term{train-only fit}：中位数、均值、标准差只从训练集估计。
+\end{enumerate}
+
+标准化公式：
+\[
+z=\frac{x-\mu_{\mathrm{train}}}{\sigma_{\mathrm{train}}}
+\]
+
+\warn{标准化参数不能从测试集估计。} 否则模型在训练阶段就“看见”了测试集分布，会导致评估偏乐观。
+
+\section{特征分析 Stage 6}
+
+Stage 6 的目标不是训练模型，而是回答：
+\begin{itemize}
+  \item 哪些特征适合 RUL？
+  \item 哪些特征适合健康状态？
+  \item 哪些特征适合早期故障检测？
+  \item 哪些特征只是末期突变，不适合早期检测？
+  \item 哪些特征参与了 HI/FPT 标签构造，存在 label-source 风险？
+\end{itemize}
+
+Stage 6 的主要产物：
+\begin{longtable}{L{5cm}L{9.2cm}}
+\toprule
+文件 & 含义 \\
+\midrule
+\endhead
+\code{feature_summary.csv} & 每个特征的缺失、方差、均值、分位数、常数列检查。 \\
+\code{rul_correlation.csv} & 特征与 RUL 的 Pearson/Spearman/Kendall 相关性。 \\
+\code{degradation_scores.csv} & 单调性、鲁棒性、趋势一致性、末端一致性。 \\
+\code{health_state_separability.csv} & 健康状态可分性，包括 MI、Fisher score、ANOVA F 和各状态均值/标准差。 \\
+\code{early_fault_scores.csv} & 早期故障敏感性，包括 Cohen's d、AUC、FPT 前后均值差。 \\
+\code{fault_type_scores.csv} & 故障类型阶段的弱可分性指标。 \\
+\code{feature_ranking.csv} & 综合 ranking，包含 RUL/Health/Early/FaultType 分数和推荐任务。 \\
+\code{feature_cards.csv} & 每个特征的解释卡片：物理意义、推荐任务、原因、 caveat、泄漏标记。 \\
+\code{feature_recommendations.md} & 面向读者的文字推荐报告。 \\
+\code{figures/} & 特征曲线、箱线图、热图和任务推荐矩阵。 \\
+\bottomrule
+\end{longtable}
+
+\section{RUL 特征分析指标}
+
+RUL 关注：\term{这个特征能不能稳定反映退化趋势？}
+
+\subsection{相关性}
+
+项目计算 Pearson、Spearman、Kendall：
+\begin{longtable}{L{3.5cm}L{10.7cm}}
+\toprule
+指标 & 解释 \\
+\midrule
+\endhead
+Pearson & 线性相关。适合关系近似直线的特征。 \\
+Spearman & 排序相关。只要一个特征随退化大致单调变化，即使不是直线，也能反映出来。 \\
+Kendall & 排序一致性，更保守。 \\
+\bottomrule
+\end{longtable}
+
+因为 RUL 越接近失效越小，而许多退化特征越接近失效越大，所以常见的是负相关。例如 RMS 上升、RUL 下降，Spearman 可能是 $-0.85$。因此 ranking 使用：
+\[
+|\rho_{\mathrm{Spearman}}|
+\]
+
+\subsection{退化行为分数}
+
+\begin{longtable}{L{3.8cm}L{10.5cm}}
+\toprule
+指标 & 解释 \\
+\midrule
+\endhead
+\code{monotonicity} & 单调性。看同一轴承内特征是否主要朝一个方向变化。 \\
+\code{robustness} & 鲁棒性。看特征曲线是否平滑、是否不容易被噪声支配。 \\
+\code{trendability} & 趋势一致性。看不同轴承的特征曲线形状是否相似。 \\
+\code{prognosability} & 末端一致性。看不同轴承临近失效时的特征值是否集中。 \\
+\bottomrule
+\end{longtable}
+
+项目当前 RUL score：
+\[
+\text{rul\_score}
+=0.35|\rho_s|
+ +0.25\text{monotonicity}
+ +0.20\text{robustness}
+ +0.20\text{trendability}
+\]
+
+\section{健康状态特征分析指标}
+
+健康状态关注：\term{这个特征能不能区分 healthy / slight / moderate / severe？}
+
+\begin{longtable}{L{4cm}L{10.2cm}}
+\toprule
+指标 & 解释 \\
+\midrule
+\endhead
+\code{mutual_information} & 互信息。衡量特征和健康状态之间的信息量，越高说明越有关联。 \\
+\code{fisher_score} & 类间差异与类内波动的比值。类间越分开、类内越集中，分数越高。 \\
+\code{anova_f} & 方差分析 F 值。判断不同健康状态的均值是否明显不同。 \\
+\code{state_0_mean} 等 & 每个健康状态下该特征的均值。可以看状态是否逐渐上移或下移。 \\
+\code{state_0_std} 等 & 每个健康状态下该特征的标准差。可以看每个状态内部是否稳定。 \\
+\bottomrule
+\end{longtable}
+
+项目当前 health score：
+\[
+\text{health\_score}
+=0.4\cdot\mathrm{MI}
+ +0.4\cdot\mathrm{Fisher}
+ +0.2\cdot\mathrm{ANOVA}
+\]
+实际 ranking 前会对不同指标做归一化，避免量纲不一致。
+
+\section{早期故障检测指标}
+
+早期故障检测关注：\term{FPT 前后是否已经能分开？}
+
+\begin{longtable}{L{4cm}L{10.2cm}}
+\toprule
+指标 & 解释 \\
+\midrule
+\endhead
+\code{healthy_mean} & FPT 前样本的特征均值。 \\
+\code{fault_mean} & FPT 后样本的特征均值。 \\
+\code{mean_shift} & FPT 后均值减去 FPT 前均值。 \\
+\code{healthy_std} & FPT 前波动。健康期波动太大，说明容易误报。 \\
+\code{fault_std} & FPT 后波动。异常期波动太大，说明状态不稳定。 \\
+\code{cohens_d} & 两组均值差除以合并标准差，表示效应量。绝对值越大，两组越分开。 \\
+\code{auc} / \code{auc_abs} & ROC-AUC 的方向无关版本，$\max(\mathrm{AUC},1-\mathrm{AUC})$。越接近 1 越容易区分。 \\
+\bottomrule
+\end{longtable}
+
+项目当前 early fault score：
+\[
+\text{early\_fault\_score}
+=0.5|\mathrm{Cohen's}\ d|
+ +0.5\cdot \mathrm{AUC}_{\mathrm{effective}}
+\]
+
+\section{故障类型特征分析}
+
+当前阶段的 fault type 分析是弱版本，因为还没有加入 BPFO/BPFI/BSF/FTF 等轴承机理频率特征。现阶段只能用 manual/tsfresh 统计特征去看它们是否能弱区分：
+\[
+\text{normal},\quad \text{degraded\_unknown},\quad \text{outer/inner/cage/compound}
+\]
+
+这可以作为探索，但不能过度解释为“已经识别了具体故障机理”。真正的故障机理解释后续应加入：
+\begin{itemize}
+  \item BPFO energy：外圈故障特征频率能量。
+  \item BPFI energy：内圈故障特征频率能量。
+  \item BSF energy：滚动体故障特征频率能量。
+  \item FTF energy：保持架故障特征频率能量。
+  \item envelope spectrum peak：包络谱峰值。
+  \item harmonic/sideband energy：谐波和边带能量。
+\end{itemize}
+
+\section{哪些特征通常适合哪些任务}
+
+\begin{longtable}{L{4cm}L{4.2cm}L{6cm}}
+\toprule
+特征族 & 常适合任务 & 原因和注意事项 \\
+\midrule
+\endhead
+\code{rms}, \code{std}, \code{mean_abs} & RUL、HealthState & 代表整体振动能量，退化时通常稳定上升。若被用作 HI source，需要标注泄漏风险。 \\
+\code{ptp} & HealthState、EarlyFault & 对峰值跨度敏感，严重退化和冲击会增大，但可能受异常点影响。 \\
+\code{kurtosis} & EarlyFault & 对局部冲击敏感，适合发现早期缺陷，但不一定单调，不一定适合 RUL 主特征。 \\
+\code{crest_factor} & EarlyFault & 看尖峰相对 RMS 是否突出，适合突发冲击检测。 \\
+\code{impulse_factor} & EarlyFault & 看尖峰相对平均绝对幅值是否突出，噪声敏感。 \\
+\code{clearance_factor} & EarlyFault & 轴承故障中常用的冲击敏感指标，解释时要结合曲线。 \\
+\code{spectral_centroid} & RUL、HealthState & 反映频谱能量中心迁移，但可能受工况变化影响。 \\
+\code{rms_frequency} & RUL、HealthState & 反映整体频率结构变化。 \\
+\code{spectral_entropy} & HealthState、EarlyFault & 反映频谱复杂度或宽频激励，解释性不如 RMS 直观。 \\
+\code{tsfresh_abs_energy} 等能量特征 & RUL & 能量类特征通常与退化相关，但需要跨轴承验证。 \\
+\code{tsfresh_kurtosis} 等冲击特征 & EarlyFault & 对尖峰和冲击敏感，但噪声风险高。 \\
+\bottomrule
+\end{longtable}
+
+\section{如何阅读分析结果}
+
+建议按以下顺序看：
+\begin{enumerate}
+  \item \term{看 \code{analysis_report.json}}：确认 \code{ok=true}、\code{fit_scope=train_only}、是否有 leakage warning、PHM2012 是否跳过 fault type。
+  \item \term{看 \code{feature_summary.csv}}：先排除 NaN 多、Inf 多、常数列、方差极小的特征。
+  \item \term{看 \code{feature_ranking.csv}}：分别按 \code{rank_rul}、\code{rank_health}、\code{rank_early_fault} 排序。
+  \item \term{看 \code{feature_cards.csv}}：理解每个特征的物理意义、适合任务、原因和 caveat。
+  \item \term{看 \code{feature_recommendations.md}}：快速获得每类任务推荐特征。
+  \item \term{看 \code{figures/}}：用曲线和箱线图人工确认，不要只相信分数。
+\end{enumerate}
+
+\section{常见误解澄清}
+
+\begin{longtable}{L{5cm}L{9.2cm}}
+\toprule
+误解 & 正确理解 \\
+\midrule
+\endhead
+“加速度值”和“振动值”是不是两个东西？ & 在本项目语境里，原始 CSV 的最后两列是振动加速度信号。口语里说振动值，通常就是指这些加速度采样值。 \\
+RUL 是真实标签吗？ & 对 run-to-failure 数据，可根据最终失效时间构造 RUL；但 piecewise RUL 依赖 FPT，是一种任务标签设计。 \\
+FPT 是官方标签吗？ & 不是。当前 FPT 是项目用 HI 和 3$\sigma$ 规则计算出的退化起点。 \\
+healthy / slight / moderate / severe 是原始数据给的吗？ & 不是逐样本官方标签，而是项目基于 FPT 和退化进度构造的健康状态标签。 \\
+early fault 是不是严重故障？ & 不是。当前 early fault 表示已经过 FPT，进入可观测异常阶段。 \\
+RMS 排名高就证明 RMS 独立发现故障吗？ & 不一定。如果 RMS 被用来构造 HI/FPT，就必须说明 label-source 风险。 \\
+test set 能不能用来挑特征？ & 不应该。特征 ranking 应使用 train split，否则评估不可信。 \\
+PHM2012 能不能做 fault type？ & 当前不主打，因为缺少 XJTU-SY 那种轴承级 fault element 标签。 \\
+\bottomrule
+\end{longtable}
+
+\section{本项目命令示例}
+
+XJTU-SY 上运行完整特征分析：
+\begin{verbatim}
+uv run bp --config-name smoke \
+  mode=analyze_features \
+  dataset=xjtu_sy \
+  split=xjtu_leave_one_bearing_out \
+  feature=manual_basic \
+  label=degradation_basic \
+  analysis=full_feature_analysis \
+  dataset.root=/Users/nev8r/Desktop/phm2/data/loader_roots/xjtu \
+  split.condition_id=35Hz12kN \
+  split.test_bearing_id=Bearing1_5 \
+  split.val_bearing_id=Bearing1_4
+\end{verbatim}
+
+运行后重点查看：
+\begin{verbatim}
+artifacts/runs/<run_id>/analysis/feature_ranking.csv
+artifacts/runs/<run_id>/analysis/feature_cards.csv
+artifacts/runs/<run_id>/analysis/feature_recommendations.md
+artifacts/runs/<run_id>/analysis/figures/
+\end{verbatim}
+
+\section{缩写表}
+
+\begin{longtable}{L{3cm}L{5cm}L{6cm}}
+\toprule
+缩写 & 全称 & 中文解释 \\
+\midrule
+\endhead
+PHM & Prognostics and Health Management & 故障预测与健康管理 \\
+RUL & Remaining Useful Life & 剩余使用寿命 \\
+HI & Health Indicator & 健康指标 \\
+FPT & First Predictable Time & 首次可预测时间/首次明显退化点 \\
+FFT & Fast Fourier Transform & 快速傅里叶变换 \\
+rFFT & Real-input FFT & 实数输入的一侧 FFT \\
+RMS & Root Mean Square & 均方根 \\
+STD & Standard Deviation & 标准差 \\
+PTP & Peak-to-Peak & 峰峰值 \\
+AUC & Area Under ROC Curve & ROC 曲线下面积 \\
+MI & Mutual Information & 互信息 \\
+ANOVA & Analysis of Variance & 方差分析 \\
+BPFO & Ball Pass Frequency Outer Race & 外圈故障特征频率 \\
+BPFI & Ball Pass Frequency Inner Race & 内圈故障特征频率 \\
+BSF & Ball Spin Frequency & 滚动体自转故障频率 \\
+FTF & Fundamental Train Frequency & 保持架故障特征频率 \\
+\bottomrule
+\end{longtable}
+
+\section{一句话总结}
+
+本项目的核心思想是：把轴承全寿命振动信号转换成可解释的时间域和频域特征，再用 HI 和 FPT 构造 RUL、健康状态和早期故障标签，最后通过 train-only 的特征分析判断哪些特征适合寿命预测、哪些适合状态评估、哪些适合早期报警，并明确标注标签来源风险，避免把由标签构造带来的优势误当成独立发现能力。
+
+\end{document}
