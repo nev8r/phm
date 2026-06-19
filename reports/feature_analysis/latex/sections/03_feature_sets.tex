@@ -1,0 +1,61 @@
+\section{特征集定义}
+
+\subsection{\config{manual_basic}}
+
+\config{manual_basic} 是当前主线特征集。它把每个振动快照转换为一组可解释的时域与频域统计特征。
+
+时域特征族包括：
+
+\begin{itemize}
+  \item mean
+  \item standard deviation
+  \item root mean square
+  \item mean absolute value
+  \item peak-to-peak
+  \item skewness
+  \item kurtosis
+  \item crest factor
+  \item impulse factor
+  \item clearance factor
+\end{itemize}
+
+频域特征族包括：
+
+\begin{itemize}
+  \item spectral centroid
+  \item spectral bandwidth
+  \item RMS frequency
+  \item peak frequency
+  \item spectral entropy
+\end{itemize}
+
+这些特征覆盖 horizontal、vertical 和 magnitude 通道。它们的优势是可解释、开销低、可以稳定地用于两个数据集和三个任务。
+
+\subsection{\config{manual_tsfresh_basic}}
+
+\config{manual_tsfresh_basic} 由手工统计特征和 tsfresh minimal 特征组成。PHM2012 上该配置可以完整运行，ranking 中有 20 个 \feature{tsfresh__} 特征。进入 top 区域的代表项包括：
+
+\begin{itemize}
+  \item \feature{tsfresh__h__standard_deviation}
+  \item \feature{tsfresh__h__root_mean_square}
+  \item \feature{tsfresh__h__variance}
+\end{itemize}
+
+这些项与 \config{manual_basic} 的 RMS、标准差、方差和幅值统计高度重复。
+
+XJTU-SY full-size \config{manual_tsfresh_basic} 被阻塞。当前 backend 会构造巨大的 long-format 表，Step G 估算约 604M 行，并在特征提取完成前被系统终止。因此本阶段不采用 tsfresh 作为主线特征集。
+
+\subsection{特征集最终决策}
+
+最终主线：
+
+\begin{center}
+\config{manual_basic}
+\end{center}
+
+延后或不采用：
+
+\begin{itemize}
+  \item \config{manual_tsfresh_basic}：XJTU-SY blocked；PHM2012 successful but redundant。
+  \item \config{tsfresh_efficient}：本轮未评估，需等待明确的工程优化阶段。
+\end{itemize}

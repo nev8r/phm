@@ -1,0 +1,61 @@
+\section{XJTU-SY 结果}
+
+\subsection{主划分结果}
+
+XJTU-SY 主划分下，\config{manual_basic} 的核心结论是 amplitude / energy-like time-domain features 主导。RUL top 特征主要来自 magnitude 和 horizontal 幅值族；Health State 主划分中 horizontal amplitude 特征很强；Early Fault 主划分同样偏 horizontal amplitude，但后续稳定性分析表明该任务更敏感。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{xjtu/main/rul_top_features.png}
+\caption{XJTU-SY 主划分下 RUL 任务的 Top 特征。振幅和能量类时域特征占据主要位置。}
+\label{fig:xjtu_rul_top_features}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{xjtu/main/health_state_boxplots.png}
+\caption{XJTU-SY 主划分下 Health State 任务的箱线图。水平通道幅值特征在主划分中有较强分离能力。}
+\label{fig:xjtu_health_boxplots}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{xjtu/main/early_fault_effects.png}
+\caption{XJTU-SY 主划分下 Early Fault 任务的前后差异图。该结论需结合工况内与跨工况分析谨慎解释。}
+\label{fig:xjtu_early_fault_effects}
+\end{figure}
+
+\subsection{工况内稳定性}
+
+Step H 对三个工况分别做 leave-one-bearing-out 分析。结论为：
+
+\begin{itemize}
+  \item RUL：magnitude、horizontal 和 vertical 幅值特征在三工况中都较稳定。
+  \item Health State：\feature{h__time__mean_abs} 最稳定，\feature{h__time__rms} 和 \feature{h__time__std} 在 C2/C3 更强。
+  \item Early Fault：最工况敏感。C1 偏 spectral entropy，C2 偏 peak-to-peak shock，C3 偏 horizontal amplitude。
+\end{itemize}
+
+\subsection{跨工况鲁棒性}
+
+Step I 训练于 \config{35Hz12kN}，验证于 \config{37.5Hz11kN}，测试于 \config{40Hz10kN}。由于 ranking 是 train-only，top features 反映训练工况而非所有工况的重新排序。
+
+结论为：
+
+\begin{itemize}
+  \item RUL：幅值类特征多数保留。
+  \item Health State：magnitude 特征比 pure horizontal 特征更稳。
+  \item Early Fault：horizontal amplitude 需要降级为 condition-sensitive；spectral entropy 主要是 Condition 1 信号。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{xjtu/cross/feature_recommendation_matrix.png}
+\caption{XJTU-SY 跨工况分析中的特征推荐矩阵。该图用于观察 train-only ranking 下不同任务的特征推荐变化。}
+\label{fig:xjtu_cross_recommendation_matrix}
+\end{figure}
+
+\subsection{XJTU-SY 最终推荐}
+
+\input{tables/xjtu_top_features}
+
+XJTU-SY 的主线特征集为 \config{manual_basic}。\config{manual_tsfresh_basic} 因 full-size tsfresh 内存压力被 blocked and deferred。

@@ -1,0 +1,35 @@
+\section{最终推荐特征}
+
+完整机器可读推荐表位于：
+
+\begin{center}
+\path{../summary/recommended_features.csv}
+\end{center}
+
+该表包含：
+
+\begin{itemize}
+  \item dataset；
+  \item analysis scope；
+  \item task；
+  \item feature；
+  \item feature family；
+  \item recommendation level；
+  \item rank/score/plot evidence；
+  \item label-source 标记；
+  \item caveat；
+  \item final decision。
+\end{itemize}
+
+\input{tables/recommended_features_compact}
+
+推荐等级解释：
+
+\begin{itemize}
+  \item A：主推荐。
+  \item B：可用或 secondary。
+  \item C：工况敏感或辅助诊断。
+  \item Reference：标签源参考，不作为独立证据。
+\end{itemize}
+
+当前 downstream baseline planning 应优先从 A/B 级特征开始，必要时加入 C 级特征做消融或条件性分析。Reference 特征只用于 sanity check。

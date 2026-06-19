@@ -1,0 +1,60 @@
+\section{分析方法}
+
+\subsection{Train-Only Ranking}
+
+所有 ranking 均遵守：
+
+\begin{center}
+\config{fit_scope=train_only}
+\end{center}
+
+这意味着特征评分和排序只使用训练集。验证集与测试集用于分布检查、图像审查和鲁棒性说明，不参与特征选择。
+
+\subsection{RUL 指标}
+
+RUL 分析关注特征与 \config{piecewise_rul_norm} 的关系，主要证据包括：
+
+\begin{itemize}
+  \item Pearson 相关；
+  \item Spearman 相关；
+  \item Kendall 相关；
+  \item monotonicity；
+  \item robustness；
+  \item trendability；
+  \item prognosability。
+\end{itemize}
+
+本报告采用仓库中 Feature Ranking 模块的加权评分规则，不在文档中重新定义新的评分公式。
+
+\subsection{Health State 指标}
+
+Health State 分析关注不同伪健康阶段之间的可分性，主要证据包括：
+
+\begin{itemize}
+  \item mutual information；
+  \item Fisher score；
+  \item ANOVA F；
+  \item boxplot separability。
+\end{itemize}
+
+\subsection{Early Fault 指标}
+
+Early Fault 分析关注 FPT 前后样本是否出现可检测差异，主要证据包括：
+
+\begin{itemize}
+  \item AUC；
+  \item Cohen's d；
+  \item mean shift；
+  \item early-fault effect plots。
+\end{itemize}
+
+\subsection{证据层级}
+
+最终推荐使用 A/B/C/Reference 四类标签：
+
+\begin{itemize}
+  \item A：主推荐特征。
+  \item B：可用的 secondary 特征。
+  \item C：工况敏感或辅助诊断特征。
+  \item Reference：标签源参考特征，不作为独立证据。
+\end{itemize}

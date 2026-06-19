@@ -1,0 +1,11 @@
+\section{引言}
+
+轴承退化建模通常可以直接进入模型训练，但在本项目中，特征分析被放在 baseline 之前。原因有三点。
+
+第一，RUL、Health State 和 Early Fault Detection 三个任务虽然都来自同一批振动快照，但它们对特征的需求并不完全相同。RUL 更强调随寿命推进的趋势性与相关性；Health State 更强调不同健康阶段的可分性；Early Fault Detection 更关注 FPT 前后是否出现可检测的早期差异。
+
+第二，本项目的 Health State 与 Early Fault 标签由 HI/FPT 逻辑构造。若不先分析标签源特征与候选特征之间的关系，很容易把标签构造带来的高分误读为独立预测能力。因此，报告始终区分普通候选特征和 label-source reference。
+
+第三，训练集之外的数据不能参与特征选择。本轮分析统一使用 \config{fit_scope=train_only}，即 ranking 只在训练集上拟合；验证集与测试集只用于分布检查和可视化审查。这一原则避免了把 test-bearing 信息泄漏进特征选择过程。
+
+本文档不是新的实验报告，而是对已归档结果的技术整理。证据来自 \path{reports/feature_analysis/} 下的 Step F 至 Step L 报告、CSV 表格和精选图像，不引用本地临时 artifact run 目录。

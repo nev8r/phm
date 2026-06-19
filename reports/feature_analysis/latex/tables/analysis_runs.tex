@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{特征分析步骤与结论}
+\label{tab:analysis_runs}
+\small
+\begin{tabularx}{\textwidth}{llY}
+\toprule
+步骤 & 对象 & 结论 \\
+\midrule
+Step F & XJTU-SY \config{manual_basic} 主划分 & RUL 和健康状态主要由幅值/能量类时域特征支撑。\\
+Step G & XJTU-SY \config{manual_tsfresh_basic} & full-size tsfresh 被阻塞并延后，当前主线继续 \config{manual_basic}。\\
+Step H & XJTU-SY 工况内分析 & RUL 稳定，Early Fault 最工况敏感。\\
+Step I & XJTU-SY 跨工况分析 & RUL 幅值特征保留，HealthState 更偏 magnitude 稳定，Early Fault 需降级为条件性结论。\\
+Step J & PHM2012 \config{manual_basic} & 三任务均由 horizontal/magnitude 幅值特征主导。\\
+Step K & PHM2012 \config{manual_tsfresh_basic} & 能跑通，但 top tsfresh 特征主要重复 RMS/std/variance 等手工统计量。\\
+\bottomrule
+\end{tabularx}
+\end{table}

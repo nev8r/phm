@@ -1,0 +1,57 @@
+\documentclass[UTF8,a4paper,11pt]{ctexart}
+
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{float}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\DeclareRobustCommand{\feature}[1]{\texttt{\detokenize{#1}}}
+\DeclareRobustCommand{\config}[1]{\texttt{\detokenize{#1}}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\graphicspath{{figures/}}
+
+\title{轴承剩余寿命、健康状态与早期故障检测的特征分析技术报告\\
+\large A Feature Analysis Report for Bearing RUL, Health State, and Early Fault Detection}
+\author{USTC/SSE BearingPrediction Project}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\input{sections/00_abstract}
+\input{sections/01_introduction}
+\input{sections/02_datasets_tasks}
+\input{sections/03_feature_sets}
+\input{sections/04_label_construction}
+\input{sections/05_analysis_methodology}
+\input{sections/06_xjtu_results}
+\input{sections/07_phm2012_results}
+\input{sections/08_cross_dataset_discussion}
+\input{sections/09_recommended_features}
+\input{sections/10_limitations}
+\input{sections/11_conclusion}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

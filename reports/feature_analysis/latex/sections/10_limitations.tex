@@ -1,0 +1,15 @@
+\section{局限性}
+
+本报告存在以下局限性：
+
+\begin{enumerate}
+  \item Health State 和 Early Fault 是由 HI/FPT 构造的 pseudo labels，不是人工标注的真实故障阶段。
+  \item \feature{mag__time__rms} 是实际 label-source feature，因此只能作为 Reference，不能作为独立证据过度解释。
+  \item XJTU-SY Early Fault 显著工况敏感，需要在后续 baseline 中进行工况分层或跨工况验证。
+  \item PHM2012 official split 中部分 amplitude 特征在 val/test 上方差更大，模型评估需要谨慎解释。
+  \item XJTU-SY full-size tsfresh 在当前 backend 下存在内存问题，尚未完成公平对照。
+  \item 当前未设计 BPFO、BPFI、BSF、FTF 等轴承机理频率特征。
+  \item 本报告不包含模型训练、baseline recipes、checkpoint 或 prediction 结果。
+\end{enumerate}
+
+这些局限性不会否定 \config{manual_basic} 的主线价值，但会影响后续 baseline 的实验设计和解释边界。

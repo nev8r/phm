@@ -1,0 +1,62 @@
+\section{PHM2012 结果}
+
+\subsection{\config{manual_basic} 主结果}
+
+PHM2012 official split 下，\config{manual_basic} 在三个任务上均表现出 amplitude-dominant 模式。
+
+\begin{itemize}
+  \item RUL：\feature{h__time__mean_abs}、\feature{mag__time__mean}、\feature{mag__time__mean_abs} 排名前列。
+  \item Health State：\feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 最强。
+  \item Early Fault：horizontal 和 magnitude amplitude 特征主导，spectral frequency 特征只作为 secondary。
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{phm2012/manual/rul_top_features.png}
+\caption{PHM2012 official split 下 RUL 任务的 Top 特征。水平通道与 magnitude 幅值特征占主导。}
+\label{fig:phm2012_rul_top_features}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{phm2012/manual/health_state_boxplots.png}
+\caption{PHM2012 official split 下 Health State 的箱线图。水平通道幅值特征显示较强状态分离。}
+\label{fig:phm2012_health_boxplots}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{phm2012/manual/early_fault_effects.png}
+\caption{PHM2012 official split 下 Early Fault 的特征效应图。幅值类特征是主要信号来源。}
+\label{fig:phm2012_early_fault_effects}
+\end{figure}
+
+\subsection{\config{manual_tsfresh_basic} 对照}
+
+PHM2012 可以成功运行 full-size \config{manual_tsfresh_basic}。分析中有 44 个 ranked features，其中 20 个为 \feature{tsfresh__} 特征。
+
+进入 top-10 的 \feature{tsfresh__} 特征主要包括：
+
+\begin{itemize}
+  \item \feature{tsfresh__h__standard_deviation}
+  \item \feature{tsfresh__h__root_mean_square}
+  \item \feature{tsfresh__h__variance}
+  \item \feature{tsfresh__h__maximum}
+  \item \feature{tsfresh__v__standard_deviation}
+  \item \feature{tsfresh__v__root_mean_square}
+\end{itemize}
+
+这些特征能够进入 RUL、Health State 和 Early Fault 的 top-10，但其物理含义主要重复手工 RMS、standard deviation、variance、maximum 等统计量。因此它们更多是对 amplitude story 的确认，而不是新的主线特征族。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{phm2012/tsfresh/feature_recommendation_matrix.png}
+\caption{PHM2012 \config{manual_tsfresh_basic} 的特征推荐矩阵。可见部分 \feature{tsfresh__} 特征进入 top 区域，但主要为简单幅值统计。}
+\label{fig:phm2012_tsfresh_recommendation_matrix}
+\end{figure}
+
+\subsection{PHM2012 最终推荐}
+
+\input{tables/phm2012_top_features}
+
+PHM2012 的主线特征集仍为 \config{manual_basic}。\config{manual_tsfresh_basic} 可运行，但当前不作为主线。

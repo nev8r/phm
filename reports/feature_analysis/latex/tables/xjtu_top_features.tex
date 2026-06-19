@@ -1,0 +1,15 @@
+\begin{table}[htbp]
+\centering
+\caption{XJTU-SY 三任务推荐特征摘要}
+\label{tab:xjtu_top_features}
+\small
+\begin{tabularx}{\textwidth}{lYYY}
+\toprule
+任务 & A 级 & B 级 & C 级或 Reference \\
+\midrule
+RUL & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std} & \feature{h__time__mean_abs}, \feature{h__time__rms}, \feature{h__time__std}, \feature{v__time__mean_abs}, \feature{v__time__std} & Reference: \feature{mag__time__rms} \\
+Health State & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std} & \feature{h__time__mean_abs}, \feature{h__time__std}, \feature{h__time__rms} & C: \feature{v__spectral__entropy}; Reference: \feature{mag__time__rms} \\
+Early Fault & \feature{mag__time__mean}, \feature{mag__time__mean_abs} & \feature{mag__time__std}, \feature{v__time__std}, \feature{v__time__mean_abs} & C: \feature{h__time__mean_abs}, \feature{h__time__std}, \feature{h__time__rms}, \feature{v__spectral__entropy}; Reference: \feature{mag__time__rms} \\
+\bottomrule
+\end{tabularx}
+\end{table}

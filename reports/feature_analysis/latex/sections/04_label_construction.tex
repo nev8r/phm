@@ -1,0 +1,33 @@
+\section{标签构造与 Label-Source Caveat}
+
+\subsection{HI 与 FPT}
+
+健康指标（Health Indicator, HI）用于把原始退化序列转换为可解释的退化轨迹。首次预测时间（First Prediction Time, FPT）用于标记从健康阶段进入可观测退化阶段的时间点。本项目使用 HI/FPT 逻辑构造 Health State 与 Early Fault 伪标签。
+
+候选 HI 源特征包括 RMS 相关特征。已完成的主分析中，实际被选作标签源的特征为：
+
+\begin{center}
+\feature{mag__time__rms}
+\end{center}
+
+\subsection{任务标签}
+
+\begin{itemize}
+  \item RUL 标签包括 linear RUL 与 piecewise RUL，本轮分析主要关注 \config{piecewise_rul_norm}。
+  \item Health State 由 HI/FPT 后的退化阶段划分得到，当前为 4 类伪标签。
+  \item Early Fault 由 FPT 前后关系得到，是二分类伪标签。
+\end{itemize}
+
+\subsection{Label-Source Caveat}
+
+由于 \feature{mag__time__rms} 参与了 HI/FPT 伪标签构造，它在 Health State 或 Early Fault 上的高分不能被解释为完全独立的发现。本文将其统一标为 Reference。
+
+这并不意味着 \feature{mag__time__rms} 无用。它仍可用于：
+
+\begin{itemize}
+  \item 检查 HI/FPT 构造是否合理；
+  \item 作为标签源 sanity reference；
+  \item 在报告中提示哪些候选特征与标签构造强相关。
+\end{itemize}
+
+但下游 baseline 的独立候选特征应优先参考非 label-source 的 A/B/C 级特征。

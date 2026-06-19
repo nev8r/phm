@@ -1,0 +1,25 @@
+\section{跨数据集讨论}
+
+\subsection{共同模式}
+
+XJTU-SY 与 PHM2012 的共同结论是：振幅/能量类时域特征是最稳定的主线特征族。RUL、Health State 和 Early Fault 三个任务都能从 mean、mean absolute、RMS、standard deviation 等特征中获得强信号。
+
+这种结果符合轴承退化的直观解释：随着损伤发展，振动幅值、能量和离散程度通常会增加。
+
+\subsection{主要差异}
+
+\begin{itemize}
+  \item XJTU-SY 的 Early Fault 最工况敏感，不同工况下可能偏 spectral entropy、peak-to-peak 或 horizontal amplitude。
+  \item PHM2012 更稳定地呈现 horizontal/magnitude amplitude dominant 模式。
+  \item XJTU-SY full-size tsfresh blocked，而 PHM2012 tsfresh successful but redundant。
+\end{itemize}
+
+\subsection{tsfresh 的位置}
+
+tsfresh 在本轮不进入主线。原因不是它一定无用，而是当前证据不足以替换 \config{manual_basic}：
+
+\begin{itemize}
+  \item XJTU-SY 不能在当前 backend 下完成 full-size 对照。
+  \item PHM2012 虽能完成，但 top \feature{tsfresh__} 特征重复手工统计。
+  \item 后续若要采用 tsfresh，需要单独的工程优化和更严格的增益评估。
+\end{itemize}

@@ -1,0 +1,23 @@
+\section{数据集与任务定义}
+
+\subsection{数据集}
+
+本轮特征分析覆盖两个数据集。
+
+\textbf{XJTU-SY} 使用三种工况下的轴承 run-to-failure 序列。主分析使用 \config{xjtu_bearing_index_split}；稳定性分析包括工况内 leave-one-bearing-out 和跨工况划分。跨工况设置中，训练集为 \config{35Hz12kN}，验证集为 \config{37.5Hz11kN}，测试集为 \config{40Hz10kN}。
+
+\textbf{PHM2012} 使用 \config{phm2012_official} 显式划分。训练集包含 \config{Bearing1_1}、\config{Bearing1_2}、\config{Bearing2_1}、\config{Bearing2_2}、\config{Bearing3_1} 和 \config{Bearing3_2}；验证集包含 \config{Bearing1_3} 与 \config{Bearing2_3}；测试集包含剩余官方测试轴承。
+
+\subsection{三任务定义}
+
+本报告统一分析三个任务：
+
+\begin{itemize}
+  \item RUL：以 \config{piecewise_rul_norm} 为主要目标列，用于回归或排序性质的寿命建模。
+  \item Health State：以 \config{health_state_id} 为目标列，是由 HI/FPT 逻辑构造的 4 类伪标签。
+  \item Early Fault Detection：以 \config{early_fault} 为目标列，表示 FPT 前后的二分类伪标签。
+\end{itemize}
+
+本阶段不做 Fault Type 任务。两个数据集当前的分析主线是退化、健康阶段与早期故障，而不是不同故障类型识别。
+
+\input{tables/analysis_runs}

@@ -1,0 +1,24 @@
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}p{1.7cm}p{1.9cm}p{4.2cm}p{2.3cm}p{4.8cm}@{}}
+\caption{两个数据集上的最终推荐特征族}
+\label{tab:final_recommended_features}\\
+\toprule
+数据集 & 任务 & A 级特征 & Reference & 说明 \\
+\midrule
+\endfirsthead
+\toprule
+数据集 & 任务 & A 级特征 & Reference & 说明 \\
+\midrule
+\endhead
+XJTU-SY & RUL & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std} & \feature{mag__time__rms} & 幅值和能量类时域特征在主划分、工况内和跨工况检查中都较稳定。\\
+XJTU-SY & Health State & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std} & \feature{mag__time__rms} & 主划分中水平通道较强，但跨工况检查中 magnitude 特征更稳。\\
+XJTU-SY & Early Fault & \feature{mag__time__mean}, \feature{mag__time__mean_abs} & \feature{mag__time__rms} & 早期故障最工况敏感，horizontal 和 spectral 特征只作条件性辅助。\\
+PHM2012 & RUL & \feature{h__time__mean_abs}, \feature{mag__time__mean}, \feature{mag__time__mean_abs} & \feature{mag__time__rms} & 水平通道与 magnitude 幅值特征主导。\\
+PHM2012 & Health State & \feature{h__time__mean_abs}, \feature{h__time__std}, \feature{h__time__rms} & \feature{mag__time__rms} & 水平通道幅值类特征分离健康状态最强。\\
+PHM2012 & Early Fault & \feature{h__time__mean_abs}, \feature{mag__time__mean}, \feature{mag__time__mean_abs} & \feature{mag__time__rms} & 幅值类特征主导，频域特征只作为 secondary 信号。\\
+\bottomrule
+\end{longtable}
+\endgroup

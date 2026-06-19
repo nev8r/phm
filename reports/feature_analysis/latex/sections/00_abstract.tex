@@ -1,0 +1,7 @@
+\begin{abstract}
+本文档整理轴承预测性维护项目中已完成的特征分析工作，覆盖 XJTU-SY 与 PHM2012 两个轴承 run-to-failure 数据集，以及剩余寿命（Remaining Useful Life, RUL）、健康状态（Health State）和早期故障检测（Early Fault Detection）三个任务。报告比较了 \config{manual_basic} 与 \config{manual_tsfresh_basic} 两类特征集，并基于已经归档的分析报告与推荐表给出最终技术结论\cite{feature_analysis_report,recommended_features,final_feature_decisions}。
+
+核心结论是：当前下游 baseline 应使用 \config{manual_basic} 作为主线特征集。两个数据集上最稳定的特征族均为振幅/能量类时域特征，包括 magnitude、horizontal 与 vertical 通道上的均值、绝对均值、RMS、标准差和相关幅值统计。XJTU-SY 的 Early Fault 任务存在明显工况敏感性；PHM2012 则更一致地表现为 horizontal/magnitude 振幅特征主导。\config{manual_tsfresh_basic} 在 PHM2012 上可以运行，但 top \feature{tsfresh__} 特征主要重复 RMS、standard deviation、variance、maximum 等手工统计量；在 XJTU-SY 上 full-size tsfresh 被内存压力阻塞。因此，本阶段不采用 tsfresh 作为主线。
+
+需要特别注意的是，\feature{mag__time__rms} 是实际健康指标（Health Indicator, HI）与首次预测时间（First Prediction Time, FPT）构造中的标签源特征（label-source feature）。它可以作为标签构造 sanity reference，但不能作为 Health State 或 Early Fault 的独立发现证据过度解释。
+\end{abstract}

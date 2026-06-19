@@ -1,0 +1,27 @@
+\section{结论}
+
+本轮特征分析已经完成两个数据集、三个任务和两个特征集方向的收敛。
+
+最终决策：
+
+\begin{center}
+\config{manual_basic} 是当前 downstream baseline 的主特征集。
+\end{center}
+
+任务级结论：
+
+\begin{itemize}
+  \item RUL：优先使用振幅/能量类时域特征。
+  \item Health State：优先使用幅值类特征，XJTU-SY 需考虑 cross-condition 稳定性，PHM2012 更偏 horizontal 通道。
+  \item Early Fault：PHM2012 仍由幅值类特征主导；XJTU-SY 需要明确工况敏感 caveat。
+\end{itemize}
+
+\feature{mag__time__rms} 保留为 label-source reference，不作为独立发现证据。
+
+下一步应进入 baseline planning。后续实验应基于 \config{manual_basic} 和最终推荐表：
+
+\begin{center}
+\path{../summary/recommended_features.csv}
+\end{center}
+
+然后分别设计 RUL 回归、Health State 分类和 Early Fault Detection 的可复现实验。
