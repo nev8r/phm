@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "fit_scope": "train_only",
+  "warnings": [
+    {
+      "type": "label_source_feature",
+      "feature": "mag__time__rms",
+      "message": "Feature was used as HI source for FPT-based labels."
+    }
+  ]
+}

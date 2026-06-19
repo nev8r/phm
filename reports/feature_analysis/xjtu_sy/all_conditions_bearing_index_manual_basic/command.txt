@@ -1,0 +1,10 @@
+uv run bp --config-name smoke \
+  mode=analyze_features \
+  dataset=xjtu_sy \
+  split=xjtu_bearing_index_split \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  analysis=full_feature_analysis_3tasks \
+  run.name=xjtu_all_conditions_3tasks_manual_basic \
+  project.artifact_root=artifacts/feature_analysis \
+  dataset.root=data/loader_roots/xjtu
