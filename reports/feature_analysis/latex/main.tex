@@ -13,6 +13,7 @@
 \usepackage{subcaption}
 \usepackage{xcolor}
 \usepackage{float}
+\usepackage{enumitem}
 
 \hypersetup{
   colorlinks=true,
@@ -24,6 +25,7 @@
 \DeclareRobustCommand{\feature}[1]{\texttt{\detokenize{#1}}}
 \DeclareRobustCommand{\config}[1]{\texttt{\detokenize{#1}}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\emergencystretch}{3em}
 
 \graphicspath{{figures/}}
 
@@ -44,6 +46,7 @@
 \input{sections/03_feature_sets}
 \input{sections/04_label_construction}
 \input{sections/05_analysis_methodology}
+\input{sections/05a_how_to_read_figures}
 \input{sections/06_xjtu_results}
 \input{sections/07_phm2012_results}
 \input{sections/08_cross_dataset_discussion}

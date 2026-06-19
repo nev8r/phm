@@ -1,25 +1,114 @@
 \section{跨数据集讨论}
 
-\subsection{共同模式}
+\subsection{RUL 跨数据集对比}
 
-XJTU-SY 与 PHM2012 的共同结论是：振幅/能量类时域特征是最稳定的主线特征族。RUL、Health State 和 Early Fault 三个任务都能从 mean、mean absolute、RMS、standard deviation 等特征中获得强信号。
+RUL 是两个数据集中最一致的任务。
 
-这种结果符合轴承退化的直观解释：随着损伤发展，振动幅值、能量和离散程度通常会增加。
+XJTU-SY 与 PHM2012 都支持 amplitude / energy-like time-domain features。
 
-\subsection{主要差异}
+XJTU-SY 中，\feature{mag__time__mean}、\feature{mag__time__mean_abs}、\feature{mag__time__std} 是最终 A 级。
 
-\begin{itemize}
-  \item XJTU-SY 的 Early Fault 最工况敏感，不同工况下可能偏 spectral entropy、peak-to-peak 或 horizontal amplitude。
-  \item PHM2012 更稳定地呈现 horizontal/magnitude amplitude dominant 模式。
-  \item XJTU-SY full-size tsfresh blocked，而 PHM2012 tsfresh successful but redundant。
+PHM2012 中，\feature{h__time__mean_abs}、\feature{mag__time__mean}、\feature{mag__time__mean_abs} 是 A 级。
+
+这说明不同数据集的通道偏好不同，但退化信号的共同形态一致：振动幅值、能量和离散度随寿命推进发生变化。
+
+XJTU-SY 的 RUL 更需要跨工况检查。
+
+主划分中 horizontal 和 magnitude 都很强。
+
+跨工况后 vertical/magnitude amplitude 的稳定性更突出。
+
+PHM2012 official split 中 horizontal amplitude 更一致。
+
+因此下游 RUL baseline 可以共享一个 amplitude compact subset，但在解释时要区分 dataset-specific channel preference。
+
+\subsection{Health State 跨数据集对比}
+
+Health State 在两个数据集上都是 amplitude-driven。
+
+区别在于通道稳定性。
+
+XJTU-SY main split 中 horizontal amplitude 很强。
+
+但是 cross-condition 检查后，magnitude features 更适合作为 robust mainline。
+
+PHM2012 official split 中 horizontal amplitude family 更强。
+
+\feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 形成 PHM2012 的 A 级组合。
+
+这个差异对 baseline 很重要。
+
+如果把 PHM2012 的 horizontal 结论直接迁移到 XJTU-SY cross-condition，可能高估模型泛化。
+
+更安全的做法是：XJTU-SY Health State baseline 优先使用 magnitude amplitude，PHM2012 Health State baseline 优先使用 horizontal amplitude。
+
+\subsection{Early Fault 跨数据集对比}
+
+Early Fault 是跨数据集差异最大的任务。
+
+PHM2012 中，Early Fault 比较稳定地支持 horizontal/magnitude amplitude。
+
+XJTU-SY 中，Early Fault 明显工况敏感。
+
+Step H 总结为：
+
+\begin{itemize}[leftmargin=2em]
+  \item C1: spectral entropy 更显眼；
+  \item C2: peak-to-peak / shock-like 特征更显眼；
+  \item C3: horizontal amplitude 更显眼。
 \end{itemize}
 
-\subsection{tsfresh 的位置}
+Step I 又进一步说明，cross-condition 中一些 spectral entropy 特征在 train 工况强，但不能直接升级为全局主线。
 
-tsfresh 在本轮不进入主线。原因不是它一定无用，而是当前证据不足以替换 \config{manual_basic}：
+因此，Early Fault 的最终策略必须 dataset-specific。
 
-\begin{itemize}
-  \item XJTU-SY 不能在当前 backend 下完成 full-size 对照。
-  \item PHM2012 虽能完成，但 top \feature{tsfresh__} 特征重复手工统计。
-  \item 后续若要采用 tsfresh，需要单独的工程优化和更严格的增益评估。
+PHM2012 可使用 amplitude mainline。
+
+XJTU-SY 只能把 amplitude 作为安全主线，把 spectral/shock/horizontal 条件信号作为 C 级或 ablation 候选。
+
+\subsection{tsfresh 对比}
+
+tsfresh 在两个数据集上的结论不同，但最终决策一致。
+
+XJTU-SY 的 full-size \config{manual_tsfresh_basic} 被阻塞。
+
+这个结果是工程瓶颈，不是算法性能结论。
+
+报告不能写成“tsfresh 对 XJTU 无用”。
+
+更准确的表述是：当前 backend 不适合 full-size XJTU-SY raw-signal tsfresh extraction。
+
+PHM2012 的 \config{manual_tsfresh_basic} 成功运行。
+
+但 top \feature{tsfresh__} 特征主要是 RMS、standard deviation、variance、maximum、absolute maximum。
+
+它们重复 \config{manual_basic} 已有统计量。
+
+因此 PHM2012 的结果也不足以把 tsfresh 纳入当前主线。
+
+后续若做 tsfresh，应满足两个条件：
+
+\begin{itemize}[leftmargin=2em]
+  \item 有 memory-aware backend，避免一次构造超大 long-format 表；
+  \item 有 gain evaluation，证明新增特征 family 带来泛化或解释增益。
 \end{itemize}
+
+\subsection{对 downstream baseline 的影响}
+
+\input{tables/cross_dataset_task_comparison}
+
+从 baseline 角度看，本轮结论转化为三条规则。
+
+第一，默认 feature set 使用 \config{manual_basic}。
+
+第二，RUL 和 Health State 可以优先使用 amplitude compact subset，再做 full feature set 对照。
+
+第三，Early Fault 必须做 dataset-specific caveat。
+
+尤其是 XJTU-SY，不能只用主划分 top features 直接宣称早期故障特征稳定。
+
+下游实验还应单独报告是否包含 \feature{mag__time__rms}。
+
+包含它可以检验 label-source sanity。
+
+排除它可以检验非 label-source 特征的独立建模能力。

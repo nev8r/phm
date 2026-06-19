@@ -1,0 +1,21 @@
+\begingroup
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}p{2.1cm}p{1.3cm}p{5.2cm}p{5.4cm}@{}}
+\caption{PHM2012 manual\_tsfresh\_basic 对照}
+\label{tab:phm2012_tsfresh_comparison}\\
+\toprule
+任务 & 数量 & 代表 tsfresh 特征 & 解释与决策 \\
+\midrule
+\endfirsthead
+\toprule
+任务 & 数量 & 代表 tsfresh 特征 & 解释与决策 \\
+\midrule
+\endhead
+RUL & 5 & \feature{tsfresh__h__root_mean_square}; \feature{tsfresh__h__standard_deviation}; \feature{tsfresh__h__variance} & 重复 RMS/std/variance amplitude 信息；不改变主线。\\
+Health State & 4 & \feature{tsfresh__h__standard_deviation}; \feature{tsfresh__h__root_mean_square}; \feature{tsfresh__h__maximum} & 确认 horizontal amplitude story；没有新增物理特征族。\\
+Early Fault & 4 & \feature{tsfresh__h__standard_deviation}; \feature{tsfresh__v__standard_deviation}; \feature{tsfresh__v__root_mean_square} & 支持幅值/离散度 pre/post FPT 变化；保留为后续工程候选，不进入当前主线。\\
+\bottomrule
+\end{longtable}
+\endgroup

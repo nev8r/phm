@@ -1,61 +1,274 @@
 \section{XJTU-SY 结果}
 
-\subsection{主划分结果}
+\subsection{主划分设置与证据来源}
 
-XJTU-SY 主划分下，\config{manual_basic} 的核心结论是 amplitude / energy-like time-domain features 主导。RUL top 特征主要来自 magnitude 和 horizontal 幅值族；Health State 主划分中 horizontal amplitude 特征很强；Early Fault 主划分同样偏 horizontal amplitude，但后续稳定性分析表明该任务更敏感。
+XJTU-SY 的主结果来自 Step F，即 \config{xjtu_bearing_index_split} + \config{manual_basic} + \config{degradation_three_tasks}。
+
+该 run 的 train/val/test 都覆盖三种工况，但按轴承后缀隔离。
+
+训练集只用于 ranking。
+
+验证集和测试集用于分布检查、曲线检查和图像审查。
+
+Step F 的输出包括：
+
+\begin{itemize}[leftmargin=2em]
+  \item 结果目录：\path{xjtu_sy/all_conditions_bearing_index_manual_basic/}
+  \item 排名与建议：\path{feature_ranking.csv}、\path{feature_recommendations.md}
+  \item RUL 与退化证据：\path{rul_correlation.csv}、\path{degradation_scores.csv}
+  \item 分类证据：\path{health_state_separability.csv}、\path{early_fault_scores.csv}
+\end{itemize}
+
+Step H 和 Step I 不是新结论的替代品，而是稳定性检查。
+
+Step H 回答同一工况内是否稳定。
+
+Step I 回答跨工况是否仍可解释。
+
+\input{tables/xjtu_feature_evidence}
+
+\subsection{RUL 特征分析}
+
+XJTU-SY 的 RUL top features 主要来自 magnitude 和 horizontal amplitude family。
+
+主划分中 \feature{mag__time__rms} 的 RUL rank 为 1，score 为 0.625。
+
+但它是实际 HI/FPT label-source，因此不能作为独立候选。
+
+独立候选应优先看 \feature{mag__time__mean}、\feature{mag__time__mean_abs} 和 \feature{mag__time__std}。
+
+\feature{mag__time__mean} 在 Step F 中 rank 2，RUL score 为 0.625。
+
+它的 Pearson 为 -0.792，Spearman 为 -0.768，Kendall 为 -0.628。
+
+负相关不是问题，因为 RUL 越小表示越接近失效，而振动幅值通常越大。
+
+因此绝对 Spearman 高说明特征值和寿命位置有稳定排序关系。
+
+\feature{mag__time__mean_abs} 与 \feature{mag__time__mean} 得分完全一致。
+
+这说明它们在当前数据上高度冗余。
+
+下游 baseline 可以二者都放入 full feature set，也可以在 compact subset 中二选一。
+
+\feature{h__time__mean_abs}、\feature{h__time__rms}、\feature{h__time__std} 也在 RUL top 区域。
+
+它们分别对应水平通道幅值、能量和离散度。
+
+这些特征在 Step H 的三个工况内 top10 count 均较高。
+
+不过 Step I 的跨工况检查显示，pure horizontal 特征比 magnitude 特征更容易受工况均值变化影响。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{xjtu/main/rul_top_features.png}
-\caption{XJTU-SY 主划分下 RUL 任务的 Top 特征。振幅和能量类时域特征占据主要位置。}
+\caption{XJTU-SY main split 下 RUL 任务的 top features。}
 \label{fig:xjtu_rul_top_features}
 \end{figure}
+
+图 \ref{fig:xjtu_rul_top_features} 读法如下。
+
+首先看 top 特征的 family。
+
+可以看到前列集中在 magnitude/horizontal amplitude 和 dispersion。
+
+这支持“退化趋势主要由振动幅值和能量上升表达”的结论。
+
+其次要识别 Reference 特征。
+
+\feature{mag__time__rms} 虽然排第一，但只能作为 label-source sanity reference。
+
+第三要看非 label-source 的替代特征。
+
+\feature{mag__time__mean}、\feature{mag__time__mean_abs} 和 \feature{mag__time__std} 提供了可以进入 baseline 的主候选。
+
+因此 XJTU-SY RUL 最终推荐不是简单取 rank 1，而是取“高分且非 label-source 且稳定性检查支持”的 magnitude amplitude subset。
+
+\subsection{Health State 特征分析}
+
+Health State 的主划分结果同样由 amplitude family 驱动。
+
+Step F 中 \feature{h__time__mean_abs} 的 health score 为 0.996，rank 1。
+
+它的 mutual information 为 0.623，Fisher score 为 1.864，ANOVA F 为 4366.3。
+
+这三个指标共同说明，不同伪健康阶段上的水平通道幅值分布差异很明显。
+
+\feature{h__time__rms} 和 \feature{h__time__std} 分别 rank 2 和 rank 3。
+
+它们几乎是同一物理现象的两个统计表达：水平振动能量和离散度随退化阶段增强。
+
+如果只看 Step F，Health State 似乎应直接使用 horizontal amplitude family。
+
+但是 Step I 提供了更严格的跨工况视角。
+
+在 cross-condition ranking 中，vertical/magnitude features 排名更靠前，horizontal features 出现 downgrade。
+
+原因不是 horizontal 特征无效，而是其均值和方差更容易随工况变化。
+
+因此最终推荐把 XJTU-SY Health State 的 A 级特征放在 \feature{mag__time__mean}、\feature{mag__time__mean_abs}、\feature{mag__time__std}，把 horizontal family 放入 B 级。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{xjtu/main/health_state_boxplots.png}
-\caption{XJTU-SY 主划分下 Health State 任务的箱线图。水平通道幅值特征在主划分中有较强分离能力。}
+\caption{XJTU-SY main split 下 Health State 的箱线图。}
 \label{fig:xjtu_health_boxplots}
 \end{figure}
+
+图 \ref{fig:xjtu_health_boxplots} 需要看三个层次。
+
+第一，看 healthy 到 severe 的中位数是否有明显阶梯。
+
+水平通道幅值类特征在主划分中通常呈现随阶段上升的趋势。
+
+第二，看箱体是否分离。
+
+若相邻阶段箱体高度重叠，说明该特征更适合趋势辅助，而不适合作为单独分类依据。
+
+第三，看 Reference。
+
+\feature{mag__time__rms} 分离强并不意外，因为它参与了 HI/FPT 伪标签构造。
+
+所以它应作为 sanity reference，而不是 Health State 独立证据。
+
+综合 Step F、Step H、Step I，XJTU-SY Health State 的结论是：
+
+\begin{itemize}[leftmargin=2em]
+  \item 主划分中 horizontal amplitude 很强；
+  \item 工况内检查仍支持 amplitude family；
+  \item 跨工况后 magnitude features 更稳；
+  \item Reference 特征需要单独处理。
+\end{itemize}
+
+\subsection{Early Fault 特征分析}
+
+Early Fault 是 XJTU-SY 中最敏感、最需要 caveat 的任务。
+
+主划分 Step F 中 \feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 分别位于 Early Fault 前三。
+
+\feature{h__time__mean_abs} 的 early fault score 为 0.996，AUC 为 0.949，Cohen's d 为 1.514。
+
+这说明在主划分训练集上，FPT 前后水平通道幅值差异很明显。
+
+但是 condition-wise 分析改变了最终解释。
+
+Step H 显示：
+
+\begin{itemize}[leftmargin=2em]
+  \item Condition 1 中 spectral entropy 更突出；
+  \item Condition 2 中 peak-to-peak / shock-like 特征更突出；
+  \item Condition 3 中 horizontal amplitude 更突出。
+\end{itemize}
+
+Step I 的 cross-condition 分析进一步显示，主划分中的 horizontal Early Fault claim 需要降级。
+
+这不是否定主划分，而是说明 Early Fault 特征更接近工况相关的早期变化模式。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{xjtu/main/early_fault_effects.png}
-\caption{XJTU-SY 主划分下 Early Fault 任务的前后差异图。该结论需结合工况内与跨工况分析谨慎解释。}
+\caption{XJTU-SY main split 下 Early Fault 的特征效应图。}
 \label{fig:xjtu_early_fault_effects}
 \end{figure}
 
-\subsection{工况内稳定性}
+图 \ref{fig:xjtu_early_fault_effects} 的读法是比较 FPT 前后分布。
 
-Step H 对三个工况分别做 leave-one-bearing-out 分析。结论为：
+如果 FPT 后均值明显上升，且分布重叠较小，该特征对 early fault detection 有用。
 
-\begin{itemize}
-  \item RUL：magnitude、horizontal 和 vertical 幅值特征在三工况中都较稳定。
-  \item Health State：\feature{h__time__mean_abs} 最稳定，\feature{h__time__rms} 和 \feature{h__time__std} 在 C2/C3 更强。
-  \item Early Fault：最工况敏感。C1 偏 spectral entropy，C2 偏 peak-to-peak shock，C3 偏 horizontal amplitude。
+主划分图中 horizontal amplitude 的效应很强。
+
+但该图只代表主划分训练证据。
+
+结合 Step H/I 后，最终不能把 horizontal amplitude 写成 XJTU-SY 全局稳定 Early Fault 特征。
+
+最终策略是：
+
+\begin{itemize}[leftmargin=2em]
+  \item \feature{mag__time__mean} 和 \feature{mag__time__mean_abs} 保留为 A 级主线；
+  \item \feature{mag__time__std}、\feature{v__time__std}、\feature{v__time__mean_abs} 保留为 B 级；
+  \item horizontal amplitude 与 spectral entropy 放入 C 级，作为条件性辅助；
+  \item \feature{mag__time__rms} 只作 Reference。
 \end{itemize}
 
-\subsection{跨工况鲁棒性}
+\subsection{工况内稳定性分析}
 
-Step I 训练于 \config{35Hz12kN}，验证于 \config{37.5Hz11kN}，测试于 \config{40Hz10kN}。由于 ranking 是 train-only，top features 反映训练工况而非所有工况的重新排序。
+工况内分析来自 Step H。
 
-结论为：
+它把三种工况分开，各自做 leave-one-bearing-out。
 
-\begin{itemize}
-  \item RUL：幅值类特征多数保留。
-  \item Health State：magnitude 特征比 pure horizontal 特征更稳。
-  \item Early Fault：horizontal amplitude 需要降级为 condition-sensitive；spectral entropy 主要是 Condition 1 信号。
+这样可以避免一个工况的样本数量或幅值尺度支配总体 ranking。
+
+\input{tables/xjtu_condition_stability}
+
+RUL 的稳定性最好。
+
+三个工况中，amplitude family 都反复进入 top 区域。
+
+这说明 RUL 退化趋势主要由振动幅值和能量变化表达，而不是完全依赖某一个工况。
+
+Health State 的稳定性次之。
+
+主 split 中 horizontal amplitude 强，但 C2/C3 与跨工况结果提示通道偏好会改变。
+
+所以最终推荐中把 magnitude features 放到 A 级，horizontal features 放到 B 级。
+
+Early Fault 最不稳定。
+
+C1 中 spectral entropy 更强，C2 中 shock-like peak-to-peak 更强，C3 中 horizontal amplitude 更强。
+
+这说明 Early Fault 更接近“具体工况下的早期变化检测”，而不是一个可以无 caveat 迁移的统一信号。
+
+\subsection{跨工况鲁棒性分析}
+
+Step I 使用 train=35Hz12kN，val=37.5Hz11kN，test=40Hz10kN。
+
+该设置比主划分更严格。
+
+ranking 仍然只在 train 上 fit。
+
+val/test 主要用于分布和图像检查。
+
+这意味着 Step I 的 top features 首先反映 35Hz12kN 的训练分布，但它能暴露“如果换工况，某些主划分结论是否危险”。
+
+跨工况结果显示，RUL 中 \feature{v__time__mean_abs}、\feature{v__time__rms}、\feature{v__time__std} 和 magnitude features 仍然靠前。
+
+Health State 中 magnitude features 保持稳定，而部分 horizontal features 被 downgrade。
+
+Early Fault 中 \feature{v__spectral__entropy} 在 train 工况很强，但被标为 condition-sensitive，而不是全局推荐。
+
+因此 Step I 的作用不是替代 Step F，而是给最终推荐加上等级：
+
+\begin{itemize}[leftmargin=2em]
+  \item 跨工况仍稳的进入 A/B；
+  \item 主划分强但跨工况不稳的进入 C 或 downgrade；
+  \item label-source 进入 Reference。
 \end{itemize}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{xjtu/cross/feature_recommendation_matrix.png}
-\caption{XJTU-SY 跨工况分析中的特征推荐矩阵。该图用于观察 train-only ranking 下不同任务的特征推荐变化。}
+\caption{XJTU-SY cross-condition 下的特征推荐矩阵。}
 \label{fig:xjtu_cross_recommendation_matrix}
 \end{figure}
 
-\subsection{XJTU-SY 最终推荐}
+图 \ref{fig:xjtu_cross_recommendation_matrix} 用于看跨工况 ranking 后哪些特征仍服务多个任务。
+
+它支持 magnitude/vertical amplitude 在跨工况下更稳的判断。
+
+它也提醒我们：Early Fault 的 spectral entropy 虽然显眼，但属于条件性信号。
+
+\subsection{XJTU-SY 最终决策}
 
 \input{tables/xjtu_top_features}
 
-XJTU-SY 的主线特征集为 \config{manual_basic}。\config{manual_tsfresh_basic} 因 full-size tsfresh 内存压力被 blocked and deferred。
+XJTU-SY 的主线特征集为 \config{manual_basic}。
+
+RUL 使用 magnitude amplitude/dispersion 作为主线。
+
+Health State 使用 magnitude features 作为稳健主线，horizontal features 作为 secondary。
+
+Early Fault 使用 magnitude amplitude 作为安全主线，同时保留 horizontal/spectral C 级特征用于 ablation。
+
+\config{manual_tsfresh_basic} 因 full-size tsfresh 内存压力被 blocked and deferred。
+
+后续若要重新评估 tsfresh，必须先做 memory-aware backend，再评价它是否提供超出 amplitude/statistics 的新增信息。

@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering
+\caption{下游 baseline 的 compact feature subset 建议}
+\label{tab:compact_baseline_suggestions}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+用途 & 建议特征 & 使用边界 \\
+\midrule
+Full manual set & \config{manual_basic} 全部 45 个特征 & 作为默认 baseline 输入，需 train-only scaling。\\
+Compact RUL & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std}, \feature{h__time__mean_abs}, \feature{h__time__std}, \feature{v__time__std} & 排除或单独报告 \feature{mag__time__rms}。\\
+Compact Health & XJTU: magnitude mean/std；PHM: \feature{h__time__mean_abs}, \feature{h__time__std}, \feature{h__time__rms} & 数据集感知通道选择，避免把 PHM horizontal 结论直接迁移到 XJTU cross-condition。\\
+Compact Early Fault & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std}, \feature{h__time__mean_abs}, \feature{v__time__std} & XJTU 加 C 级 spectral/shock 特征做 ablation；PHM 主线仍用 amplitude。\\
+Reference ablation & \feature{mag__time__rms} & 只用于 sanity/reference 或单独消融，不作为独立发现。\\
+\bottomrule
+\end{tabularx}
+\end{table}

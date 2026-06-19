@@ -2,11 +2,11 @@
 
 \subsection{\config{manual_basic}}
 
-\config{manual_basic} 是当前主线特征集。它把每个振动快照转换为一组可解释的时域与频域统计特征。
+\config{manual_basic} 是当前主线特征集。它把每个振动快照转换为可解释的统计特征，并分别在 horizontal、vertical 和 magnitude 通道上计算。它的设计目的不是穷尽所有信号处理方法，而是在两个数据集、三个任务之间提供低开销、可复现、可解释的共同基线。
 
 时域特征族包括：
 
-\begin{itemize}
+\begin{itemize}[leftmargin=2em]
   \item mean
   \item standard deviation
   \item root mean square
@@ -21,7 +21,7 @@
 
 频域特征族包括：
 
-\begin{itemize}
+\begin{itemize}[leftmargin=2em]
   \item spectral centroid
   \item spectral bandwidth
   \item RMS frequency
@@ -29,33 +29,49 @@
   \item spectral entropy
 \end{itemize}
 
-这些特征覆盖 horizontal、vertical 和 magnitude 通道。它们的优势是可解释、开销低、可以稳定地用于两个数据集和三个任务。
+这些特征和任务之间的关系不是事后随意解释，而是来自轴承退化的基本物理直觉：磨损、剥落或润滑恶化往往会提高振动能量、扩大幅值分布、引入冲击成分，并改变频谱复杂度。表 \ref{tab:feature_family_interpretation} 将这一直觉和本轮实际发现放在一起。
+
+\input{tables/feature_family_interpretation}
 
 \subsection{\config{manual_tsfresh_basic}}
 
-\config{manual_tsfresh_basic} 由手工统计特征和 tsfresh minimal 特征组成。PHM2012 上该配置可以完整运行，ranking 中有 20 个 \feature{tsfresh__} 特征。进入 top 区域的代表项包括：
+\config{manual_tsfresh_basic} 由手工统计特征和 tsfresh minimal 特征组成。它的作用是验证自动化统计库是否能补充 \config{manual_basic}。
 
-\begin{itemize}
+PHM2012 上该配置可以完整运行，ranking 中有 20 个 \feature{tsfresh__} 特征。进入 top 区域的代表项包括：
+
+\begin{itemize}[leftmargin=2em]
   \item \feature{tsfresh__h__standard_deviation}
   \item \feature{tsfresh__h__root_mean_square}
   \item \feature{tsfresh__h__variance}
+  \item \feature{tsfresh__h__maximum}
+  \item \feature{tsfresh__v__standard_deviation}
+  \item \feature{tsfresh__v__root_mean_square}
 \end{itemize}
 
-这些项与 \config{manual_basic} 的 RMS、标准差、方差和幅值统计高度重复。
+这些项可以进入 PHM2012 的 top-10，但物理含义主要重复 RMS、standard deviation、variance、maximum 等手工统计量。因此 Step K 的结论不是“tsfresh 无效”，而是“在当前配置和当前任务上，tsfresh 没有提供新的主线特征族”。
 
-XJTU-SY full-size \config{manual_tsfresh_basic} 被阻塞。当前 backend 会构造巨大的 long-format 表，Step G 估算约 604M 行，并在特征提取完成前被系统终止。因此本阶段不采用 tsfresh 作为主线特征集。
+XJTU-SY full-size \config{manual_tsfresh_basic} 被阻塞。当前 backend 会构造巨大的 long-format 表，Step G 估算约 604M 行，并在特征提取完成前被系统终止。因此本阶段不采用 tsfresh 作为 XJTU-SY 主线特征集，也不把失败 run 当作算法效果结论。
 
 \subsection{特征集最终决策}
 
-最终主线：
+最终主线为：
 
 \begin{center}
 \config{manual_basic}
 \end{center}
 
+理由如下：
+
+\begin{itemize}[leftmargin=2em]
+  \item \config{manual_basic} 在 XJTU-SY 和 PHM2012 上都能完成三任务分析。
+  \item 它覆盖 RUL、Health State、Early Fault 三类退化问题中最稳定的幅值/能量/离散度信号。
+  \item 它避免了 XJTU-SY full-size tsfresh 的工程瓶颈。
+  \item PHM2012 tsfresh 成功运行，但 top 特征多为手工统计量的重复表达。
+\end{itemize}
+
 延后或不采用：
 
-\begin{itemize}
+\begin{itemize}[leftmargin=2em]
   \item \config{manual_tsfresh_basic}：XJTU-SY blocked；PHM2012 successful but redundant。
-  \item \config{tsfresh_efficient}：本轮未评估，需等待明确的工程优化阶段。
+  \item \config{tsfresh_efficient}：本轮未评估，需等待明确的 memory-aware tsfresh 工程阶段。
 \end{itemize}

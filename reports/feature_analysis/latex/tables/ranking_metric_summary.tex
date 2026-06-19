@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{任务评分指标与读法}
+\label{tab:ranking_metric_summary}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+任务 & 评分组成 & 如何阅读 \\
+\midrule
+RUL & \(0.35|\rho_s|+0.25M+0.20R+0.20T\) & 高分表示与寿命排序相关，并且曲线趋势较稳定；仍需看 curves 是否由少数轴承支撑。\\
+Health State & \(0.4norm(MI)+0.4norm(Fisher)+0.2norm(ANOVA)\) & 高分表示伪健康阶段分布可分；需用 boxplot 检查是否存在阶段顺序和重叠。\\
+Early Fault & \(0.5norm(|d|)+0.5norm(AUC_{abs})\) & 高分表示 FPT 前后可分；需看 effect plot 的方向、幅度和工况稳定性。\\
+推荐阈值 & 非零 score 的 top 20\% & \config{recommended_for} 是候选集合，不等于最终无 caveat 推荐。\\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{XJTU-SY condition-wise 与 cross-condition 稳定性}
+\label{tab:xjtu_condition_stability}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYYYY}
+\toprule
+任务 & C1 观察 & C2 观察 & C3 观察 & Cross-condition 决策 \\
+\midrule
+RUL & amplitude family 稳定 & amplitude family 稳定 & amplitude family 稳定 & \feature{mag__time__mean}, \feature{mag__time__mean_abs}, \feature{mag__time__std} 保持 A 级。\\
+Health State & 水平幅值强 & horizontal RMS/std 更强 & 水平/幅值仍强 & pure horizontal 有降级；magnitude features 更适合 robust baseline。\\
+Early Fault & spectral entropy 明显 & peak-to-peak/shock-like 特征明显 & horizontal amplitude 明显 & 最工况敏感；magnitude amplitude 保留主线，horizontal/spectral 放入 C 级。\\
+Distribution shift & \multicolumn{3}{Y}{跨工况时 train/val/test 均值和方差变化明显，尤其 horizontal amplitude 在 test 均值低于 train。} & train-only ranking 可用，但解释必须带工况 caveat。\\
+\bottomrule
+\end{tabularx}
+\end{table}

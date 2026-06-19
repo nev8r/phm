@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+\centering
+\caption{PHM2012 manual\_basic 的任务级 top evidence}
+\label{tab:phm2012_feature_evidence}
+\scriptsize
+\begin{tabularx}{\textwidth}{llrY}
+\toprule
+任务 & 特征 & score/rank & 解释 \\
+\midrule
+RUL & \feature{h__time__mean_abs} & rank 1, score 0.544 & Pearson=-0.638, Spearman=-0.659；水平幅值随退化增长。\\
+RUL & \feature{mag__time__mean} & rank 2, score 0.537 & magnitude amplitude 支持 late-life growth。\\
+RUL & \feature{h__time__rms} & rank 4, score 0.527 & 与 \feature{h__time__std} 冗余，可作为 secondary。\\
+Health State & \feature{h__time__mean_abs} & rank 1, score 0.944 & MI=0.486, Fisher=0.789, ANOVA F=1979.4；boxplot 分离强。\\
+Health State & \feature{h__time__std} & rank 2, score 0.854 & horizontal dispersion 随伪健康阶段上升。\\
+Early Fault & \feature{h__time__mean_abs} & rank 1, score 0.994 & AUC=0.836, Cohen's d=1.000；FPT 后幅值上升。\\
+Early Fault & \feature{mag__time__mean} & rank 2, score 0.983 & AUC=0.824, Cohen's d=1.012；magnitude pre/post FPT 可分。\\
+Reference & \feature{mag__time__rms} & RUL rank 6 & 实际 HI/FPT source，仅作参考。\\
+\bottomrule
+\end{tabularx}
+\end{table}

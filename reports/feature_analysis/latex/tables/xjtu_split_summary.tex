@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{XJTU-SY 分析划分}
+\label{tab:xjtu_split_summary}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYYYY}
+\toprule
+场景 & Train bearings & Val bearings & Test bearings & 用途 \\
+\midrule
+main & B1\_1--B1\_3; B2\_1--B2\_3; B3\_1--B3\_3 & B1\_4; B2\_4; B3\_4 & B1\_5; B2\_5; B3\_5 & 主三任务 ranking，7032/1679/505 samples。\\
+C1 LOO & B1\_1--B1\_3 & B1\_4 & B1\_5 & 35Hz12kN 工况内稳定性，442/122/52 samples。\\
+C2 LOO & B2\_1--B2\_3 & B2\_4 & B2\_5 & 37.5Hz11kN 工况内稳定性，1185/42/339 samples。\\
+C3 LOO & B3\_1--B3\_3 & B3\_4 & B3\_5 & 40Hz10kN 工况内稳定性，5405/1515/114 samples。\\
+cross & B1\_1--B1\_5 & B2\_1--B2\_5 & B3\_1--B3\_5 & train=35Hz12kN, val=37.5Hz11kN, test=40Hz10kN，616/1566/7034 samples。\\
+\bottomrule
+\end{tabularx}
+\vspace{0.3em}
+\begin{flushleft}
+\scriptsize 注：B1\_k 表示 Bearing1\_k，B2\_k 表示 Bearing2\_k，B3\_k 表示 Bearing3\_k。
+\end{flushleft}
+\end{table}

@@ -1,0 +1,46 @@
+\section{核心图的读法}
+
+本节解释报告中多次出现的图形。它不是新的实验结果，而是帮助读者把图像和表格证据对应起来。
+
+\subsection{\config{rul_top_features.png}}
+
+RUL top features 图是按 \config{rul_score} 排序的条形图。读图时先看 top 特征属于哪个 family，再看 Reference 特征是否混在最前面。
+
+如果 top 特征集中在 \feature{mag__time__mean}、\feature{mag__time__mean_abs}、\feature{h__time__mean_abs}、\feature{h__time__rms} 等幅值/能量类特征，说明 RUL 信号主要由振动能量随退化增长表达。若 \feature{mag__time__rms} 位于前列，需要把它当作 label-source reference，而不是独立证据。
+
+\subsection{\config{degradation_score_heatmap.png}}
+
+degradation score heatmap 用于把 RUL 相关性、monotonicity、robustness 和 trendability 放到一起看。一个理想 RUL 特征不只是相关高，还应该在单个轴承内走势稳定，并在多个轴承之间有相似趋势。
+
+如果一个特征 Spearman 高但 monotonicity 或 trendability 弱，说明它可能只在总体排序上有效，不一定适合做可解释退化曲线。反过来，如果 trendability 高但 RUL 相关低，它可能是某种共同工况信号，而不一定是寿命信号。
+
+\subsection{\config{health_state_boxplots.png}}
+
+Health State boxplot 显示不同伪健康阶段下特征值的分布。读图时要看：
+
+\begin{itemize}[leftmargin=2em]
+  \item 阶段越严重，特征中位数是否整体上升或下降；
+  \item 箱体是否明显分开；
+  \item severe 阶段是否仅由少数离群点支撑；
+  \item Reference 特征是否只是重现了 HI/FPT 规则。
+\end{itemize}
+
+本轮两个数据集的 Health State 都以幅值类特征为主，但 XJTU-SY 跨工况后更偏向 magnitude 稳定性，PHM2012 则更偏 horizontal 通道。
+
+\subsection{\config{early_fault_effects.png}}
+
+Early Fault effect plot 对比 FPT 前后样本。它回答的是“首次预测时间之后，特征是否出现可检测变化”。读图时要看 FPT 后均值变化方向、变化幅度、分布重叠程度以及该变化是否在不同工况仍成立。
+
+XJTU-SY 的 Early Fault 图在主划分中支持水平通道幅值特征，但 condition-wise 和 cross-condition 结果显示该结论对工况敏感。PHM2012 的 Early Fault 图更稳定地支持 horizontal/magnitude 幅值类特征。
+
+\subsection{\config{feature_recommendation_matrix.png}}
+
+feature recommendation matrix 把一个特征是否推荐给 RUL、Health State、Early Fault 等任务展示在同一张图中。它适合看“一个特征是否多任务共用”，也适合看 tsfresh 是否提供了新 family。
+
+本轮 PHM2012 的 tsfresh matrix 显示部分 \feature{tsfresh__} 特征进入 top 区域，但主要是 RMS、standard deviation、variance、maximum 等简单统计量；因此它们确认了 amplitude story，而不是改变主线。
+
+\subsection{Curves 图}
+
+curves 图显示单个特征沿时间或寿命进程的变化。它比单个 score 更直观：RUL 任务关注曲线是否随退化平滑变化；Health State 关注阶段切分后是否出现分布差异；Early Fault 关注 FPT 附近是否出现突变。
+
+读 curves 时要避免只看某一条轴承曲线。真正有用的特征应在多个轴承上有相似方向，且不能只由某个轴承的异常峰值支撑。

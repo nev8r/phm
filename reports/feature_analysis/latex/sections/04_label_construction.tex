@@ -2,32 +2,70 @@
 
 \subsection{HI 与 FPT}
 
-健康指标（Health Indicator, HI）用于把原始退化序列转换为可解释的退化轨迹。首次预测时间（First Prediction Time, FPT）用于标记从健康阶段进入可观测退化阶段的时间点。本项目使用 HI/FPT 逻辑构造 Health State 与 Early Fault 伪标签。
+HI 是 Health Indicator，即把原始振动退化过程压缩成一个随时间变化的健康指标。FPT 是 First Prediction Time，即健康指标首次进入可预测退化区间的时间点。直观地说，FPT 之前的样本被视为仍处于早期或健康区间，FPT 之后的样本被视为进入可观测退化阶段。
 
-候选 HI 源特征包括 RMS 相关特征。已完成的主分析中，实际被选作标签源的特征为：
+本轮配置中，HI source candidates 包括：
+
+\begin{itemize}[leftmargin=2em]
+  \item \feature{mag__time__rms}
+  \item \feature{h__time__rms}
+  \item \feature{v__time__rms}
+\end{itemize}
+
+实际完成的主要分析中，系统选择的实际 label-source feature 是：
 
 \begin{center}
 \feature{mag__time__rms}
 \end{center}
 
-\subsection{任务标签}
+这件事很重要。因为 Health State 和 Early Fault 都是从 HI/FPT 逻辑派生的 pseudo-label，所以任何参与 HI/FPT 构造的特征如果在 Health State 或 Early Fault 中得分很高，都不能被解释为完全独立的发现。
 
-\begin{itemize}
-  \item RUL 标签包括 linear RUL 与 piecewise RUL，本轮分析主要关注 \config{piecewise_rul_norm}。
-  \item Health State 由 HI/FPT 后的退化阶段划分得到，当前为 4 类伪标签。
-  \item Early Fault 由 FPT 前后关系得到，是二分类伪标签。
+\subsection{RUL 标签}
+
+RUL 目标列为 \config{piecewise_rul_norm}。它将轴承生命周期按时间顺序映射到归一化剩余寿命。对特征分析来说，一个好的 RUL 特征通常满足：
+
+\begin{itemize}[leftmargin=2em]
+  \item 与 RUL 绝对相关较高；
+  \item 单个轴承内趋势较清晰；
+  \item 多个轴承之间趋势方向相对一致；
+  \item 不完全由单个异常峰值决定。
 \end{itemize}
+
+因此，RUL 不是简单找“数值最大”的特征，而是找能随退化推进稳定变化的特征。
+
+\subsection{Health State 标签}
+
+Health State 目标列为 \config{health_state_id}。它不是人工逐点标注的真实健康类别，而是基于 FPT 之后的退化进程构造出的阶段标签。可以把它理解为：
+
+\begin{center}
+healthy \(\rightarrow\) slight \(\rightarrow\) moderate \(\rightarrow\) severe
+\end{center}
+
+这类标签适合回答“一个特征能否把退化阶段分开”。它不适合被过度解释为真实维修记录中的状态类别。
+
+\subsection{Early Fault 标签}
+
+Early Fault 目标列为 \config{early_fault}，可抽象为：
+
+\[
+\mathrm{EarlyFault}(t)=
+\begin{cases}
+0, & t < \mathrm{FPT}\\
+1, & t \geq \mathrm{FPT}
+\end{cases}
+\]
+
+因此 Early Fault 分析关注的是 FPT 前后的分布变化。若某个特征在 FPT 后均值显著上升、Cohen's d 较大、AUC 较高，它就可能适合早期退化检测。
 
 \subsection{Label-Source Caveat}
 
-由于 \feature{mag__time__rms} 参与了 HI/FPT 伪标签构造，它在 Health State 或 Early Fault 上的高分不能被解释为完全独立的发现。本文将其统一标为 Reference。
+\feature{mag__time__rms} 是实际 HI/FPT source。它可以作为 sanity reference，因为它强时说明 HI/FPT 规则至少与振动能量变化一致；但它不能作为 Health State 或 Early Fault 的独立候选证据。
 
-这并不意味着 \feature{mag__time__rms} 无用。它仍可用于：
+本报告采用以下处理：
 
-\begin{itemize}
-  \item 检查 HI/FPT 构造是否合理；
-  \item 作为标签源 sanity reference；
-  \item 在报告中提示哪些候选特征与标签构造强相关。
+\begin{itemize}[leftmargin=2em]
+  \item \feature{mag__time__rms} 在表格中标为 Reference。
+  \item 对 Health State 和 Early Fault 的独立结论优先使用非 label-source 特征。
+  \item 若 Reference 特征排名很高，只解释为标签构造 sanity check。
+  \item 下游 baseline 可以保留 Reference 特征用于对照，但应在消融实验中单独报告。
 \end{itemize}
-
-但下游 baseline 的独立候选特征应优先参考非 label-source 的 A/B/C 级特征。

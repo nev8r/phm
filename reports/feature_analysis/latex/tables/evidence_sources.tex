@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{本报告使用的归档证据来源}
+\label{tab:evidence_sources}
+\scriptsize
+\begin{tabularx}{\textwidth}{llllY}
+\toprule
+Step & 数据集 & 划分/特征 & 目的 & 主要证据与结论 \\
+\midrule
+Step F & XJTU-SY & main / \config{manual_basic} & 主分析 & \path{xjtu_sy/all_conditions_bearing_index_manual_basic/}；幅值/能量特征主导，\feature{mag__time__rms} 为 label-source reference。\\
+Step G & XJTU-SY & main / \config{manual_tsfresh_basic} & tsfresh 对照 & full-size tsfresh 被内存压力阻塞，未产生有效 ranking；主线延后 tsfresh。\\
+Step H & XJTU-SY & condition-wise / \config{manual_basic} & 工况内稳定性 & \path{summary/xjtu_condition_feature_votes.csv}；RUL 较稳定，Early Fault 最工况敏感。\\
+Step I & XJTU-SY & cross-condition / \config{manual_basic} & 跨工况鲁棒性 & \path{summary/xjtu_cross_condition_feature_check.csv}；magnitude/vertical 幅值特征更稳，部分 horizontal claim 降级。\\
+Step J & PHM2012 & official / \config{manual_basic} & 主分析 & \path{phm2012/manual_basic/}；horizontal/magnitude 幅值特征主导三任务。\\
+Step K & PHM2012 & official / \config{manual_tsfresh_basic} & tsfresh 对照 & \path{summary/phm2012_manual_vs_tsfresh_top10.csv}；tsfresh 进入 top10 但多为 RMS/std/variance 重复。\\
+Step L & summary & all completed reports & 最终收敛 & \path{summary/recommended_features.csv} 与 final decisions；当前 baseline 使用 \config{manual_basic}。\\
+\bottomrule
+\end{tabularx}
+\end{table}

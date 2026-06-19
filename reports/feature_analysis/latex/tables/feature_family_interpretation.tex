@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{特征族、物理含义与本轮发现}
+\label{tab:feature_family_interpretation}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYYYY}
+\toprule
+特征族 & 示例 & 物理含义 & 预期任务相关性 & 本轮实际发现与 caveat \\
+\midrule
+amplitude / energy & RMS, mean absolute, mean & 振动能量和平均幅值 & RUL, Health State, Early Fault & 两个数据集最稳定 family；\feature{mag__time__rms} 是 label-source。\\
+dispersion & std, variance & 振动分散程度 & RUL 与状态分离 & \feature{mag__time__std}, \feature{h__time__std}, \feature{v__time__std} 多次进入 A/B 级。\\
+peak-to-peak / shock & ptp, crest factor, impulse factor & 冲击和极值变化 & Early Fault 候选 & XJTU C2 中更明显，但未成为全局主线。\\
+higher-order statistics & skewness, kurtosis & 分布形状、非高斯冲击 & Early Fault 辅助 & 本轮没有形成跨数据集稳定主结论。\\
+spectral location & centroid, RMS frequency, peak frequency & 频谱能量中心与主峰位置 & 工况/故障辅助诊断 & 对转速和工况敏感；PHM Early Fault 中为 secondary。\\
+spectral complexity & entropy & 频谱复杂度 & 条件性 Early Fault & XJTU C1 和 cross-condition 中出现，但属于 C 级诊断辅助。\\
+tsfresh minimal & standard deviation, RMS, variance, maximum & 自动统计摘要 & 可能补充手工统计 & PHM 可运行但主要重复 amplitude/statistics；XJTU full-size blocked。\\
+\bottomrule
+\end{tabularx}
+\end{table}

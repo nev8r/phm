@@ -1,23 +1,48 @@
 \section{数据集与任务定义}
 
-\subsection{数据集}
+\subsection{XJTU-SY 数据与划分}
 
-本轮特征分析覆盖两个数据集。
+XJTU-SY 是轴承 run-to-failure 数据集。每个轴承在固定工况下从较健康状态运行到失效附近，原始数据以连续的振动快照组织；本项目的数据加载器把每个 \config{acc} 文件视为一个快照样本，并在索引中保留数据集、轴承、工况、样本序号与时间顺序。
 
-\textbf{XJTU-SY} 使用三种工况下的轴承 run-to-failure 序列。主分析使用 \config{xjtu_bearing_index_split}；稳定性分析包括工况内 leave-one-bearing-out 和跨工况划分。跨工况设置中，训练集为 \config{35Hz12kN}，验证集为 \config{37.5Hz11kN}，测试集为 \config{40Hz10kN}。
+本轮特征分析没有只依赖一个随机划分，而是使用三层检查：
 
-\textbf{PHM2012} 使用 \config{phm2012_official} 显式划分。训练集包含 \config{Bearing1_1}、\config{Bearing1_2}、\config{Bearing2_1}、\config{Bearing2_2}、\config{Bearing3_1} 和 \config{Bearing3_2}；验证集包含 \config{Bearing1_3} 与 \config{Bearing2_3}；测试集包含剩余官方测试轴承。
+\begin{itemize}[leftmargin=2em]
+  \item 主划分 \config{xjtu_bearing_index_split}：同一工况下的前 3 个轴承进入训练集，第 4 个轴承进入验证集，第 5 个轴承进入测试集。这个划分用于回答“在覆盖三种工况的主训练设置下，哪些特征最有用”。
+  \item 工况内 leave-one-bearing-out：分别在 35Hz12kN、37.5Hz11kN、40Hz10kN 内训练/验证/测试。这个划分用于回答“同一工况下，主结论是否稳定”。
+  \item 跨工况划分 \config{xjtu_cross_condition}：训练集为 35Hz12kN，验证集为 37.5Hz11kN，测试集为 40Hz10kN。这个划分用于回答“特征排序是否只记住了某个工况的分布”。
+\end{itemize}
+
+三层检查是必要的。XJTU-SY 的工况差异会改变振动幅值、频谱位置和噪声水平；如果只看主划分，某些水平通道或频域特征可能看起来很强，但跨工况后会因为均值漂移或方差变化而降级。
+
+\input{tables/xjtu_split_summary}
+
+\subsection{PHM2012 数据与划分}
+
+PHM2012 也是轴承 run-to-failure 数据集。当前框架按官方数据目录构建索引，并使用显式的 \config{phm2012_official} 划分。训练集、验证集和测试集按轴承隔离，保证同一轴承的时间序列不会同时出现在不同 split 中。
+
+PHM2012 的本轮分析重点不是故障类型分类，而是退化建模。其原因有两点。第一，本阶段要统一两个数据集的三任务主线：RUL、Health State、Early Fault Detection。第二，Health State 和 Early Fault 不是人工逐点标注的真实类别，而是由健康指标 HI 和首次预测时间 FPT 规则构造的 pseudo-label；它们更适合用于退化阶段解释和早期预警分析，而不是直接等价为官方故障类型标签。
+
+\input{tables/phm2012_split_summary}
 
 \subsection{三任务定义}
 
-本报告统一分析三个任务：
+本报告统一分析三个任务。
 
-\begin{itemize}
-  \item RUL：以 \config{piecewise_rul_norm} 为主要目标列，用于回归或排序性质的寿命建模。
-  \item Health State：以 \config{health_state_id} 为目标列，是由 HI/FPT 逻辑构造的 4 类伪标签。
-  \item Early Fault Detection：以 \config{early_fault} 为目标列，表示 FPT 前后的二分类伪标签。
-\end{itemize}
+\begin{description}[leftmargin=2.4em,style=nextline]
+  \item[RUL]
+  RUL 使用 \config{piecewise_rul_norm} 作为目标列。它表达样本距离失效终点的归一化寿命位置，适合用于回归、排序或趋势建模。特征分析时主要看特征是否随寿命推进呈稳定趋势。
 
-本阶段不做 Fault Type 任务。两个数据集当前的分析主线是退化、健康阶段与早期故障，而不是不同故障类型识别。
+  \item[Health State]
+  Health State 使用 \config{health_state_id}。它是由 HI/FPT 逻辑派生的 4 类 pseudo-label，表示 healthy、slight、moderate、severe 等退化阶段。它适合看不同退化阶段之间的特征分布是否可分。
+
+  \item[Early Fault Detection]
+  Early Fault 使用 \config{early_fault}。它是 FPT 前后构造的二分类 pseudo-label，用于看某个特征在首次可预测退化点附近是否出现明显变化。
+\end{description}
+
+\subsection{为什么本轮不做 Fault Type}
+
+Fault Type 任务需要稳定且可比的故障类型标签，例如 outer race、inner race、ball fault 等明确类别。本轮两个数据集的统一目标是 run-to-failure 退化过程分析，而不是故障类别识别。为了避免把不同来源、不同粒度的标注混在一起，当前三任务主线明确排除 Fault Type。
+
+这也影响推荐特征的解释边界：本报告推荐的特征适合 RUL、Health State 和 Early Fault Detection；它们不自动等价为 fault type classifier 的最优特征。后续若进入故障类型识别，需要重新定义标签、划分和分析指标。
 
 \input{tables/analysis_runs}

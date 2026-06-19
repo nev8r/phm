@@ -1,35 +1,143 @@
 \section{最终推荐特征}
 
+\subsection{推荐表来源}
+
 完整机器可读推荐表位于：
 
 \begin{center}
 \path{../summary/recommended_features.csv}
 \end{center}
 
-该表包含：
+该表包含 dataset、analysis scope、task、feature、feature family、recommendation level、rank/score/plot evidence、label-source 标记、caveat 和 final decision。
 
-\begin{itemize}
-  \item dataset；
-  \item analysis scope；
-  \item task；
-  \item feature；
-  \item feature family；
-  \item recommendation level；
-  \item rank/score/plot evidence；
-  \item label-source 标记；
-  \item caveat；
-  \item final decision。
-\end{itemize}
+LaTeX 中的 compact 表只摘取核心结论。
+
+真正做 baseline planning 时，应以 CSV 为准。
 
 \input{tables/recommended_features_compact}
 
-推荐等级解释：
+\subsection{A/B/C/Reference 的使用边界}
 
-\begin{itemize}
-  \item A：主推荐。
-  \item B：可用或 secondary。
-  \item C：工况敏感或辅助诊断。
-  \item Reference：标签源参考，不作为独立证据。
+A 级特征是主线候选。
+
+它们通常同时满足：主划分排名靠前、稳定性检查支持、不是 label-source、物理解释清晰。
+
+B 级特征是 secondary 候选。
+
+它们可能与 A 级高度冗余，或者在某些 split 上略弱，但仍然能为模型提供稳定信号。
+
+C 级特征是条件性候选。
+
+它们适合做 ablation、诊断或工况敏感分析，不适合直接作为跨数据集主线。
+
+Reference 特征主要是 \feature{mag__time__rms}。
+
+它用于检查 HI/FPT 标签构造是否和振动能量一致。
+
+它不用于证明 Health State 或 Early Fault 的独立可检测性。
+
+\subsection{RUL 推荐说明}
+
+RUL 的跨数据集共同推荐是 amplitude / energy-like features。
+
+XJTU-SY 的 A 级是：
+
+\begin{itemize}[leftmargin=2em]
+  \item \feature{mag__time__mean}
+  \item \feature{mag__time__mean_abs}
+  \item \feature{mag__time__std}
 \end{itemize}
 
-当前 downstream baseline planning 应优先从 A/B 级特征开始，必要时加入 C 级特征做消融或条件性分析。Reference 特征只用于 sanity check。
+PHM2012 的 A 级是：
+
+\begin{itemize}[leftmargin=2em]
+  \item \feature{h__time__mean_abs}
+  \item \feature{mag__time__mean}
+  \item \feature{mag__time__mean_abs}
+\end{itemize}
+
+这些特征的依据包括 RUL correlation、degradation score、curves 和稳定性检查。
+
+RUL compact subset 可以选择非 label-source 的 magnitude/horizontal amplitude 特征。
+
+\feature{mag__time__rms} 可以作为 reference ablation，但不应成为唯一主特征。
+
+\subsection{Health State 推荐说明}
+
+Health State 的共同模式也是 amplitude-driven。
+
+XJTU-SY 最终更推荐 magnitude features，因为 cross-condition 后它们更稳。
+
+PHM2012 更推荐 horizontal features，因为 official split 中 \feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 的 boxplot 和统计指标都很强。
+
+Health State 的 baseline 设计应同时考虑两个版本：
+
+\begin{itemize}[leftmargin=2em]
+  \item dataset-specific compact set：XJTU 用 magnitude，PHM 用 horizontal；
+  \item unified compact set：magnitude + horizontal amplitude 共同输入，让模型自己学习权重。
+\end{itemize}
+
+如果包含 \feature{mag__time__rms}，需要在报告里标明它是 Reference。
+
+\subsection{Early Fault 推荐说明}
+
+Early Fault 不能只看主划分 top rank。
+
+PHM2012 中 amplitude features 较稳定。
+
+XJTU-SY 中 Early Fault 工况敏感。
+
+因此推荐策略是：
+
+\begin{itemize}[leftmargin=2em]
+  \item PHM2012：以 \feature{h__time__mean_abs}、\feature{mag__time__mean}、\feature{mag__time__mean_abs} 为 A 级；
+  \item XJTU-SY：以 \feature{mag__time__mean}、\feature{mag__time__mean_abs} 为 A 级；
+  \item XJTU-SY：把 horizontal amplitude、spectral entropy、peak-to-peak/shock-like 特征作为 C 级 ablation；
+  \item 两个数据集：\feature{mag__time__rms} 只作 Reference。
+\end{itemize}
+
+Early Fault baseline 的报告必须包含 caveat。
+
+特别是 XJTU-SY，如果某个模型在主 split 上表现好，还需要 condition-wise 或 cross-condition 结果支撑。
+
+\subsection{Compact Baseline Subset}
+
+\input{tables/compact_baseline_suggestions}
+
+Full feature set 是 \config{manual_basic} 全 45 个特征。
+
+它适合作为默认输入。
+
+Compact subset 的作用是提高解释性和减少冗余。
+
+RUL compact subset 应优先保留 non-label-source amplitude features。
+
+Health compact subset 应按数据集选择 channel。
+
+Early Fault compact subset 应保留 A/B 主线，并把 C 级特征用于 ablation。
+
+\subsection{冗余与消融}
+
+很多 top features 是同一物理现象的重复表达。
+
+例如：
+
+\begin{itemize}[leftmargin=2em]
+  \item \feature{mag__time__mean} 与 \feature{mag__time__mean_abs} 在当前 magnitude 构造下几乎等价；
+  \item \feature{h__time__rms} 与 \feature{h__time__std} 高度相关；
+  \item tsfresh 的 RMS/std/variance 与 manual features 重复；
+  \item \feature{mag__time__rms} 和其他 magnitude amplitude 特征相关，但它同时是 label-source。
+\end{itemize}
+
+因此，baseline 不应只报告“全特征最好”。
+
+更有解释价值的做法是报告：
+
+\begin{itemize}[leftmargin=2em]
+  \item full \config{manual_basic}；
+  \item compact non-label-source subset；
+  \item compact + Reference；
+  \item dataset-specific C-level ablation。
+\end{itemize}
+
+这样才能区分“真实可泛化特征”与“标签构造参考特征”。

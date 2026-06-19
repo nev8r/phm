@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{跨数据集任务级对比}
+\label{tab:cross_dataset_task_comparison}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYYYY}
+\toprule
+任务 & 共同模式 & XJTU-SY 特异性 & PHM2012 特异性 & baseline 含义 \\
+\midrule
+RUL & amplitude/energy family 稳定 & 需要 condition-wise 和 cross-condition 检查 & horizontal/magnitude 更一致 & 使用 \config{manual_basic} amplitude compact subset。\\
+Health State & 幅值类特征可分伪阶段 & main split horizontal 强，cross-condition 后 magnitude 更稳 & horizontal amplitude 主导 & XJTU 用 magnitude robust set；PHM 用 horizontal set。\\
+Early Fault & FPT 前后幅值差异有效 & 最工况敏感，C1 spectral entropy, C2 shock-like, C3 horizontal amplitude & amplitude 更稳定，spectral frequency secondary & XJTU 必须做 condition caveat；PHM 可用 amplitude mainline。\\
+tsfresh & 自动统计可重复简单幅值信息 & full-size blocked，不是算法效果结论 & 成功但冗余 & 当前不进入主线，后续需 memory-aware backend 和增益评估。\\
+\bottomrule
+\end{tabularx}
+\end{table}

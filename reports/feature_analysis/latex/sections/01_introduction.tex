@@ -9,3 +9,5 @@
 第三，训练集之外的数据不能参与特征选择。本轮分析统一使用 \config{fit_scope=train_only}，即 ranking 只在训练集上拟合；验证集与测试集只用于分布检查和可视化审查。这一原则避免了把 test-bearing 信息泄漏进特征选择过程。
 
 本文档不是新的实验报告，而是对已归档结果的技术整理。证据来自 \path{reports/feature_analysis/} 下的 Step F 至 Step L 报告、CSV 表格和精选图像，不引用本地临时 artifact run 目录。
+
+\input{tables/evidence_sources}

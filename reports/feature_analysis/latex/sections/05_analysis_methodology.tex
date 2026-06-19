@@ -8,53 +8,127 @@
 \config{fit_scope=train_only}
 \end{center}
 
-这意味着特征评分和排序只使用训练集。验证集与测试集用于分布检查、图像审查和鲁棒性说明，不参与特征选择。
+这意味着特征评分和排序只使用训练集。验证集与测试集用于分布检查、图像审查和鲁棒性说明，不参与特征选择。这样做的目的，是避免把测试轴承的信息提前泄漏到特征选择阶段。
 
-\subsection{RUL 指标}
+ranking 的输出包括：
 
-RUL 分析关注特征与 \config{piecewise_rul_norm} 的关系，主要证据包括：
-
-\begin{itemize}
-  \item Pearson 相关；
-  \item Spearman 相关；
-  \item Kendall 相关；
-  \item monotonicity；
-  \item robustness；
-  \item trendability；
-  \item prognosability。
+\begin{itemize}[leftmargin=2em]
+  \item task-specific score：\config{rul_score}、\config{health_score}、\config{early_fault_score}；
+  \item task-specific rank：\config{rank_rul}、\config{rank_health}、\config{rank_early_fault}；
+  \item \config{overall_score}：四类 score 的平均值；本报告主线只有三任务，因此 FaultType 为空或为 0；
+  \item \config{recommended_for}：每个任务中非零 score 的 top 20\% 特征。
 \end{itemize}
 
-本报告采用仓库中 Feature Ranking 模块的加权评分规则，不在文档中重新定义新的评分公式。
+rank 越小越好。score 越高表示该特征在对应任务上越强，但 score 的含义要结合指标来源和 label-source caveat 解读。
 
-\subsection{Health State 指标}
+\subsection{RUL Score}
 
-Health State 分析关注不同伪健康阶段之间的可分性，主要证据包括：
+RUL 分析关注特征与 \config{piecewise_rul_norm} 的关系。代码中的实际评分为：
 
-\begin{itemize}
-  \item mutual information；
-  \item Fisher score；
-  \item ANOVA F；
-  \item boxplot separability。
+\[
+S_{\mathrm{RUL}} =
+0.35|\rho_{\mathrm{Spearman}}|
++ 0.25M
++ 0.20R
++ 0.20T
+\]
+
+其中：
+
+\begin{itemize}[leftmargin=2em]
+  \item \(|\rho_{\mathrm{Spearman}}|\)：特征与 RUL 的 Spearman 绝对相关，强调单调排序关系；
+  \item \(M\)：monotonicity，衡量单个轴承内特征增减方向是否一致；
+  \item \(R\)：robustness，衡量特征曲线相对平滑趋势的稳定程度；
+  \item \(T\)：trendability，衡量不同轴承曲线形状的相似程度。
 \end{itemize}
 
-\subsection{Early Fault 指标}
+RUL score 没有直接使用 prognosability，但 degradation report 仍输出 prognosability 作为解释指标。prognosability 关注不同轴承终点值是否集中；若终点值差异很小、生命周期内变化范围又足够大，则该特征更容易定义统一失效阈值。
 
-Early Fault 分析关注 FPT 前后样本是否出现可检测差异，主要证据包括：
+\subsection{Health State Score}
 
-\begin{itemize}
-  \item AUC；
-  \item Cohen's d；
-  \item mean shift；
-  \item early-fault effect plots。
+Health State 分析关注不同伪健康阶段之间的可分性。代码中的实际评分为：
+
+\[
+S_{\mathrm{Health}} =
+0.4\operatorname{norm}(MI)
++ 0.4\operatorname{norm}(Fisher)
++ 0.2\operatorname{norm}(ANOVA)
+\]
+
+其中：
+
+\begin{itemize}[leftmargin=2em]
+  \item \(MI\)：mutual information，衡量特征和阶段标签之间的信息依赖；
+  \item Fisher：类间差异相对类内方差的比例，越大表示状态分布越容易分开；
+  \item ANOVA：多类均值差异检验的 F statistic，越大说明健康阶段之间均值差异越明显；
+  \item \(\operatorname{norm}\)：在当前特征集合内做 min-max 归一化，使不同指标可加权组合。
 \end{itemize}
 
-\subsection{证据层级}
+Health State 的核心图是 boxplot。读图时应关注四点：不同阶段中位数是否有顺序变化、箱体是否明显分开、极端值是否主导结论、以及 Reference 特征是否只是复现了 HI/FPT 规则。
+
+\subsection{Early Fault Score}
+
+Early Fault 分析关注 FPT 前后样本是否可分。代码中的实际评分为：
+
+\[
+S_{\mathrm{Early}} =
+0.5\operatorname{norm}(|d|)
++ 0.5\operatorname{norm}(AUC_{\mathrm{abs}})
+\]
+
+其中：
+
+\begin{itemize}[leftmargin=2em]
+  \item \(d\)：Cohen's d，衡量 FPT 前后均值差相对合并标准差的大小；
+  \item \(AUC_{\mathrm{abs}}\)：取 \(\max(AUC, 1-AUC)\)，因此特征升高或降低都可被视为可分；
+  \item mean shift：FPT 后均值减去 FPT 前均值，用于解释方向。
+\end{itemize}
+
+Early Fault 的核心图是 effect plot。读图时应关注 FPT 前后均值是否跳变、置信区间或分布是否重叠、变化方向是否和退化直觉一致，以及同一结论是否能经受 condition-wise 和 cross-condition 检查。
+
+\subsection{推荐等级}
 
 最终推荐使用 A/B/C/Reference 四类标签：
 
-\begin{itemize}
-  \item A：主推荐特征。
-  \item B：可用的 secondary 特征。
-  \item C：工况敏感或辅助诊断特征。
-  \item Reference：标签源参考特征，不作为独立证据。
-\end{itemize}
+\begin{description}[leftmargin=2.4em,style=nextline]
+  \item[A]
+  主推荐特征。通常满足主划分强、稳定性检查支持、且不是 label-source。
+
+  \item[B]
+  可用的 secondary 特征。它们可能与 A 级特征冗余，或在部分 split 上略弱，但仍有稳定信号。
+
+  \item[C]
+  工况敏感或辅助诊断特征。它们不适合作为全局默认特征，但适合做 ablation 或条件性诊断。
+
+  \item[Reference]
+  标签源参考特征。当前主要是 \feature{mag__time__rms}。它用于 sanity check，不作为独立发现。
+\end{description}
+
+\subsection{指标 Caveat}
+
+这些 score 只用于 feature ranking，不等价于模型性能。
+
+一个特征的 RUL score 高，表示它在训练 split 中和寿命顺序、退化趋势有关。
+
+它不保证任意模型都能直接得到高 RUL prediction accuracy。
+
+一个特征的 Health score 高，表示伪健康阶段分布可分。
+
+它不保证真实维修状态可分，因为本轮 Health State 是 HI/FPT 派生标签。
+
+一个特征的 Early score 高，表示 FPT 前后有统计差异。
+
+它不保证真实早期故障事件被提前发现，因为 FPT 本身来自 HI 规则。
+
+因此，本报告采用“score + plot + stability + caveat”的四步读法：
+
+\begin{enumerate}[leftmargin=2em]
+  \item 先看 score 和 rank，确认该特征是否进入候选区域；
+  \item 再看图，确认曲线、boxplot 或 effect plot 是否支持 score；
+  \item 然后看 condition-wise 与 cross-condition，确认是否稳定；
+  \item 最后检查 label-source 标记，决定是 A/B/C 还是 Reference。
+\end{enumerate}
+
+这种读法比单独看 top-10 更保守，也更适合后续 baseline planning。
+
+\input{tables/ranking_metric_summary}

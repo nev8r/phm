@@ -1,62 +1,219 @@
 \section{PHM2012 结果}
 
-\subsection{\config{manual_basic} 主结果}
+\subsection{Official Split 与分析 Caveat}
 
-PHM2012 official split 下，\config{manual_basic} 在三个任务上均表现出 amplitude-dominant 模式。
+PHM2012 的主结果来自 Step J，即 \config{phm2012_official} + \config{manual_basic}。
 
-\begin{itemize}
-  \item RUL：\feature{h__time__mean_abs}、\feature{mag__time__mean}、\feature{mag__time__mean_abs} 排名前列。
-  \item Health State：\feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 最强。
-  \item Early Fault：horizontal 和 magnitude amplitude 特征主导，spectral frequency 特征只作为 secondary。
-\end{itemize}
+Step K 在同一 official split 上运行 \config{manual_tsfresh_basic}，用于对照 tsfresh minimal 是否增加新信息。
+
+本节只整理已有归档报告，不增加新实验。
+
+PHM2012 的 train/val/test 按轴承隔离。
+
+训练集包含 Bearing1/2/3 工况下的官方训练轴承。
+
+验证集使用 Bearing1\_3 与 Bearing2\_3。
+
+测试集使用剩余官方测试轴承。
+
+Health State 与 Early Fault 的解释需要谨慎。
+
+它们依然是 HI/FPT 派生 pseudo-label，不是人工逐点标注的真实状态。
+
+因此，本节对这两个任务强调“分布可分性”和“FPT 前后变化”，不把它们等同为真实维修事件。
+
+\input{tables/phm2012_feature_evidence}
+
+\subsection{RUL 特征分析}
+
+PHM2012 RUL 的 top feature 是 \feature{h__time__mean_abs}。
+
+它的 RUL score 为 0.544。
+
+Pearson 为 -0.638，Spearman 为 -0.659，Kendall 为 -0.516。
+
+这说明水平通道平均绝对幅值与归一化 RUL 有稳定负相关。
+
+负相关的含义是：随着样本接近失效，RUL 下降，而振动幅值上升。
+
+\feature{mag__time__mean} 和 \feature{mag__time__mean_abs} 并列 rank 2。
+
+它们的 RUL score 为 0.537。
+
+这两个 magnitude 特征和 XJTU-SY 的主结论一致，说明幅值/能量 family 在跨数据集上是共同模式。
+
+\feature{h__time__rms} 和 \feature{h__time__std} 分别 rank 4 和 rank 5。
+
+它们与 \feature{h__time__mean_abs} 描述同一 horizontal amplitude/dispersion story。
+
+因此它们适合放入 B 级或 compact RUL subset 的 secondary group。
+
+频域特征不是 PHM2012 RUL 主线。
+
+\feature{v__spectral__rms_frequency} 和 \feature{v__spectral__peak_frequency} 的 RUL 相关性明显弱于幅值类特征。
+
+这说明当前 PHM2012 RUL 主要由振动幅值随退化增加表达，而不是由频谱中心或峰值频率主导。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{phm2012/manual/rul_top_features.png}
-\caption{PHM2012 official split 下 RUL 任务的 Top 特征。水平通道与 magnitude 幅值特征占主导。}
+\caption{PHM2012 official split 下 RUL 任务的 top features。}
 \label{fig:phm2012_rul_top_features}
 \end{figure}
+
+图 \ref{fig:phm2012_rul_top_features} 显示 horizontal 和 magnitude amplitude 特征占据前列。
+
+读图时应先看非 label-source 特征。
+
+\feature{h__time__mean_abs} 是最重要的独立候选。
+
+\feature{mag__time__mean} 和 \feature{mag__time__mean_abs} 提供 magnitude 方向的支持。
+
+\feature{mag__time__rms} 若出现在前列，只能作为 Reference。
+
+这张图支撑 PHM2012 RUL 的结论：以 horizontal amplitude 为第一候选，magnitude amplitude 为共同退化信号。
+
+\subsection{Health State 特征分析}
+
+PHM2012 Health State strongly favors horizontal-channel amplitude features。
+
+\feature{h__time__mean_abs} 的 health score 为 0.944，rank 1。
+
+它的 mutual information 为 0.486，Fisher score 为 0.789，ANOVA F 为 1979.4。
+
+这三个指标共同说明，\feature{h__time__mean_abs} 对伪健康阶段有明显分离能力。
+
+\feature{h__time__std} 和 \feature{h__time__rms} 分别 rank 2 和 rank 3。
+
+它们的 boxplot 形态接近，说明 horizontal dispersion 和 energy 是同一退化现象的不同统计表达。
+
+\feature{mag__time__mean} 和 \feature{mag__time__mean_abs} 是 B 级支持。
+
+它们不如 horizontal top features 强，但仍有稳定分离能力。
+
+\feature{mag__spectral__entropy} 进入 C 级。
+
+它说明频谱复杂度在 PHM2012 Health State 中有辅助信号，但不是主线。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{phm2012/manual/health_state_boxplots.png}
-\caption{PHM2012 official split 下 Health State 的箱线图。水平通道幅值特征显示较强状态分离。}
+\caption{PHM2012 official split 下 Health State 的箱线图。}
 \label{fig:phm2012_health_boxplots}
 \end{figure}
+
+图 \ref{fig:phm2012_health_boxplots} 的重点是水平通道幅值类特征的状态分布。
+
+如果健康阶段越严重，中位数和箱体整体上移，就说明该特征与退化阶段一致。
+
+PHM2012 中，\feature{h__time__mean_abs}、\feature{h__time__std}、\feature{h__time__rms} 具有清晰的状态分离。
+
+这和 XJTU-SY Step F 的 horizontal pattern 一致。
+
+但 PHM2012 没有像 XJTU-SY 那样做跨工况 train=one-condition/test=another-condition 的压力测试。
+
+所以最终写法应是：PHM2012 official split 支持 horizontal amplitude Health State；跨数据集共同主线仍是 amplitude family。
+
+\subsection{Early Fault 特征分析}
+
+PHM2012 Early Fault 同样由 amplitude family 主导。
+
+\feature{h__time__mean_abs} rank 1，early fault score 为 0.994。
+
+它的 AUC 为 0.836，Cohen's d 为 1.000，mean shift 为 0.220。
+
+这说明 FPT 后水平平均绝对幅值明显上升。
+
+\feature{mag__time__mean} 和 \feature{mag__time__mean_abs} 并列 rank 2。
+
+它们的 AUC 为 0.824，Cohen's d 为 1.012，mean shift 为 0.317。
+
+这说明 magnitude amplitude 对 FPT 前后分离同样有效。
+
+\feature{h__time__std} 和 \feature{h__time__rms} 是 strong secondary。
+
+它们捕捉的是水平通道离散度和能量增加。
+
+这和早期故障中振动冲击/幅值扩大的物理直觉一致。
+
+频域特征如 \feature{v__spectral__rms_frequency} 和 \feature{v__spectral__peak_frequency} 出现在 C 级。
+
+它们有一定 pre/post FPT 分离能力，但不如 amplitude family 稳定。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{phm2012/manual/early_fault_effects.png}
-\caption{PHM2012 official split 下 Early Fault 的特征效应图。幅值类特征是主要信号来源。}
+\caption{PHM2012 official split 下 Early Fault 的特征效应图。}
 \label{fig:phm2012_early_fault_effects}
 \end{figure}
 
+图 \ref{fig:phm2012_early_fault_effects} 需要看 FPT 前后均值差和分布重叠。
+
+PHM2012 中，horizontal/magnitude amplitude 特征在 FPT 后有明显上升。
+
+这支撑把 \feature{h__time__mean_abs}、\feature{mag__time__mean}、\feature{mag__time__mean_abs} 放入 A 级。
+
+同时，图也提醒我们 Early Fault 是 pseudo-label。
+
+如果某个 Reference 特征强，只能说明它和 HI/FPT 规则一致。
+
+非 label-source 的 horizontal/magnitude amplitude 特征才是独立候选。
+
 \subsection{\config{manual_tsfresh_basic} 对照}
 
-PHM2012 可以成功运行 full-size \config{manual_tsfresh_basic}。分析中有 44 个 ranked features，其中 20 个为 \feature{tsfresh__} 特征。
+Step K 在 PHM2012 上成功运行 full-size \config{manual_tsfresh_basic}。
 
-进入 top-10 的 \feature{tsfresh__} 特征主要包括：
+该 ranking 中有 44 个 ranked features，其中 20 个为 \feature{tsfresh__} 特征。
 
-\begin{itemize}
-  \item \feature{tsfresh__h__standard_deviation}
+两个长度特征 \feature{tsfresh__h__length} 和 \feature{tsfresh__v__length} 因为常量被清理掉。
+
+\input{tables/phm2012_tsfresh_comparison}
+
+tsfresh 对照的关键不是“是否进入 top10”，而是“进入 top10 的东西是否提供新信息”。
+
+RUL 中进入 top10 的 tsfresh 特征包括：
+
+\begin{itemize}[leftmargin=2em]
   \item \feature{tsfresh__h__root_mean_square}
+  \item \feature{tsfresh__h__standard_deviation}
   \item \feature{tsfresh__h__variance}
-  \item \feature{tsfresh__h__maximum}
-  \item \feature{tsfresh__v__standard_deviation}
-  \item \feature{tsfresh__v__root_mean_square}
 \end{itemize}
 
-这些特征能够进入 RUL、Health State 和 Early Fault 的 top-10，但其物理含义主要重复手工 RMS、standard deviation、variance、maximum 等统计量。因此它们更多是对 amplitude story 的确认，而不是新的主线特征族。
+这些分别对应手工 RMS、standard deviation 和 variance。
+
+Health State 中 \feature{tsfresh__h__maximum} 和 \feature{tsfresh__h__absolute_maximum} 提供的是 horizontal amplitude extreme。
+
+Early Fault 中 vertical tsfresh standard deviation/root mean square 与手工 vertical dispersion/RMS 重复。
+
+因此 Step K 的结论是：PHM2012 tsfresh 成功运行，但其有效信息主要重复 amplitude/statistical family。
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{phm2012/tsfresh/feature_recommendation_matrix.png}
-\caption{PHM2012 \config{manual_tsfresh_basic} 的特征推荐矩阵。可见部分 \feature{tsfresh__} 特征进入 top 区域，但主要为简单幅值统计。}
+\caption{PHM2012 \config{manual_tsfresh_basic} 的特征推荐矩阵。}
 \label{fig:phm2012_tsfresh_recommendation_matrix}
 \end{figure}
 
-\subsection{PHM2012 最终推荐}
+图 \ref{fig:phm2012_tsfresh_recommendation_matrix} 显示部分 \feature{tsfresh__} 特征进入 RUL、Health State 和 Early Fault 的推荐区域。
+
+但是这些特征集中在 RMS、standard deviation、variance、maximum。
+
+它们确认了 PHM2012 的 amplitude-dominant story。
+
+它们没有提供足以替换 \config{manual_basic} 的新物理特征族。
+
+\subsection{PHM2012 最终决策}
 
 \input{tables/phm2012_top_features}
 
-PHM2012 的主线特征集仍为 \config{manual_basic}。\config{manual_tsfresh_basic} 可运行，但当前不作为主线。
+PHM2012 的主线特征集仍为 \config{manual_basic}。
+
+RUL 使用 \feature{h__time__mean_abs} 与 magnitude amplitude。
+
+Health State 使用 horizontal amplitude family。
+
+Early Fault 使用 horizontal/magnitude amplitude，并把 spectral frequency 作为 C 级 secondary。
+
+\config{manual_tsfresh_basic} 可运行，但当前不作为主线。
+
+后续如果要把 tsfresh 纳入 baseline，需要先证明它带来的不是 RMS/std/variance 的重复，而是对模型泛化或解释性有实际增益。

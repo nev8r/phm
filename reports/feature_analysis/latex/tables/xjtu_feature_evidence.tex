@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+\centering
+\caption{XJTU-SY main split 的任务级 top evidence}
+\label{tab:xjtu_feature_evidence}
+\scriptsize
+\begin{tabularx}{\textwidth}{llrY}
+\toprule
+任务 & 特征 & score/rank & 解释 \\
+\midrule
+RUL & \feature{mag__time__mean} & rank 2, score 0.625 & Spearman=-0.768，趋势接近 label-source RMS，但不是实际 HI source。\\
+RUL & \feature{mag__time__mean_abs} & rank 2, score 0.625 & 与 magnitude mean 同分，适合 compact baseline 二选一或一起做消融。\\
+RUL & \feature{h__time__mean_abs} & rank 4, score 0.619 & 水平通道幅值候选；condition-wise top10 count=3。\\
+Health State & \feature{h__time__mean_abs} & rank 1, score 0.996 & MI=0.623, Fisher=1.864, ANOVA F=4366.3；主 split boxplot 分离强。\\
+Health State & \feature{mag__time__mean} & rank 4, score 0.875 & 跨工况后更稳，是最终 A 级推荐。\\
+Early Fault & \feature{h__time__mean_abs} & rank 1, score 0.996 & 主 split 很强，但 Step H/I 后降级为 condition-sensitive。\\
+Early Fault & \feature{mag__time__mean} & rank 4, score 0.961 & Step H top10 count=3，Step I 保持 stable cross-condition。\\
+Reference & \feature{mag__time__rms} & RUL rank 1 & 实际 HI/FPT source，仅作 sanity reference。\\
+\bottomrule
+\end{tabularx}
+\end{table}
