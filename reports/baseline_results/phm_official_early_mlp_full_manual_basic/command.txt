@@ -1,0 +1,1 @@
+uv run bp --config-name smoke mode=train dataset=phm2012 split=phm2012_official feature=manual_basic label=degradation_three_tasks task=early_fault_tabular model=mlp trainer=base run.name=phm_official_early_mlp_full_manual_basic project.artifact_root=artifacts/baselines dataset.root=data/loader_roots/phm2012

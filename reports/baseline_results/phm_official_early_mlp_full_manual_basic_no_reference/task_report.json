@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "task_name": "early_fault_tabular",
+  "task_type": "binary_classification",
+  "input_mode": "tabular",
+  "feature_source": "cleaned",
+  "num_features": 44,
+  "target_columns": [
+    "early_fault"
+  ],
+  "num_examples": 24889,
+  "num_train_examples": 7534,
+  "num_val_examples": 4330,
+  "num_test_examples": 13025,
+  "num_all_examples": 0,
+  "sequence": {
+    "enabled": false
+  },
+  "class_distribution": {
+    "test": {
+      "0": 6455,
+      "1": 6570
+    },
+    "train": {
+      "0": 2717,
+      "1": 4817
+    },
+    "val": {
+      "0": 1616,
+      "1": 2714
+    }
+  },
+  "target_summary": {},
+  "checks": [
+    {
+      "name": "sample_uid_alignment",
+      "ok": true
+    },
+    {
+      "name": "non_empty_examples",
+      "ok": true
+    },
+    {
+      "name": "unique_example_uid",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "epoch": 50,
+  "global_step": 22000,
+  "best_metric": 0.046903513447891565,
+  "best_epoch": 13,
+  "should_stop": false
+}
