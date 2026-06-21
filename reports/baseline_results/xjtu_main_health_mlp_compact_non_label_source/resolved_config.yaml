@@ -1,0 +1,239 @@
+dataset:
+  name: XJTU-SY
+  root: data/loader_roots/xjtu
+  sampling_rate: 25600
+  channels:
+  - Horizontal Vibration
+  - Vertical Vibration
+split:
+  name: xjtu_bearing_index_split
+  enabled: true
+  condition_ids: []
+  train_bearing_indices:
+  - 1
+  - 2
+  - 3
+  val_bearing_indices:
+  - 4
+  test_bearing_indices:
+  - 5
+feature:
+  name: manual_basic
+  enabled: true
+  version: v1
+  backends:
+  - name: manual_basic
+    type: manual_processor
+    params:
+      include_magnitude: true
+      time:
+        enabled: true
+        features:
+        - mean
+        - std
+        - rms
+        - mean_abs
+        - ptp
+        - skewness
+        - kurtosis
+        - crest_factor
+        - impulse_factor
+        - clearance_factor
+      spectral:
+        enabled: true
+        features:
+        - centroid
+        - bandwidth
+        - rms_frequency
+        - peak_frequency
+        - entropy
+        include_dc: false
+  cleaner:
+    enabled: true
+    imputer: median
+    scaler: standard
+    drop_constant: true
+    constant_threshold: 1.0e-12
+    fit_scope: train_only
+  store:
+    write_csv: true
+label:
+  name: degradation_three_tasks
+  enabled: true
+  version: v1
+  requires_features: true
+  hi:
+    method: feature_column
+    source_column_candidates:
+    - mag__time__rms
+    - h__time__rms
+    - v__time__rms
+    smooth:
+      enabled: true
+      window: 3
+    direction: bad_high
+    normalize_per_bearing: true
+  fpt:
+    method: three_sigma
+    healthy_ratio: 0.2
+    sigma_ratio: 3.0
+    min_delta: 0.0
+    consecutive_points: 3
+    fallback: healthy_ratio
+  outputs:
+  - type: linear_rul
+    name: linear_rul
+    params:
+      normalize: true
+      output_steps: true
+      output_seconds: true
+  - type: piecewise_rul
+    name: piecewise_rul
+    params:
+      normalize: true
+      output_steps: true
+      output_seconds: true
+  - type: health_state
+    name: health_state
+    params:
+      state_names:
+        0: healthy
+        1: slight
+        2: moderate
+        3: severe
+      post_fpt_boundaries:
+      - 0.4
+      - 0.8
+  - type: early_fault
+    name: early_fault
+    params:
+      normal_value: 0
+      abnormal_value: 1
+  store:
+    write_csv: true
+analysis:
+  name: feature_basic
+  enabled: true
+  version: v1
+  feature_source: raw
+  scope:
+    fit_scope: train_only
+    report_splits:
+    - train
+    - val
+    - test
+    - all
+  summary:
+    enabled: true
+    describe: true
+    variance: true
+    missing: true
+    finite_check: true
+  curves:
+    enabled: true
+    max_bearings: 5
+    top_features: []
+    default_features:
+    - h__time__rms
+    - v__time__rms
+    - mag__time__rms
+    - h__time__kurtosis
+    - v__time__kurtosis
+  store:
+    write_csv: true
+    write_figures: true
+task:
+  name: health_state_tabular
+  enabled: true
+  version: v1
+  task_type: multiclass_classification
+  input_mode: tabular
+  feature_source: cleaned
+  feature_columns:
+    include: patterns
+    include_patterns:
+    - mag__time__mean
+    - mag__time__mean_abs
+    - mag__time__std
+    - h__time__mean_abs
+    - h__time__std
+    - h__time__rms
+    exclude_patterns: []
+    exclude_columns: []
+  target:
+    columns:
+    - health_state_id
+    name_column: health_state_name
+    dtype: int64
+    num_classes: 4
+    class_names:
+      0: healthy
+      1: slight
+      2: moderate
+      3: severe
+  store:
+    write_csv: true
+    save_arrays: false
+model:
+  name: mlp
+  enabled: true
+  type: torch
+  class_name: MLP
+  params:
+    hidden_size: 64
+  input_adapter:
+    name: flatten_if_sequence
+trainer:
+  name: base
+  enabled: true
+  device: auto
+  dtype: float32
+  seed: 42
+  max_epochs: 50
+  batch_size: 16
+  num_workers: 0
+  pin_memory: false
+  optimizer:
+    name: adam
+    lr: 0.001
+    weight_decay: 0.0
+  scheduler:
+    name: none
+  loss:
+    name: auto
+  metrics:
+    name: auto
+  monitor:
+    split: val
+    metric: loss
+    mode: min
+  gradient:
+    clip_norm: 5.0
+  eval:
+    every_n_epochs: 1
+    evaluate_train: false
+    evaluate_test_at_end: true
+  checkpoint:
+    enabled: true
+    save_best: true
+    save_last: true
+    resume_from: null
+  prediction:
+    save_train: false
+    save_val: true
+    save_test: true
+    write_csv: false
+callback:
+  name: none
+  enabled: false
+mode: train
+project:
+  name: BearingPrediction
+  seed: 42
+  artifact_root: artifacts/baselines
+run:
+  name: xjtu_main_health_mlp_compact_non_label_source
+  tags:
+  - smoke
+  - infra
+checkpoint: null

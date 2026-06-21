@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "task_name": "rul_tabular",
+  "task_type": "regression",
+  "input_mode": "tabular",
+  "feature_source": "cleaned",
+  "num_features": 7,
+  "target_columns": [
+    "piecewise_rul_norm"
+  ],
+  "num_examples": 9216,
+  "num_train_examples": 7032,
+  "num_val_examples": 1679,
+  "num_test_examples": 505,
+  "num_all_examples": 0,
+  "sequence": {
+    "enabled": false
+  },
+  "class_distribution": {},
+  "target_summary": {
+    "piecewise_rul_norm": {
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.8256293402777778
+    }
+  },
+  "checks": [
+    {
+      "name": "sample_uid_alignment",
+      "ok": true
+    },
+    {
+      "name": "non_empty_examples",
+      "ok": true
+    },
+    {
+      "name": "unique_example_uid",
+      "ok": true
+    }
+  ]
+}
