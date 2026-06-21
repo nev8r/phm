@@ -1,0 +1,13 @@
+uv run bp --config-name smoke \
+  mode=train \
+  dataset=xjtu_sy \
+  split=xjtu_cross_condition \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  task=rul_tabular \
+  model=mlp \
+  trainer=base \
+  run.name=xjtu_cross_rul_mlp_full_manual_basic_no_reference \
+  project.artifact_root=artifacts/baselines \
+  dataset.root=data/loader_roots/xjtu \
+  'task.feature_columns.exclude_columns=[mag__time__rms]'

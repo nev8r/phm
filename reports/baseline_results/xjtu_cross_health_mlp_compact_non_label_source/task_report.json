@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "task_name": "health_state_tabular",
+  "task_type": "multiclass_classification",
+  "input_mode": "tabular",
+  "feature_source": "cleaned",
+  "num_features": 6,
+  "target_columns": [
+    "health_state_id"
+  ],
+  "num_examples": 9216,
+  "num_train_examples": 616,
+  "num_val_examples": 1566,
+  "num_test_examples": 7034,
+  "num_all_examples": 0,
+  "sequence": {
+    "enabled": false
+  },
+  "class_distribution": {
+    "test": {
+      "0": 4960,
+      "1": 829,
+      "2": 828,
+      "3": 417
+    },
+    "train": {
+      "0": 271,
+      "1": 138,
+      "2": 137,
+      "3": 70
+    },
+    "val": {
+      "0": 771,
+      "1": 318,
+      "2": 317,
+      "3": 160
+    }
+  },
+  "target_summary": {},
+  "checks": [
+    {
+      "name": "sample_uid_alignment",
+      "ok": true
+    },
+    {
+      "name": "non_empty_examples",
+      "ok": true
+    },
+    {
+      "name": "unique_example_uid",
+      "ok": true
+    }
+  ]
+}

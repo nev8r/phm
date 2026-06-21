@@ -1,0 +1,21 @@
+{
+  "name": "health_state_tabular",
+  "version": "v1",
+  "task_type": "multiclass_classification",
+  "input_mode": "tabular",
+  "feature_source": "cleaned",
+  "feature_columns": [
+    "h__time__std",
+    "h__time__rms",
+    "h__time__mean_abs",
+    "mag__time__mean",
+    "mag__time__std",
+    "mag__time__mean_abs"
+  ],
+  "target_columns": [
+    "health_state_id"
+  ],
+  "sequence": null,
+  "created_by": "Stage4 TaskBuilder",
+  "hash": "6cc9f2c98123"
+}
