@@ -1,6 +1,6 @@
 {
   "experiment_id": "y02_xjtu_rul_random_forest_full_manual_basic_no_reference",
-  "run_id": "20260622-002447_y02_xjtu_rul_random_forest_full_manual_basic_no_reference_3f03d893",
+  "run_id": "20260622-011244_y02_xjtu_rul_random_forest_full_manual_basic_no_reference_d9b0c1f8",
   "fit_status": "completed",
   "dataset": "XJTU-SY",
   "split": "xjtu_bearing_index_split",
@@ -16,6 +16,11 @@
   "test_examples": 505,
   "primary_metric": "RMSE",
   "metric_direction": "lower_is_better",
+  "train_metrics": {
+    "MAE": 0.008015338052183905,
+    "MSE": 0.0006101200752578557,
+    "RMSE": 0.024700608803384903
+  },
   "val_metrics": {
     "MAE": 0.1709870887452076,
     "MSE": 0.08036950526285534,
@@ -26,6 +31,11 @@
     "MSE": 0.15972628584923879,
     "RMSE": 0.39965771085922863
   },
+  "train_primary": 0.024700608803384903,
   "val_primary": 0.28349515915241896,
-  "test_primary": 0.39965771085922863
+  "test_primary": 0.39965771085922863,
+  "train_val_gap": 0.25879455034903404,
+  "val_test_gap": 0.11616255170680967,
+  "gap_pattern": "train_best_test_worst",
+  "adequacy_interpretation": "RMSE is best on train and degrades on validation/test; this suggests overfitting or split distribution shift rather than too few fit iterations."
 }

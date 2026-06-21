@@ -1,6 +1,6 @@
 {
   "experiment_id": "y05_xjtu_early_xgboost_compact_non_label_source",
-  "run_id": "20260622-002918_y05_xjtu_early_xgboost_compact_non_label_source_c5dd4768",
+  "run_id": "20260622-011709_y05_xjtu_early_xgboost_compact_non_label_source_9e10b0e3",
   "fit_status": "completed",
   "dataset": "XJTU-SY",
   "split": "xjtu_bearing_index_split",
@@ -16,6 +16,11 @@
   "test_examples": 505,
   "primary_metric": "WeightedF1",
   "metric_direction": "higher_is_better",
+  "train_metrics": {
+    "Accuracy": 0.9775312855517634,
+    "MacroF1": 0.9745070892417997,
+    "WeightedF1": 0.9774688537534569
+  },
   "val_metrics": {
     "Accuracy": 0.7081596188207266,
     "MacroF1": 0.5442029659965252,
@@ -26,6 +31,11 @@
     "MacroF1": 0.8237638674601425,
     "WeightedF1": 0.8393685654657599
   },
+  "train_primary": 0.9774688537534569,
   "val_primary": 0.6309843919700102,
-  "test_primary": 0.8393685654657599
+  "test_primary": 0.8393685654657599,
+  "train_val_gap": 0.3464844617834467,
+  "val_test_gap": -0.20838417349574967,
+  "gap_pattern": "no_clear_generalization_gap",
+  "adequacy_interpretation": "WeightedF1 does not show a clear train-to-heldout degradation pattern; remaining error is more likely task difficulty or feature capacity."
 }

@@ -252,7 +252,7 @@
   },
   "checkpoint": null,
   "sklearn": {
-    "model": "xgboost_regressor",
-    "output_root": "reports/non_mlp_baseline_results"
+    "output_root": "reports/non_mlp_baseline_results",
+    "model": "xgboost_regressor"
   }
 }

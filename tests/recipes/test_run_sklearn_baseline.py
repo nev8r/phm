@@ -6,7 +6,9 @@ from recipes.baselines.run_sklearn_baseline import (
     build_model,
     compute_metrics,
     dataset_to_arrays,
+    expected_figure_files,
     feature_importance_frame,
+    summarize_metric_gaps,
 )
 from USTC.SSE.BearingPrediction.infra.task.TaskDataset import TaskDataset
 
@@ -99,3 +101,44 @@ def test_feature_importance_frame_is_ranked_descending():
 
     assert frame["feature"].tolist() == ["f2", "f1"]
     assert frame["rank"].tolist() == [1, 2]
+
+
+def test_summarize_metric_gaps_respects_metric_direction():
+    regression = summarize_metric_gaps(
+        primary_metric="RMSE",
+        metric_direction="lower_is_better",
+        train_primary=0.10,
+        val_primary=0.30,
+        test_primary=0.40,
+    )
+    classification = summarize_metric_gaps(
+        primary_metric="WeightedF1",
+        metric_direction="higher_is_better",
+        train_primary=0.90,
+        val_primary=0.70,
+        test_primary=0.65,
+    )
+
+    assert math.isclose(regression["train_val_gap"], 0.20)
+    assert math.isclose(regression["val_test_gap"], 0.10)
+    assert math.isclose(classification["train_val_gap"], 0.20)
+    assert math.isclose(classification["val_test_gap"], 0.05)
+    assert regression["gap_pattern"] == "train_best_test_worst"
+    assert classification["gap_pattern"] == "train_best_test_worse"
+
+
+def test_expected_figure_files_match_task_type_visual_checks():
+    assert expected_figure_files("regression") == [
+        "figures/train_pred_vs_true.png",
+        "figures/val_pred_vs_true.png",
+        "figures/test_pred_vs_true.png",
+        "figures/test_residuals.png",
+        "figures/feature_importance_top10.png",
+    ]
+    assert expected_figure_files("binary_classification") == [
+        "figures/train_confusion_matrix.png",
+        "figures/val_confusion_matrix.png",
+        "figures/test_confusion_matrix.png",
+        "figures/test_class_distribution.png",
+        "figures/feature_importance_top10.png",
+    ]

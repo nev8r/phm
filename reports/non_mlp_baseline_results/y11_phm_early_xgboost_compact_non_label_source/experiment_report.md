@@ -16,17 +16,38 @@ This is a real standalone non-MLP tabular baseline fit.
 ## Metrics
 
 - Primary metric: `WeightedF1` (higher_is_better)
+- Train primary: 0.926569
 - Val primary: 0.491115
 - Test primary: 0.578165
+- Train-val gap: 0.435453
+- Val-test gap: -0.087050
+- Gap pattern: `no_clear_generalization_gap`
 
 | Split | Metric | Value |
 |---|---|---:|
+| train | Accuracy | 0.926998 |
+| train | MacroF1 | 0.919946 |
+| train | WeightedF1 | 0.926569 |
 | val | Accuracy | 0.484527 |
 | val | MacroF1 | 0.465642 |
 | val | WeightedF1 | 0.491115 |
 | test | Accuracy | 0.603301 |
 | test | MacroF1 | 0.577239 |
 | test | WeightedF1 | 0.578165 |
+
+## Training Adequacy
+
+WeightedF1 does not show a clear train-to-heldout degradation pattern; remaining error is more likely task difficulty or feature capacity.
+
+## Visual Checks
+
+| File | Purpose |
+|---|---|
+| `figures/train_confusion_matrix.png` | prediction quality / class behavior |
+| `figures/val_confusion_matrix.png` | prediction quality / class behavior |
+| `figures/test_confusion_matrix.png` | prediction quality / class behavior |
+| `figures/test_class_distribution.png` | prediction quality / class behavior |
+| `figures/feature_importance_top10.png` | feature importance |
 
 ## Top Feature Importance
 

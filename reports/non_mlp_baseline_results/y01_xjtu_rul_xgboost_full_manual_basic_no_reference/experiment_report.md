@@ -16,17 +16,38 @@ This is a real standalone non-MLP tabular baseline fit.
 ## Metrics
 
 - Primary metric: `RMSE` (lower_is_better)
+- Train primary: 0.046758
 - Val primary: 0.302017
 - Test primary: 0.431454
+- Train-val gap: 0.255259
+- Val-test gap: 0.129437
+- Gap pattern: `train_best_test_worst`
 
 | Split | Metric | Value |
 |---|---|---:|
+| train | MAE | 0.020947 |
+| train | MSE | 0.002186 |
+| train | RMSE | 0.046758 |
 | val | MAE | 0.244600 |
 | val | MSE | 0.091214 |
 | val | RMSE | 0.302017 |
 | test | MAE | 0.373355 |
 | test | MSE | 0.186152 |
 | test | RMSE | 0.431454 |
+
+## Training Adequacy
+
+RMSE is best on train and degrades on validation/test; this suggests overfitting or split distribution shift rather than too few fit iterations.
+
+## Visual Checks
+
+| File | Purpose |
+|---|---|
+| `figures/train_pred_vs_true.png` | prediction quality / class behavior |
+| `figures/val_pred_vs_true.png` | prediction quality / class behavior |
+| `figures/test_pred_vs_true.png` | prediction quality / class behavior |
+| `figures/test_residuals.png` | prediction quality / class behavior |
+| `figures/feature_importance_top10.png` | feature importance |
 
 ## Top Feature Importance
 

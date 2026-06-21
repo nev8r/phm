@@ -1,6 +1,6 @@
 {
   "experiment_id": "y08_phm_rul_random_forest_compact_non_label_source",
-  "run_id": "20260622-003336_y08_phm_rul_random_forest_compact_non_label_source_4b0aac29",
+  "run_id": "20260622-012059_y08_phm_rul_random_forest_compact_non_label_source_7667db20",
   "fit_status": "completed",
   "dataset": "PHM2012",
   "split": "phm2012_official",
@@ -16,8 +16,13 @@
   "test_examples": 13025,
   "primary_metric": "RMSE",
   "metric_direction": "lower_is_better",
+  "train_metrics": {
+    "MAE": 0.03160093617907551,
+    "MSE": 0.0042588980632565195,
+    "RMSE": 0.06526023339872851
+  },
   "val_metrics": {
-    "MAE": 0.22435753677142495,
+    "MAE": 0.22435753677142498,
     "MSE": 0.08583212254013964,
     "RMSE": 0.292971197458282
   },
@@ -26,6 +31,11 @@
     "MSE": 0.11395689779577582,
     "RMSE": 0.33757502543253376
   },
+  "train_primary": 0.06526023339872851,
   "val_primary": 0.292971197458282,
-  "test_primary": 0.33757502543253376
+  "test_primary": 0.33757502543253376,
+  "train_val_gap": 0.2277109640595535,
+  "val_test_gap": 0.044603827974251775,
+  "gap_pattern": "train_best_test_worse",
+  "adequacy_interpretation": "RMSE is best on train and test is mildly worse than validation; held-out behavior should be inspected with the generated plots."
 }

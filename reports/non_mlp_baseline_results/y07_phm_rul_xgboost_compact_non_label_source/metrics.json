@@ -1,6 +1,6 @@
 {
   "experiment_id": "y07_phm_rul_xgboost_compact_non_label_source",
-  "run_id": "20260622-003232_y07_phm_rul_xgboost_compact_non_label_source_18f54f3d",
+  "run_id": "20260622-012000_y07_phm_rul_xgboost_compact_non_label_source_b4136a33",
   "fit_status": "completed",
   "dataset": "PHM2012",
   "split": "phm2012_official",
@@ -16,6 +16,11 @@
   "test_examples": 13025,
   "primary_metric": "RMSE",
   "metric_direction": "lower_is_better",
+  "train_metrics": {
+    "MAE": 0.09209410846233368,
+    "MSE": 0.021231720224022865,
+    "RMSE": 0.1457110847671613
+  },
   "val_metrics": {
     "MAE": 0.23419606685638428,
     "MSE": 0.08486536890268326,
@@ -26,6 +31,11 @@
     "MSE": 0.12752404808998108,
     "RMSE": 0.35710509390091466
   },
+  "train_primary": 0.1457110847671613,
   "val_primary": 0.2913166128161648,
-  "test_primary": 0.35710509390091466
+  "test_primary": 0.35710509390091466,
+  "train_val_gap": 0.14560552804900348,
+  "val_test_gap": 0.06578848108474988,
+  "gap_pattern": "train_best_test_worst",
+  "adequacy_interpretation": "RMSE is best on train and degrades on validation/test; this suggests overfitting or split distribution shift rather than too few fit iterations."
 }

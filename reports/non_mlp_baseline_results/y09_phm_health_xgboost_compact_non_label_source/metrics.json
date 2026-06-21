@@ -1,6 +1,6 @@
 {
   "experiment_id": "y09_phm_health_xgboost_compact_non_label_source",
-  "run_id": "20260622-003441_y09_phm_health_xgboost_compact_non_label_source_5a62bcbc",
+  "run_id": "20260622-012159_y09_phm_health_xgboost_compact_non_label_source_0c585d90",
   "fit_status": "completed",
   "dataset": "PHM2012",
   "split": "phm2012_official",
@@ -16,6 +16,11 @@
   "test_examples": 13025,
   "primary_metric": "WeightedF1",
   "metric_direction": "higher_is_better",
+  "train_metrics": {
+    "Accuracy": 0.8262543137775418,
+    "MacroF1": 0.8220343456828274,
+    "WeightedF1": 0.8262380086067448
+  },
   "val_metrics": {
     "Accuracy": 0.25242494226327944,
     "MacroF1": 0.2621605027109286,
@@ -26,6 +31,11 @@
     "MacroF1": 0.23951120016333818,
     "WeightedF1": 0.2953739317519941
   },
+  "train_primary": 0.8262380086067448,
   "val_primary": 0.24053985058418662,
-  "test_primary": 0.2953739317519941
+  "test_primary": 0.2953739317519941,
+  "train_val_gap": 0.5856981580225582,
+  "val_test_gap": -0.0548340811678075,
+  "gap_pattern": "no_clear_generalization_gap",
+  "adequacy_interpretation": "WeightedF1 does not show a clear train-to-heldout degradation pattern; remaining error is more likely task difficulty or feature capacity."
 }

@@ -1,6 +1,6 @@
 {
   "experiment_id": "y03_xjtu_health_xgboost_compact_non_label_source",
-  "run_id": "20260622-002618_y03_xjtu_health_xgboost_compact_non_label_source_b9f49c06",
+  "run_id": "20260622-011419_y03_xjtu_health_xgboost_compact_non_label_source_8320c59f",
   "fit_status": "completed",
   "dataset": "XJTU-SY",
   "split": "xjtu_bearing_index_split",
@@ -16,6 +16,11 @@
   "test_examples": 505,
   "primary_metric": "WeightedF1",
   "metric_direction": "higher_is_better",
+  "train_metrics": {
+    "Accuracy": 0.926052332195677,
+    "MacroF1": 0.852855841942525,
+    "WeightedF1": 0.9249499251664907
+  },
   "val_metrics": {
     "Accuracy": 0.6902918403811793,
     "MacroF1": 0.35852611616513486,
@@ -26,6 +31,11 @@
     "MacroF1": 0.30983328411535005,
     "WeightedF1": 0.36512102813980735
   },
+  "train_primary": 0.9249499251664907,
   "val_primary": 0.5839393934428085,
-  "test_primary": 0.36512102813980735
+  "test_primary": 0.36512102813980735,
+  "train_val_gap": 0.3410105317236821,
+  "val_test_gap": 0.2188183653030012,
+  "gap_pattern": "train_best_test_worst",
+  "adequacy_interpretation": "WeightedF1 is best on train and degrades on validation/test; this suggests overfitting or split distribution shift rather than too few fit iterations."
 }

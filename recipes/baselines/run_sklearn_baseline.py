@@ -18,12 +18,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
+import matplotlib
 import numpy as np
 import pandas as pd
 from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig, OmegaConf
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, mean_absolute_error, mean_squared_error
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 from USTC.SSE.BearingPrediction.cli.main import find_conf_dir, parse_cli_args
 from USTC.SSE.BearingPrediction.infra.experiment.RunContext import RunContext
@@ -256,6 +260,85 @@ def feature_importance_frame(feature_columns: List[str], importances: Iterable[f
     return frame[["rank", "feature", "importance"]]
 
 
+def summarize_metric_gaps(
+        primary_metric: str,
+        metric_direction: str,
+        train_primary: float,
+        val_primary: float,
+        test_primary: float,
+) -> Dict[str, Any]:
+    if metric_direction == "lower_is_better":
+        train_val_gap = float(val_primary - train_primary)
+        val_test_gap = float(test_primary - val_primary)
+    elif metric_direction == "higher_is_better":
+        train_val_gap = float(train_primary - val_primary)
+        val_test_gap = float(val_primary - test_primary)
+    else:
+        raise ValueError(f"Unsupported metric_direction: {metric_direction}")
+
+    tolerance = 1.0e-9
+    material_gap = 0.05
+    train_gap_material = train_val_gap > material_gap
+    test_gap_material = val_test_gap > material_gap
+    if train_gap_material and test_gap_material:
+        gap_pattern = "train_best_test_worst"
+        interpretation = (
+            f"{primary_metric} is best on train and degrades on validation/test; "
+            "this suggests overfitting or split distribution shift rather than too few fit iterations."
+        )
+    elif train_gap_material and val_test_gap > tolerance:
+        gap_pattern = "train_best_test_worse"
+        interpretation = (
+            f"{primary_metric} is best on train and test is mildly worse than validation; "
+            "held-out behavior should be inspected with the generated plots."
+        )
+    elif train_gap_material and abs(val_test_gap) <= tolerance:
+        gap_pattern = "train_best_val_test_similar"
+        interpretation = (
+            f"{primary_metric} is better on train while validation and test are similar; "
+            "the model fits training samples more easily than held-out bearings."
+        )
+    elif abs(train_val_gap) <= tolerance and test_gap_material:
+        gap_pattern = "train_val_similar_test_worse"
+        interpretation = (
+            f"{primary_metric} is similar on train/validation but worse on test; "
+            "test bearing distribution is the likely driver."
+        )
+    else:
+        gap_pattern = "no_clear_generalization_gap"
+        interpretation = (
+            f"{primary_metric} does not show a clear train-to-heldout degradation pattern; "
+            "remaining error is more likely task difficulty or feature capacity."
+        )
+
+    return {
+        "train_val_gap": train_val_gap,
+        "val_test_gap": val_test_gap,
+        "gap_pattern": gap_pattern,
+        "adequacy_interpretation": interpretation,
+    }
+
+
+def expected_figure_files(task_type: str) -> List[str]:
+    if task_type == REGRESSION:
+        return [
+            "figures/train_pred_vs_true.png",
+            "figures/val_pred_vs_true.png",
+            "figures/test_pred_vs_true.png",
+            "figures/test_residuals.png",
+            "figures/feature_importance_top10.png",
+        ]
+    if task_type in CLASSIFICATION_TYPES:
+        return [
+            "figures/train_confusion_matrix.png",
+            "figures/val_confusion_matrix.png",
+            "figures/test_confusion_matrix.png",
+            "figures/test_class_distribution.png",
+            "figures/feature_importance_top10.png",
+        ]
+    raise ValueError(f"Unsupported task_type: {task_type}")
+
+
 def fit_and_save(cfg: DictConfig, context: RunContext, datamodule: DataModule, command: str) -> Dict[str, Any]:
     if datamodule.train is None or datamodule.val is None or datamodule.test is None:
         raise ValueError("Step Y requires non-empty train, val, and test splits")
@@ -270,11 +353,23 @@ def fit_and_save(cfg: DictConfig, context: RunContext, datamodule: DataModule, c
     test_arrays = dataset_to_arrays(datamodule.test)
 
     model.fit(train_arrays.x, train_arrays.y)
+    train_pred = model.predict(train_arrays.x)
     val_pred = model.predict(val_arrays.x)
     test_pred = model.predict(test_arrays.x)
+    train_result = compute_metrics(task_type, train_arrays.y, train_pred)
     val_result = compute_metrics(task_type, val_arrays.y, val_pred)
     test_result = compute_metrics(task_type, test_arrays.y, test_pred)
     primary_metric = test_result["primary_metric"]
+    train_primary = float(train_result["metrics"][primary_metric])
+    val_primary = float(val_result["metrics"][primary_metric])
+    test_primary = float(test_result["metrics"][primary_metric])
+    gap_summary = summarize_metric_gaps(
+        primary_metric=primary_metric,
+        metric_direction=test_result["metric_direction"],
+        train_primary=train_primary,
+        val_primary=val_primary,
+        test_primary=test_primary,
+    )
 
     metrics_payload = {
         "experiment_id": context.run_name,
@@ -292,10 +387,13 @@ def fit_and_save(cfg: DictConfig, context: RunContext, datamodule: DataModule, c
         "test_examples": int(len(test_arrays.y)),
         "primary_metric": primary_metric,
         "metric_direction": test_result["metric_direction"],
+        "train_metrics": train_result["metrics"],
         "val_metrics": val_result["metrics"],
         "test_metrics": test_result["metrics"],
-        "val_primary": float(val_result["metrics"][primary_metric]),
-        "test_primary": float(test_result["metrics"][primary_metric]),
+        "train_primary": train_primary,
+        "val_primary": val_primary,
+        "test_primary": test_primary,
+        **gap_summary,
     }
 
     importances = getattr(model, "feature_importances_", np.zeros(len(datamodule.feature_columns), dtype=float))
@@ -312,7 +410,19 @@ def fit_and_save(cfg: DictConfig, context: RunContext, datamodule: DataModule, c
     _write_json(context.run_dir / "metrics.json", metrics_payload)
     importance.to_csv(context.run_dir / "feature_importance.csv", index=False)
     _write_text(context.run_dir / "experiment_report.md", _experiment_report(metrics_payload, importance))
+    _save_figures(
+        context.run_dir / "figures",
+        task_type=task_type,
+        train_arrays=train_arrays,
+        val_arrays=val_arrays,
+        test_arrays=test_arrays,
+        train_pred=train_pred,
+        val_pred=val_pred,
+        test_pred=test_pred,
+        importance=importance,
+    )
     _save_model(context.run_dir / "model" / "model.pkl", model)
+    _save_predictions(context.run_dir / "predictions" / "train_predictions.parquet", train_arrays, train_pred)
     _save_predictions(context.run_dir / "predictions" / "val_predictions.parquet", val_arrays, val_pred)
     _save_predictions(context.run_dir / "predictions" / "test_predictions.parquet", test_arrays, test_pred)
 
@@ -324,9 +434,14 @@ def fit_and_save(cfg: DictConfig, context: RunContext, datamodule: DataModule, c
 
 
 def copy_curated_outputs(raw_dir: Path, curated_dir: Path) -> None:
+    if curated_dir.exists():
+        shutil.rmtree(curated_dir)
     curated_dir.mkdir(parents=True, exist_ok=True)
     for file_name in CURATED_FILES:
         shutil.copy2(raw_dir / file_name, curated_dir / file_name)
+    figures_dir = raw_dir / "figures"
+    if figures_dir.is_dir():
+        shutil.copytree(figures_dir, curated_dir / "figures")
 
 
 def _split_sklearn_overrides(overrides: Sequence[str]) -> Tuple[List[str], List[str]]:
@@ -352,6 +467,142 @@ def _save_predictions(path: Path, arrays: DatasetArrays, y_pred: Iterable) -> No
     frame["y_pred"] = np.asarray(y_pred)
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_parquet(path, index=False)
+
+
+def _save_figures(
+        output_dir: Path,
+        task_type: str,
+        train_arrays: DatasetArrays,
+        val_arrays: DatasetArrays,
+        test_arrays: DatasetArrays,
+        train_pred: Iterable,
+        val_pred: Iterable,
+        test_pred: Iterable,
+        importance: pd.DataFrame,
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if task_type == REGRESSION:
+        _plot_pred_vs_true(output_dir / "train_pred_vs_true.png", train_arrays.y, train_pred, "Train Predicted vs True RUL")
+        _plot_pred_vs_true(output_dir / "val_pred_vs_true.png", val_arrays.y, val_pred, "Validation Predicted vs True RUL")
+        _plot_pred_vs_true(output_dir / "test_pred_vs_true.png", test_arrays.y, test_pred, "Test Predicted vs True RUL")
+        _plot_residuals(output_dir / "test_residuals.png", test_arrays.y, test_pred, "Test RUL Residuals")
+    elif task_type in CLASSIFICATION_TYPES:
+        _plot_confusion_matrix(
+            output_dir / "train_confusion_matrix.png",
+            train_arrays.y,
+            train_pred,
+            "Train Confusion Matrix",
+        )
+        _plot_confusion_matrix(
+            output_dir / "val_confusion_matrix.png",
+            val_arrays.y,
+            val_pred,
+            "Validation Confusion Matrix",
+        )
+        _plot_confusion_matrix(
+            output_dir / "test_confusion_matrix.png",
+            test_arrays.y,
+            test_pred,
+            "Test Confusion Matrix",
+        )
+        _plot_class_distribution(
+            output_dir / "test_class_distribution.png",
+            test_arrays.y,
+            test_pred,
+            "Test Class Distribution",
+        )
+    else:
+        raise ValueError(f"Unsupported task_type: {task_type}")
+    _plot_feature_importance(output_dir / "feature_importance_top10.png", importance)
+
+
+def _plot_pred_vs_true(path: Path, y_true: Iterable, y_pred: Iterable, title: str) -> None:
+    y_true_array = np.asarray(y_true, dtype=float)
+    y_pred_array = np.asarray(y_pred, dtype=float)
+    lower = float(min(y_true_array.min(), y_pred_array.min()))
+    upper = float(max(y_true_array.max(), y_pred_array.max()))
+    fig, ax = plt.subplots(figsize=(6, 5), dpi=160)
+    ax.scatter(y_true_array, y_pred_array, s=10, alpha=0.35, edgecolors="none")
+    ax.plot([lower, upper], [lower, upper], color="#C44E52", linewidth=1.5, label="Ideal")
+    ax.set_title(title)
+    ax.set_xlabel("True target")
+    ax.set_ylabel("Predicted target")
+    ax.grid(True, alpha=0.25)
+    ax.legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def _plot_residuals(path: Path, y_true: Iterable, y_pred: Iterable, title: str) -> None:
+    residuals = np.asarray(y_pred, dtype=float) - np.asarray(y_true, dtype=float)
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=160)
+    ax.hist(residuals, bins=40, color="#4C72B0", alpha=0.85)
+    ax.axvline(0.0, color="#C44E52", linewidth=1.5)
+    ax.set_title(title)
+    ax.set_xlabel("Prediction residual")
+    ax.set_ylabel("Count")
+    ax.grid(True, axis="y", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def _plot_confusion_matrix(path: Path, y_true: Iterable, y_pred: Iterable, title: str) -> None:
+    y_true_array = np.asarray(y_true, dtype=int)
+    y_pred_array = np.asarray(y_pred, dtype=int)
+    labels = np.unique(np.concatenate([y_true_array, y_pred_array]))
+    matrix = confusion_matrix(y_true_array, y_pred_array, labels=labels)
+    fig, ax = plt.subplots(figsize=(5.5, 5), dpi=160)
+    image = ax.imshow(matrix, cmap="Blues")
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+    ax.set_title(title)
+    ax.set_xlabel("Predicted class")
+    ax.set_ylabel("True class")
+    ax.set_xticks(range(len(labels)), labels=labels)
+    ax.set_yticks(range(len(labels)), labels=labels)
+    threshold = matrix.max() / 2.0 if matrix.size and matrix.max() > 0 else 0
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            color = "white" if matrix[i, j] > threshold else "black"
+            ax.text(j, i, str(matrix[i, j]), ha="center", va="center", color=color, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def _plot_class_distribution(path: Path, y_true: Iterable, y_pred: Iterable, title: str) -> None:
+    y_true_array = np.asarray(y_true, dtype=int)
+    y_pred_array = np.asarray(y_pred, dtype=int)
+    labels = np.unique(np.concatenate([y_true_array, y_pred_array]))
+    true_counts = np.array([(y_true_array == label).sum() for label in labels])
+    pred_counts = np.array([(y_pred_array == label).sum() for label in labels])
+    x = np.arange(len(labels))
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=160)
+    ax.bar(x - width / 2, true_counts, width, label="True", color="#4C72B0")
+    ax.bar(x + width / 2, pred_counts, width, label="Predicted", color="#55A868")
+    ax.set_title(title)
+    ax.set_xlabel("Class")
+    ax.set_ylabel("Count")
+    ax.set_xticks(x, labels=labels)
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def _plot_feature_importance(path: Path, importance: pd.DataFrame) -> None:
+    top = importance.head(10).iloc[::-1]
+    fig, ax = plt.subplots(figsize=(7, 4.8), dpi=160)
+    ax.barh(top["feature"], top["importance"], color="#8172B3")
+    ax.set_title("Top 10 Feature Importance")
+    ax.set_xlabel("Importance")
+    ax.grid(True, axis="x", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
 
 
 def _save_model(path: Path, model: Any) -> None:
@@ -391,15 +642,33 @@ def _experiment_report(metrics: Dict[str, Any], importance: pd.DataFrame) -> str
         "## Metrics",
         "",
         f"- Primary metric: `{metrics['primary_metric']}` ({metrics['metric_direction']})",
+        f"- Train primary: {metrics['train_primary']:.6f}",
         f"- Val primary: {metrics['val_primary']:.6f}",
         f"- Test primary: {metrics['test_primary']:.6f}",
+        f"- Train-val gap: {metrics['train_val_gap']:.6f}",
+        f"- Val-test gap: {metrics['val_test_gap']:.6f}",
+        f"- Gap pattern: `{metrics['gap_pattern']}`",
         "",
         "| Split | Metric | Value |",
         "|---|---|---:|",
     ]
-    for split_name in ("val", "test"):
+    for split_name in ("train", "val", "test"):
         for metric_name, value in metrics[f"{split_name}_metrics"].items():
             lines.append(f"| {split_name} | {metric_name} | {value:.6f} |")
+    lines.extend([
+        "",
+        "## Training Adequacy",
+        "",
+        metrics["adequacy_interpretation"],
+        "",
+        "## Visual Checks",
+        "",
+        "| File | Purpose |",
+        "|---|---|",
+    ])
+    for figure_file in expected_figure_files(str(metrics["task_type"])):
+        purpose = "feature importance" if "feature_importance" in figure_file else "prediction quality / class behavior"
+        lines.append(f"| `{figure_file}` | {purpose} |")
     lines.extend([
         "",
         "## Top Feature Importance",

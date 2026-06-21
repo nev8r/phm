@@ -1,6 +1,6 @@
 {
   "experiment_id": "y12_phm_early_random_forest_compact_non_label_source",
-  "run_id": "20260622-003753_y12_phm_early_random_forest_compact_non_label_source_49c8a6f5",
+  "run_id": "20260622-012505_y12_phm_early_random_forest_compact_non_label_source_e858ae1d",
   "fit_status": "completed",
   "dataset": "PHM2012",
   "split": "phm2012_official",
@@ -16,6 +16,11 @@
   "test_examples": 13025,
   "primary_metric": "WeightedF1",
   "metric_direction": "higher_is_better",
+  "train_metrics": {
+    "Accuracy": 0.9864613750995487,
+    "MacroF1": 0.9854104990155047,
+    "WeightedF1": 0.9865019133461144
+  },
   "val_metrics": {
     "Accuracy": 0.4558891454965358,
     "MacroF1": 0.44811234196663363,
@@ -26,6 +31,11 @@
     "MacroF1": 0.6126213859374661,
     "WeightedF1": 0.6132200909089756
   },
+  "train_primary": 0.9865019133461144,
   "val_primary": 0.4647250467834286,
-  "test_primary": 0.6132200909089756
+  "test_primary": 0.6132200909089756,
+  "train_val_gap": 0.5217768665626858,
+  "val_test_gap": -0.14849504412554698,
+  "gap_pattern": "no_clear_generalization_gap",
+  "adequacy_interpretation": "WeightedF1 does not show a clear train-to-heldout degradation pattern; remaining error is more likely task difficulty or feature capacity."
 }
