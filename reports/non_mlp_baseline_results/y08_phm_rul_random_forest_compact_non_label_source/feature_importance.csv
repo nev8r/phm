@@ -1,0 +1,8 @@
+rank,feature,importance
+1,h__time__std,0.4411418303866438
+2,h__time__rms,0.19520954783395048
+3,v__time__mean_abs,0.13416980219391914
+4,h__time__mean_abs,0.10415968043663619
+5,mag__time__std,0.06077646831521087
+6,mag__time__mean,0.032639921214316456
+7,mag__time__mean_abs,0.03190274961932302

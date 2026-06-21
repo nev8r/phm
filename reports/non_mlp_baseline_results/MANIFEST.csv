@@ -1,0 +1,2 @@
+step_id,scope,output,source,artifact_root,status,notes
+StepY,training,xgboost_random_forest_tabular_batch,reports/baseline_results/baseline_final_decisions_with_tuned.csv,artifacts/non_mlp_baselines,needs-review,Twelve real non-MLP tabular model fits using XGBoost and RandomForest on Step X independent feature subsets.

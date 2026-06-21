@@ -1,0 +1,31 @@
+{
+  "experiment_id": "y01_xjtu_rul_xgboost_full_manual_basic_no_reference",
+  "run_id": "20260622-002247_y01_xjtu_rul_xgboost_full_manual_basic_no_reference_93cdc491",
+  "fit_status": "completed",
+  "dataset": "XJTU-SY",
+  "split": "xjtu_bearing_index_split",
+  "task": "rul_tabular",
+  "task_type": "regression",
+  "model": "xgboost_regressor",
+  "feature_count": 44,
+  "target_columns": [
+    "piecewise_rul_norm"
+  ],
+  "train_examples": 7032,
+  "val_examples": 1679,
+  "test_examples": 505,
+  "primary_metric": "RMSE",
+  "metric_direction": "lower_is_better",
+  "val_metrics": {
+    "MAE": 0.2445996105670929,
+    "MSE": 0.09121403098106384,
+    "RMSE": 0.3020166071279257
+  },
+  "test_metrics": {
+    "MAE": 0.37335461378097534,
+    "MSE": 0.18615229427814484,
+    "RMSE": 0.4314536988810559
+  },
+  "val_primary": 0.3020166071279257,
+  "test_primary": 0.4314536988810559
+}

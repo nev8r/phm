@@ -21,6 +21,7 @@ dependencies = [
     "tensorboard>=2.20.0,<3.0.0",
     "torch>=2.10.0,<2.11.0",
     "tsfresh>=0.21,<0.22",
+    "xgboost>=3.0,<4.0",
 ]
 
 [project.scripts]

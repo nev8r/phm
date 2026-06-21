@@ -1,0 +1,31 @@
+{
+  "experiment_id": "y11_phm_early_xgboost_compact_non_label_source",
+  "run_id": "20260622-003656_y11_phm_early_xgboost_compact_non_label_source_8085bf17",
+  "fit_status": "completed",
+  "dataset": "PHM2012",
+  "split": "phm2012_official",
+  "task": "early_fault_tabular",
+  "task_type": "binary_classification",
+  "model": "xgboost_classifier",
+  "feature_count": 7,
+  "target_columns": [
+    "early_fault"
+  ],
+  "train_examples": 7534,
+  "val_examples": 4330,
+  "test_examples": 13025,
+  "primary_metric": "WeightedF1",
+  "metric_direction": "higher_is_better",
+  "val_metrics": {
+    "Accuracy": 0.48452655889145496,
+    "MacroF1": 0.46564206816384374,
+    "WeightedF1": 0.49111525098806624
+  },
+  "test_metrics": {
+    "Accuracy": 0.6033013435700576,
+    "MacroF1": 0.5772386151204745,
+    "WeightedF1": 0.5781653973628067
+  },
+  "val_primary": 0.49111525098806624,
+  "test_primary": 0.5781653973628067
+}

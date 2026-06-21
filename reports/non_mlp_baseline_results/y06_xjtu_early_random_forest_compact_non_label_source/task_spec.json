@@ -1,0 +1,20 @@
+{
+  "name": "early_fault_tabular",
+  "version": "v1",
+  "task_type": "binary_classification",
+  "input_mode": "tabular",
+  "feature_source": "cleaned",
+  "feature_columns": [
+    "v__time__std",
+    "v__time__mean_abs",
+    "mag__time__mean",
+    "mag__time__std",
+    "mag__time__mean_abs"
+  ],
+  "target_columns": [
+    "early_fault"
+  ],
+  "sequence": null,
+  "created_by": "Stage4 TaskBuilder",
+  "hash": "a3fb6e2566af"
+}

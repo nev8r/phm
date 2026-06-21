@@ -1,0 +1,31 @@
+{
+  "experiment_id": "y05_xjtu_early_xgboost_compact_non_label_source",
+  "run_id": "20260622-002918_y05_xjtu_early_xgboost_compact_non_label_source_c5dd4768",
+  "fit_status": "completed",
+  "dataset": "XJTU-SY",
+  "split": "xjtu_bearing_index_split",
+  "task": "early_fault_tabular",
+  "task_type": "binary_classification",
+  "model": "xgboost_classifier",
+  "feature_count": 5,
+  "target_columns": [
+    "early_fault"
+  ],
+  "train_examples": 7032,
+  "val_examples": 1679,
+  "test_examples": 505,
+  "primary_metric": "WeightedF1",
+  "metric_direction": "higher_is_better",
+  "val_metrics": {
+    "Accuracy": 0.7081596188207266,
+    "MacroF1": 0.5442029659965252,
+    "WeightedF1": 0.6309843919700102
+  },
+  "test_metrics": {
+    "Accuracy": 0.8495049504950495,
+    "MacroF1": 0.8237638674601425,
+    "WeightedF1": 0.8393685654657599
+  },
+  "val_primary": 0.6309843919700102,
+  "test_primary": 0.8393685654657599
+}

@@ -1,0 +1,31 @@
+{
+  "experiment_id": "y02_xjtu_rul_random_forest_full_manual_basic_no_reference",
+  "run_id": "20260622-002447_y02_xjtu_rul_random_forest_full_manual_basic_no_reference_3f03d893",
+  "fit_status": "completed",
+  "dataset": "XJTU-SY",
+  "split": "xjtu_bearing_index_split",
+  "task": "rul_tabular",
+  "task_type": "regression",
+  "model": "random_forest_regressor",
+  "feature_count": 44,
+  "target_columns": [
+    "piecewise_rul_norm"
+  ],
+  "train_examples": 7032,
+  "val_examples": 1679,
+  "test_examples": 505,
+  "primary_metric": "RMSE",
+  "metric_direction": "lower_is_better",
+  "val_metrics": {
+    "MAE": 0.1709870887452076,
+    "MSE": 0.08036950526285534,
+    "RMSE": 0.28349515915241896
+  },
+  "test_metrics": {
+    "MAE": 0.31525961600793634,
+    "MSE": 0.15972628584923879,
+    "RMSE": 0.39965771085922863
+  },
+  "val_primary": 0.28349515915241896,
+  "test_primary": 0.39965771085922863
+}

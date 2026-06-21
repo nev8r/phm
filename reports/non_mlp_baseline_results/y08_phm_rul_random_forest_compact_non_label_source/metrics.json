@@ -1,0 +1,31 @@
+{
+  "experiment_id": "y08_phm_rul_random_forest_compact_non_label_source",
+  "run_id": "20260622-003336_y08_phm_rul_random_forest_compact_non_label_source_4b0aac29",
+  "fit_status": "completed",
+  "dataset": "PHM2012",
+  "split": "phm2012_official",
+  "task": "rul_tabular",
+  "task_type": "regression",
+  "model": "random_forest_regressor",
+  "feature_count": 7,
+  "target_columns": [
+    "piecewise_rul_norm"
+  ],
+  "train_examples": 7534,
+  "val_examples": 4330,
+  "test_examples": 13025,
+  "primary_metric": "RMSE",
+  "metric_direction": "lower_is_better",
+  "val_metrics": {
+    "MAE": 0.22435753677142495,
+    "MSE": 0.08583212254013964,
+    "RMSE": 0.292971197458282
+  },
+  "test_metrics": {
+    "MAE": 0.2377967972896694,
+    "MSE": 0.11395689779577582,
+    "RMSE": 0.33757502543253376
+  },
+  "val_primary": 0.292971197458282,
+  "test_primary": 0.33757502543253376
+}
