@@ -1,0 +1,7 @@
+h__time__std
+h__time__rms
+h__time__mean_abs
+mag__time__mean
+mag__time__std
+mag__time__rms
+mag__time__mean_abs

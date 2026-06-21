@@ -17,11 +17,11 @@ Step Q runs the first real baseline-training batch for the two prepared datasets
 | ID | Dataset | Split | Task | Features | Best epoch | Test metric |
 | --- | --- | --- | --- | ---: | ---: | --- |
 | Q1 | XJTU-SY | `xjtu_bearing_index_split` | RUL regression | 7 | 9 | RMSE 0.428591 |
-| Q2 | XJTU-SY | `xjtu_bearing_index_split` | Health state classification | 6 | 11 | MacroF1 0.308675 |
-| Q3 | XJTU-SY | `xjtu_bearing_index_split` | Early fault classification | 5 | 13 | MacroF1 0.826390 |
+| Q2 | XJTU-SY | `xjtu_bearing_index_split` | Health state classification | 6 | 11 | WeightedF1 0.371101 |
+| Q3 | XJTU-SY | `xjtu_bearing_index_split` | Early fault classification | 5 | 13 | WeightedF1 0.841682 |
 | Q4 | PHM2012 | `phm2012_official` | RUL regression | 7 | 50 | RMSE 0.392475 |
-| Q5 | PHM2012 | `phm2012_official` | Health state classification | 5 | 1 | MacroF1 0.295758 |
-| Q6 | PHM2012 | `phm2012_official` | Early fault classification | 7 | 1 | MacroF1 0.664085 |
+| Q5 | PHM2012 | `phm2012_official` | Health state classification | 5 | 1 | WeightedF1 0.406725 |
+| Q6 | PHM2012 | `phm2012_official` | Early fault classification | 7 | 1 | WeightedF1 0.664556 |
 
 ## Validation Summary
 

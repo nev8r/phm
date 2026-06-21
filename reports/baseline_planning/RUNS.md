@@ -8,7 +8,8 @@ This file records planning-stage deliverables for downstream baseline experiment
 | --- | --- | --- | --- |
 | Step O | planning | baseline planning docs and experiment matrix | done |
 | Step P | preflight | inspect_task checks for baseline tasks and feature subsets | done |
-| Step Q | training | first compact non-label-source MLP baseline batch | needs-review |
+| Step Q | training | first compact non-label-source MLP baseline batch | done |
+| Step R | training | compact-with-reference ablation MLP baseline batch | needs-review |
 
 ## Status Values
 
@@ -23,3 +24,5 @@ Step O is documentation and CSV planning only. It does not run training, evaluat
 Step P uses `mode=inspect_task` only. It copies small task specs/reports/column lists into `reports/baseline_planning/preflight/` and does not commit raw artifacts, manifests, checkpoints, predictions, or metrics.
 
 Step Q runs six real `mode=train` experiments under `artifacts/baselines` with `trainer=base`, `model=mlp`, `feature=manual_basic`, and compact non-label-source feature subsets. It copies only small review artifacts into `reports/baseline_results/`; checkpoints, predictions, task manifests, feature tables, labels, HI files, and index files remain under the raw artifact root.
+
+Step R runs six real `mode=train` experiments under `artifacts/baselines` with the compact-with-reference subset. It compares Step R against Step Q and records the reference-feature effect of adding `mag__time__rms`; raw checkpoints and predictions remain outside the committed report tree.
