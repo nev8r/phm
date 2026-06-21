@@ -1,0 +1,2 @@
+step,type,name,source,artifact,status,notes
+StepY-D,QA,prediction_sanity_audit,artifacts/baselines;artifacts/non_mlp_baselines;reports/baseline_results;reports/non_mlp_baseline_results,reports/prediction_audit,needs-review,"Audits existing predictions for alignment, RUL range, clipped RMSE, naive baselines, per-bearing metrics, per-class metrics, and true/pred curves; no new training."
