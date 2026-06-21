@@ -1,0 +1,2 @@
+step_id,scope,output,source,status,notes
+StepZ,demo,chinese_training_gui_and_video_qa,reports/baseline_results;reports/non_mlp_baseline_results,needs-review,Chinese GUI for accelerated replay of completed training summaries and non-MLP diagnostics; no new training.
