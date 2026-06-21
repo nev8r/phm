@@ -1,0 +1,12 @@
+uv run bp --config-name smoke \
+  mode=inspect_task \
+  dataset=xjtu_sy \
+  split=xjtu_bearing_index_split \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  task=rul_tabular \
+  model=mlp \
+  run.name=xjtu_main_rul_full_manual_basic_no_reference_preflight \
+  project.artifact_root=artifacts/baseline_preflight \
+  dataset.root=data/loader_roots/xjtu \
+  'task.feature_columns.exclude_columns=[mag__time__rms]'

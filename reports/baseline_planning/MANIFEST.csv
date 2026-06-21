@@ -1,2 +1,3 @@
 step_id,scope,output,source,artifact_root,status,notes
-StepO,planning,baseline_planning_docs_and_experiment_matrix,reports/feature_analysis/summary,reports/baseline_planning,needs-review,Baseline planning specification derived from completed feature-analysis cycle; no training outputs included.
+StepO,planning,baseline_planning_docs_and_experiment_matrix,reports/feature_analysis/summary,reports/baseline_planning,done,Baseline planning specification derived from completed feature-analysis cycle; no training outputs included.
+StepP,preflight,baseline_task_and_feature_subset_preflight,reports/baseline_planning/EXPERIMENT_MATRIX.csv,artifacts/baseline_preflight,needs-review,inspect_task preflight for planned baseline task configs and feature subsets; no training outputs included.

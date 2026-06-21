@@ -1,0 +1,13 @@
+uv run bp --config-name smoke \
+  mode=inspect_task \
+  dataset=phm2012 \
+  split=phm2012_official \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  task=rul_tabular \
+  model=mlp \
+  run.name=phm_official_rul_compact_non_label_source_preflight \
+  project.artifact_root=artifacts/baseline_preflight \
+  dataset.root=data/loader_roots/phm2012 \
+  task.feature_columns.include=patterns \
+  'task.feature_columns.include_patterns=[h__time__mean_abs,mag__time__mean,mag__time__mean_abs,h__time__rms,h__time__std,v__time__mean_abs,mag__time__std]'
