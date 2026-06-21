@@ -1,0 +1,18 @@
+uv run bp --config-name smoke \
+  mode=train \
+  dataset=phm2012 \
+  split=phm2012_official \
+  feature=manual_basic \
+  label=degradation_three_tasks \
+  task=rul_tabular \
+  model=mlp \
+  trainer=base \
+  run.name=phm_official_rul_mlp_tuned_compact_non_label_source \
+  project.artifact_root=artifacts/baselines \
+  dataset.root=data/loader_roots/phm2012 \
+  task.feature_columns.include=patterns \
+  'task.feature_columns.include_patterns=[h__time__mean_abs,mag__time__mean,mag__time__mean_abs,h__time__rms,h__time__std,v__time__mean_abs,mag__time__std]' \
+  model.params.hidden_size=128 \
+  trainer.batch_size=64 \
+  trainer.optimizer.lr=0.0005 \
+  trainer.optimizer.weight_decay=0.0001
