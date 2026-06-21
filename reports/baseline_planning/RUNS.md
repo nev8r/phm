@@ -10,7 +10,8 @@ This file records planning-stage deliverables for downstream baseline experiment
 | Step P | preflight | inspect_task checks for baseline tasks and feature subsets | done |
 | Step Q | training | first compact non-label-source MLP baseline batch | done |
 | Step R | training | compact-with-reference ablation MLP baseline batch | done |
-| Step S | training | full manual_basic MLP baseline batch | needs-review |
+| Step S | training | full manual_basic MLP baseline batch | done |
+| Step T | summary | baseline Q/R/S summary and final main-split decisions | needs-review |
 
 ## Status Values
 
@@ -29,3 +30,5 @@ Step Q runs six real `mode=train` experiments under `artifacts/baselines` with `
 Step R runs six real `mode=train` experiments under `artifacts/baselines` with the compact-with-reference subset. It compares Step R against Step Q and records the reference-feature effect of adding `mag__time__rms`; raw checkpoints and predictions remain outside the committed report tree.
 
 Step S runs twelve real `mode=train` experiments under `artifacts/baselines` for `full_manual_basic_no_reference` and `full_manual_basic`. It compares full feature sets against the Step Q/R compact subsets; raw checkpoints and predictions remain outside the committed report tree.
+
+Step T summarizes the curated Step Q/R/S result tables into final main-split / official-split baseline decisions. It does not run training, evaluation, feature extraction, prediction export, or checkpoint creation.
