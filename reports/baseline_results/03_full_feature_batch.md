@@ -76,7 +76,7 @@ For RUL, the primary metric is RMSE and lower is better. The full-feature effect
 
 ### RUL
 
-Full features are mixed. XJTU-SY RUL improves slightly in the non-reference comparison but worsens in the reference comparison. PHM2012 RUL improves clearly for the full reference comparison but worsens for the no-reference comparison.
+Full features are mixed. XJTU-SY RUL improves slightly in both the non-reference and reference comparisons when moving from compact to full features. PHM2012 RUL improves clearly for the full reference comparison but worsens for the no-reference comparison. This suggests that full features may help RUL in some settings, but the gain is not consistent across datasets and reference conditions.
 
 ### HealthState
 
@@ -84,7 +84,7 @@ Full features do not improve HealthState on either dataset in these test metrics
 
 ### EarlyFault
 
-Full features degrade XJTU-SY EarlyFault relative to compact subsets, but PHM2012 EarlyFault shows improvement for the full no-reference and full reference comparisons.
+Full features degrade EarlyFault relative to compact subsets on both datasets in the reported test metrics. XJTU-SY EarlyFault drops sharply from the compact runs, and PHM2012 EarlyFault also underperforms the compact counterparts. This supports keeping compact task-specific subsets as the preferred EarlyFault baseline for the current MLP setting.
 
 ## 7. Caveats
 
