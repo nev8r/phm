@@ -1,0 +1,2 @@
+step_id,scope,output,source,artifact_root,status,notes
+StepZ,dashboard,demo_training_dashboard,reports/feature_analysis;reports/baseline_results;reports/non_mlp_baseline_results,reports/demo_dashboard,needs-review,Static dashboard built from curated reports only; video QA records local recording status.

@@ -1,0 +1,23 @@
+{
+  "title": "PHM Training Demo Dashboard",
+  "datasets": [
+    "XJTU-SY",
+    "PHM2012"
+  ],
+  "tasks": [
+    "RUL",
+    "HealthState",
+    "EarlyFault"
+  ],
+  "feature_set": "manual_basic",
+  "model_families": [
+    "default MLP",
+    "tuned MLP",
+    "XGBoost",
+    "RandomForest"
+  ],
+  "mlp_experiments": 33,
+  "non_mlp_experiments": 12,
+  "total_real_training_experiments": 45,
+  "source_scope": "Curated summaries under reports/ only; no private run outputs or source data locations."
+}

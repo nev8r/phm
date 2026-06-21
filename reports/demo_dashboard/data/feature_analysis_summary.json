@@ -1,0 +1,327 @@
+{
+  "recommended_feature_count": 52,
+  "independent_feature_count": 46,
+  "reference_features": [
+    {
+      "dataset": "XJTU-SY",
+      "task": "RUL",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    },
+    {
+      "dataset": "XJTU-SY",
+      "task": "HealthState",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    },
+    {
+      "dataset": "XJTU-SY",
+      "task": "EarlyFault",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "RUL",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "HealthState",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "EarlyFault",
+      "feature": "mag__time__rms",
+      "caveat": "Used for HI/FPT label construction"
+    }
+  ],
+  "by_task": [
+    {
+      "dataset": "XJTU-SY",
+      "task": "RUL",
+      "features": [
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main RUL feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main RUL feature"
+        },
+        {
+          "feature": "mag__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main or compact baseline feature"
+        },
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary RUL feature"
+        },
+        {
+          "feature": "h__time__rms",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary RUL feature"
+        },
+        {
+          "feature": "h__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary RUL feature"
+        }
+      ]
+    },
+    {
+      "dataset": "XJTU-SY",
+      "task": "HealthState",
+      "features": [
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main HealthState feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main HealthState feature"
+        },
+        {
+          "feature": "mag__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main or compact baseline feature"
+        },
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary or condition-aware feature"
+        },
+        {
+          "feature": "h__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "h__time__rms",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        }
+      ]
+    },
+    {
+      "dataset": "XJTU-SY",
+      "task": "EarlyFault",
+      "features": [
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main EarlyFault feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main EarlyFault feature"
+        },
+        {
+          "feature": "mag__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "v__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use with condition-aware validation"
+        },
+        {
+          "feature": "v__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "C",
+          "final_decision": "Use only with condition caveat"
+        }
+      ]
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "RUL",
+      "features": [
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main RUL feature"
+        },
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main RUL feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main RUL feature"
+        },
+        {
+          "feature": "h__time__rms",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary RUL feature"
+        },
+        {
+          "feature": "h__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary RUL feature"
+        },
+        {
+          "feature": "v__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        }
+      ]
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "HealthState",
+      "features": [
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main HealthState feature"
+        },
+        {
+          "feature": "h__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main HealthState feature"
+        },
+        {
+          "feature": "h__time__rms",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main HealthState feature"
+        },
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "mag__spectral__entropy",
+          "feature_family": "spectral",
+          "recommendation_level": "C",
+          "final_decision": "Use as diagnostic auxiliary"
+        }
+      ]
+    },
+    {
+      "dataset": "PHM2012",
+      "task": "EarlyFault",
+      "features": [
+        {
+          "feature": "h__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main EarlyFault feature"
+        },
+        {
+          "feature": "mag__time__mean",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main EarlyFault feature"
+        },
+        {
+          "feature": "mag__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "A",
+          "final_decision": "Use as main EarlyFault feature"
+        },
+        {
+          "feature": "h__time__std",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "h__time__rms",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        },
+        {
+          "feature": "v__time__mean_abs",
+          "feature_family": "time_domain",
+          "recommendation_level": "B",
+          "final_decision": "Use as secondary feature"
+        }
+      ]
+    }
+  ],
+  "figures": [
+    {
+      "title": "XJTU-SY feature recommendation matrix",
+      "path": "figures/copied_feature_figures/xjtu_feature_recommendation_matrix.png",
+      "source": "reports/feature_analysis/xjtu_sy/all_conditions_bearing_index_manual_basic/figures/feature_recommendation_matrix.png"
+    },
+    {
+      "title": "XJTU-SY feature score heatmap",
+      "path": "figures/copied_feature_figures/xjtu_feature_score_heatmap.png",
+      "source": "reports/feature_analysis/xjtu_sy/all_conditions_bearing_index_manual_basic/figures/feature_score_heatmap.png"
+    },
+    {
+      "title": "XJTU-SY RUL top features",
+      "path": "figures/copied_feature_figures/xjtu_rul_top_features.png",
+      "source": "reports/feature_analysis/xjtu_sy/all_conditions_bearing_index_manual_basic/figures/rul_top_features.png"
+    },
+    {
+      "title": "PHM2012 feature recommendation matrix",
+      "path": "figures/copied_feature_figures/phm_feature_recommendation_matrix.png",
+      "source": "reports/feature_analysis/phm2012/manual_basic/figures/feature_recommendation_matrix.png"
+    },
+    {
+      "title": "PHM2012 feature score heatmap",
+      "path": "figures/copied_feature_figures/phm_feature_score_heatmap.png",
+      "source": "reports/feature_analysis/phm2012/manual_basic/figures/feature_score_heatmap.png"
+    }
+  ],
+  "sources": [
+    "reports/feature_analysis/FEATURE_ANALYSIS_REPORT.md",
+    "reports/feature_analysis/summary/recommended_features.csv"
+  ]
+}

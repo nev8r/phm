@@ -1,3 +1,3 @@
 step_id,scope,output,source,artifact_root,status,notes
 StepY,training,xgboost_random_forest_tabular_batch,reports/baseline_results/baseline_final_decisions_with_tuned.csv,artifacts/non_mlp_baselines,done,Twelve real non-MLP tabular model fits using XGBoost and RandomForest on Step X independent feature subsets.
-StepY-R,QA,non_mlp_training_adequacy_and_visualization_qa,reports/non_mlp_baseline_results/non_mlp_tabular_metrics.csv,artifacts/non_mlp_baselines,needs-review,"Rerun Step Y with train metrics, train/validation/test gap summaries, raw train predictions, and curated PNG visual checks."
+StepY-R,QA,non_mlp_training_adequacy_and_visualization_qa,reports/non_mlp_baseline_results/non_mlp_tabular_metrics.csv,artifacts/non_mlp_baselines,done,"Rerun Step Y with train metrics, train/validation/test gap summaries, raw train predictions, and curated PNG visual checks."
