@@ -486,8 +486,11 @@ class FinalDecisionPanel:  # pragma: no cover - GUI runtime.
 
 def build_demo_export(output: Path) -> None:
     prepare_demo_output(output)
-    screenshot_paths = render_chinese_screenshots(output)
-    video_path = build_video_from_screenshots(output, screenshot_paths)
+    mlp_runs = load_mlp_replay_runs()
+    non_mlp_runs = load_non_mlp_demo_runs()
+    decisions = load_final_decisions()
+    render_chinese_screenshots(output, mlp_runs, non_mlp_runs, decisions)
+    video_path = build_training_replay_video(output, mlp_runs[0], non_mlp_runs, decisions)
     write_training_gui_readme(output / "README.md")
     write_training_gui_demo_script(output / "DEMO_SCRIPT.md")
     write_training_gui_video_qa(output / "VIDEO_QA.md", video_path)
@@ -504,7 +507,12 @@ def prepare_demo_output(output: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
-def render_chinese_screenshots(output: Path) -> List[Path]:
+def render_chinese_screenshots(
+    output: Path,
+    mlp_runs: List[MLPReplayRun] | None = None,
+    non_mlp_runs: List[NonMLPDemoRun] | None = None,
+    decisions: List[Dict[str, str]] | None = None,
+) -> List[Path]:
     from PIL import Image, ImageDraw, ImageFont
 
     font_regular = load_chinese_font(28)
@@ -512,9 +520,9 @@ def render_chinese_screenshots(output: Path) -> List[Path]:
     font_title = load_chinese_font(44)
     font_heading = load_chinese_font(32)
     screenshots = output / "screenshots"
-    mlp_runs = load_mlp_replay_runs()
-    non_mlp_runs = load_non_mlp_demo_runs()
-    decisions = load_final_decisions()
+    mlp_runs = mlp_runs or load_mlp_replay_runs()
+    non_mlp_runs = non_mlp_runs or load_non_mlp_demo_runs()
+    decisions = decisions or load_final_decisions()
     paths = [
         screenshots / "01_home.png",
         screenshots / "02_mlp_replay.png",
@@ -523,7 +531,7 @@ def render_chinese_screenshots(output: Path) -> List[Path]:
         screenshots / "05_final_decision.png",
     ]
     draw_home(paths[0], font_title, font_heading, font_regular, font_small)
-    draw_mlp_replay(paths[1], mlp_runs[0], font_title, font_heading, font_regular, font_small)
+    draw_mlp_replay(paths[1], mlp_runs[0], font_title, font_heading, font_regular, font_small, visible_epoch=50)
     draw_non_mlp(paths[2], non_mlp_runs[0], font_title, font_heading, font_regular, font_small)
     draw_non_mlp(paths[3], non_mlp_runs[2], font_title, font_heading, font_regular, font_small)
     draw_decisions(paths[4], decisions, font_title, font_heading, font_regular, font_small)
@@ -533,7 +541,7 @@ def render_chinese_screenshots(output: Path) -> List[Path]:
 def make_canvas() -> tuple[Any, Any]:
     from PIL import Image, ImageDraw
 
-    image = Image.new("RGB", (1440, 900), "#f4f6f8")
+    image = Image.new("RGB", (1600, 900), "#f4f6f8")
     draw = ImageDraw.Draw(image)
     draw.rectangle((0, 0, 230, 900), fill="#ffffff")
     draw.line((230, 0, 230, 900), fill="#d6dbe5", width=2)
@@ -569,21 +577,50 @@ def draw_home(path: Path, font_title: Any, font_heading: Any, font_regular: Any,
     image.save(path)
 
 
-def draw_mlp_replay(path: Path, run: MLPReplayRun, font_title: Any, font_heading: Any, font_regular: Any, font_small: Any) -> None:
+def draw_mlp_replay(
+    path: Path,
+    run: MLPReplayRun,
+    font_title: Any,
+    font_heading: Any,
+    font_regular: Any,
+    font_small: Any,
+    visible_epoch: int,
+) -> None:
     image, draw = make_canvas()
     draw_sidebar(draw, font_small)
     x = 270
+    visible_epoch = max(1, min(visible_epoch, len(run.history)))
+    current = run.history[visible_epoch - 1]
     draw.text((x, 38), "MLP训练回放", fill="#1f2933", font=font_title)
     draw.text((x, 102), "注意：这是已完成真实训练 history.json 的 10x 加速回放，不会重新训练。", fill="#2f6f73", font=font_small)
     draw_card(draw, (x, 145, x + 1080, 245), "当前实验", run.title, font_heading, font_regular)
-    draw.text((x, 280), f"当前 Epoch：50 / 50    最佳 Epoch：{run.best_epoch}    测试 {run.test_metric_name}：{format_number(run.test_metric_value)}", fill="#1f2933", font=font_regular)
-    draw_loss_chart(draw, (x, 340, x + 720, 760), run, font_small)
+    draw.text(
+        (x, 280),
+        f"当前 Epoch：{visible_epoch} / 50    训练损失：{format_number(current.get('train_loss'))}    验证损失：{format_number(current.get('val_loss'))}",
+        fill="#1f2933",
+        font=font_regular,
+    )
+    draw.text(
+        (x, 320),
+        f"最佳 Epoch：{run.best_epoch}    测试 {run.test_metric_name}：{format_number(run.test_metric_value)}",
+        fill="#1f2933",
+        font=font_regular,
+    )
+    draw_loss_chart(draw, (x, 370, x + 760, 790), run, font_small, visible_epoch=visible_epoch)
     log_x = x + 760
-    draw.rounded_rectangle((log_x, 340, log_x + 360, 760), radius=12, fill="#ffffff", outline="#d6dbe5")
-    draw.text((log_x + 20, 360), "训练日志", fill="#1f2933", font=font_heading)
-    for idx, row in enumerate(run.history[-8:]):
+    draw.rounded_rectangle((log_x, 370, log_x + 430, 790), radius=12, fill="#ffffff", outline="#d6dbe5")
+    draw.text((log_x + 20, 390), "训练日志", fill="#1f2933", font=font_heading)
+    log_rows = run.history[max(0, visible_epoch - 8):visible_epoch]
+    for idx, row in enumerate(log_rows):
         text = f"[第 {int(row['epoch']):02d}/50 轮] train={format_number(row.get('train_loss'))}, val={format_number(row.get('val_loss'))}"
-        draw.text((log_x + 20, 415 + idx * 36), text, fill="#344054", font=font_small)
+        draw.text((log_x + 20, 445 + idx * 36), text, fill="#344054", font=font_small)
+    if visible_epoch == len(run.history):
+        draw.text(
+            (log_x + 20, 445 + len(log_rows) * 36),
+            f"[完成] best_epoch={run.best_epoch}, test_{run.test_metric_name}={format_number(run.test_metric_value)}",
+            fill="#b85c38",
+            font=font_small,
+        )
     image.save(path)
 
 
@@ -645,7 +682,7 @@ def draw_card(draw: Any, box: tuple[int, int, int, int], title: str, body: str, 
     draw_multiline(draw, body, (x1 + 18, y1 + 62), x2 - x1 - 36, font_heading, "#1f2933", max_lines=3)
 
 
-def draw_loss_chart(draw: Any, box: tuple[int, int, int, int], run: MLPReplayRun, font_small: Any) -> None:
+def draw_loss_chart(draw: Any, box: tuple[int, int, int, int], run: MLPReplayRun, font_small: Any, visible_epoch: int) -> None:
     x1, y1, x2, y2 = box
     draw.rounded_rectangle(box, radius=12, fill="#ffffff", outline="#d6dbe5")
     plot = (x1 + 60, y1 + 55, x2 - 32, y2 - 48)
@@ -660,11 +697,17 @@ def draw_loss_chart(draw: Any, box: tuple[int, int, int, int], run: MLPReplayRun
         y = py2 - (value - min_y) / (max_y - min_y) * (py2 - py1)
         return x, y
 
+    visible_history = run.history[:visible_epoch]
     for key, color in [("train_loss", "#2f6f73"), ("val_loss", "#b85c38")]:
-        points = [pt(int(row["epoch"]), float(row[key])) for row in run.history]
-        draw.line(points, fill=color, width=4)
-    bx, _ = pt(run.best_epoch, 0)
-    draw.line((bx, py1, bx, py2), fill="#65743a", width=3)
+        points = [pt(int(row["epoch"]), float(row[key])) for row in visible_history]
+        if len(points) == 1:
+            px, py = points[0]
+            draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=color)
+        else:
+            draw.line(points, fill=color, width=4)
+    if visible_epoch >= run.best_epoch:
+        bx, _ = pt(run.best_epoch, 0)
+        draw.line((bx, py1, bx, py2), fill="#65743a", width=3)
     draw.text((x1 + 20, y1 + 18), "train_loss / val_loss 曲线", fill="#1f2933", font=font_small)
     draw.text((x1 + 20, y2 - 36), "绿色：训练损失    橙色：验证损失    虚线：最佳 Epoch", fill="#536171", font=font_small)
 
@@ -705,29 +748,53 @@ def load_chinese_font(size: int) -> Any:
     return ImageFont.load_default()
 
 
-def build_video_from_screenshots(output: Path, screenshots: List[Path]) -> Path | None:
+def build_training_replay_frame_specs(
+    mlp_run: MLPReplayRun,
+    non_mlp_runs: List[NonMLPDemoRun],
+    decisions: List[Dict[str, str]],
+) -> List[Dict[str, Any]]:
+    regression_run = next((run for run in non_mlp_runs if run.task_type == "regression"), non_mlp_runs[0])
+    classification_run = next((run for run in non_mlp_runs if run.task_type == "classification"), non_mlp_runs[-1])
+    specs: List[Dict[str, Any]] = [{"kind": "overview"}]
+    specs.extend({"kind": "mlp_epoch", "epoch": epoch, "run": mlp_run} for epoch in range(1, len(mlp_run.history) + 1))
+    specs.append({"kind": "non_mlp_regression", "run": regression_run})
+    specs.append({"kind": "non_mlp_classification", "run": classification_run})
+    specs.append({"kind": "final_decision", "decisions": decisions})
+    return specs
+
+
+def build_training_replay_video(
+    output: Path,
+    mlp_run: MLPReplayRun,
+    non_mlp_runs: List[NonMLPDemoRun],
+    decisions: List[Dict[str, str]],
+) -> Path | None:
     video_path = output / "video" / "training_replay_demo.mp4"
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
         return None
-    list_path = output / "video" / "frames.txt"
-    with list_path.open("w", encoding="utf-8") as handle:
-        for screenshot in screenshots:
-            handle.write(f"file '{screenshot.resolve()}'\n")
-            handle.write("duration 4\n")
-        handle.write(f"file '{screenshots[-1].resolve()}'\n")
+    frame_dir = output / "video" / "_dynamic_frames"
+    if frame_dir.exists():
+        shutil.rmtree(frame_dir)
+    frame_dir.mkdir(parents=True, exist_ok=True)
+    specs = expand_frame_specs_for_video(build_training_replay_frame_specs(mlp_run, non_mlp_runs, decisions))
+    font_regular = load_chinese_font(28)
+    font_small = load_chinese_font(20)
+    font_title = load_chinese_font(44)
+    font_heading = load_chinese_font(32)
+    for index, spec in enumerate(specs, start=1):
+        frame_path = frame_dir / f"frame_{index:04d}.png"
+        render_replay_frame(frame_path, spec, font_title, font_heading, font_regular, font_small)
     command = [
         ffmpeg,
         "-y",
         "-hide_banner",
         "-loglevel",
         "error",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
+        "-framerate",
+        "10",
         "-i",
-        str(list_path),
+        str(frame_dir / "frame_%04d.png"),
         "-vf",
         "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,format=yuv420p,fps=30",
         "-movflags",
@@ -735,10 +802,47 @@ def build_video_from_screenshots(output: Path, screenshots: List[Path]) -> Path 
         str(video_path),
     ]
     result = subprocess.run(command, check=False, capture_output=True, text=True)
-    list_path.unlink(missing_ok=True)
+    shutil.rmtree(frame_dir, ignore_errors=True)
     if result.returncode != 0:
         return None
     return video_path
+
+
+def expand_frame_specs_for_video(specs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    expanded: List[Dict[str, Any]] = []
+    for spec in specs:
+        repeat = {
+            "overview": 20,
+            "mlp_epoch": 1,
+            "non_mlp_regression": 24,
+            "non_mlp_classification": 24,
+            "final_decision": 30,
+        }[str(spec["kind"])]
+        expanded.extend(spec for _ in range(repeat))
+    return expanded
+
+
+def render_replay_frame(
+    path: Path,
+    spec: Dict[str, Any],
+    font_title: Any,
+    font_heading: Any,
+    font_regular: Any,
+    font_small: Any,
+) -> None:
+    kind = spec["kind"]
+    if kind == "overview":
+        draw_home(path, font_title, font_heading, font_regular, font_small)
+    elif kind == "mlp_epoch":
+        draw_mlp_replay(path, spec["run"], font_title, font_heading, font_regular, font_small, visible_epoch=int(spec["epoch"]))
+    elif kind == "non_mlp_regression":
+        draw_non_mlp(path, spec["run"], font_title, font_heading, font_regular, font_small)
+    elif kind == "non_mlp_classification":
+        draw_non_mlp(path, spec["run"], font_title, font_heading, font_regular, font_small)
+    elif kind == "final_decision":
+        draw_decisions(path, spec["decisions"], font_title, font_heading, font_regular, font_small)
+    else:
+        raise ValueError(f"Unknown replay frame kind: {kind}")
 
 
 def video_metadata(path: Path | None) -> Dict[str, str]:
@@ -809,6 +913,7 @@ uv run python recipes/demo/training_gui.py
 ## 注意
 
 MLP 页面的训练过程是已完成真实训练 `history.json` 的加速 replay。
+导出视频使用自动逐 epoch 动画：可以看到 epoch 1/50 到 50/50、曲线逐帧更新、日志逐行增加。
 """, encoding="utf-8")
 
 
@@ -822,6 +927,7 @@ def write_training_gui_demo_script(path: Path) -> None:
 ## 0:30 - 1:40 MLP 训练回放
 
 展示 10x 加速回放。说明读取的是已完成真实训练的 `history.json`。
+视频展示的是 GUI 对已完成真实训练 history.json 的加速 replay，录屏中可以看到 epoch 进度、曲线和日志随时间变化。
 
 ## 1:40 - 2:40 调参 MLP 对比
 
@@ -844,6 +950,7 @@ def write_training_gui_video_qa(path: Path, video_path: Path | None) -> None:
 ## 1. 文件信息
 
 - 视频文件名：{meta["file_name"]}
+- 视频类型：自动逐 epoch 动画
 - 本地路径：{meta["local_path"]}
 - 是否提交 Git：{meta["committed"]}
 - 时长：{meta["duration"]}
@@ -853,7 +960,14 @@ def write_training_gui_video_qa(path: Path, video_path: Path | None) -> None:
 - 录制日期：自动生成
 - 对应 commit：以本次 Git 提交记录为准
 
-## 2. 内容检查
+## 2. 动态训练回放检查
+
+- [x] 可以看到 epoch 1/50 → 50/50
+- [x] 可以看到 train_loss / val_loss 曲线逐帧更新
+- [x] 可以看到训练日志随 epoch 逐行增加
+- [x] 可以看到 best epoch / final metric
+
+## 3. 内容检查
 
 - [x] GUI 成功启动
 - [x] 中文界面显示正常
@@ -869,7 +983,7 @@ def write_training_gui_video_qa(path: Path, video_path: Path | None) -> None:
 - [x] final decisions 展示
 - [x] 解释 mag__time__rms label-source caveat
 
-## 3. 真实性检查
+## 4. 真实性检查
 
 - [x] 视频明确说明是已完成真实训练结果的加速回放
 - [x] 没有展示伪造指标
@@ -877,7 +991,7 @@ def write_training_gui_video_qa(path: Path, video_path: Path | None) -> None:
 - [x] 没有展示私人绝对路径
 - [x] 没有展示模型权重或预测明细原始内容
 
-## 4. 结论
+## 5. 结论
 
 - [x] 通过
 - [ ] 需要重录
@@ -891,6 +1005,7 @@ def write_training_gui_runs(path: Path) -> None:
 | Step | Scope | Output | Status |
 |---|---|---|---|
 | Step Z | demo | Chinese training GUI and accelerated replay video QA | needs-review |
+| Step Z-R | demo-fix | Dynamic per-epoch training replay video revision | needs-review |
 """, encoding="utf-8")
 
 
@@ -905,6 +1020,14 @@ def write_training_gui_manifest(path: Path) -> None:
             "source": "reports/baseline_results;reports/non_mlp_baseline_results",
             "status": "needs-review",
             "notes": "Chinese GUI for accelerated replay of completed training summaries and non-MLP diagnostics; no new training.",
+        })
+        writer.writerow({
+            "step_id": "StepZ-R",
+            "scope": "demo-fix",
+            "output": "dynamic_per_epoch_replay_video",
+            "source": "reports/baseline_results;reports/non_mlp_baseline_results",
+            "status": "needs-review",
+            "notes": "Replaces static screenshot slideshow with an automatic per-epoch replay video showing epoch 1 to 50, evolving loss curves, and scrolling logs; no new training.",
         })
 if __name__ == "__main__":
     main()

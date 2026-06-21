@@ -21,3 +21,4 @@ uv run python recipes/demo/training_gui.py
 ## 注意
 
 MLP 页面的训练过程是已完成真实训练 `history.json` 的加速 replay。
+导出视频使用自动逐 epoch 动画：可以看到 epoch 1/50 到 50/50、曲线逐帧更新、日志逐行增加。

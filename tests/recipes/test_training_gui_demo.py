@@ -1,5 +1,6 @@
 from recipes.demo.training_gui import (
     build_demo_export,
+    build_training_replay_frame_specs,
     load_final_decisions,
     load_mlp_replay_runs,
     load_non_mlp_demo_runs,
@@ -49,6 +50,9 @@ def test_build_demo_export_writes_chinese_docs_without_private_paths(tmp_path):
     assert "训练过程中文 GUI 演示" in readme
     assert "视频验收记录" in qa
     assert len(screenshots) == 5
+    assert "视频类型：自动逐 epoch 动画" in qa
+    assert "epoch 1/50 → 50/50" in qa
+    assert "曲线逐帧更新" in qa
     forbidden = [
         "/" + "Users/",
         "data/loader" + "_roots",
@@ -58,3 +62,19 @@ def test_build_demo_export_writes_chinese_docs_without_private_paths(tmp_path):
     ]
     combined = readme + qa
     assert all(item not in combined for item in forbidden)
+
+
+def test_training_replay_frame_specs_include_each_epoch_and_diagnostics():
+    mlp_run = load_mlp_replay_runs()[0]
+    non_mlp_runs = load_non_mlp_demo_runs()
+    decisions = load_final_decisions()
+
+    specs = build_training_replay_frame_specs(mlp_run, non_mlp_runs, decisions)
+
+    mlp_specs = [spec for spec in specs if spec["kind"] == "mlp_epoch"]
+    assert len(mlp_specs) == 50
+    assert mlp_specs[0]["epoch"] == 1
+    assert mlp_specs[-1]["epoch"] == 50
+    assert any(spec["kind"] == "non_mlp_regression" for spec in specs)
+    assert any(spec["kind"] == "non_mlp_classification" for spec in specs)
+    assert specs[-1]["kind"] == "final_decision"

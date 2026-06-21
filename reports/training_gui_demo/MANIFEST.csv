@@ -1,2 +1,3 @@
 step_id,scope,output,source,status,notes
 StepZ,demo,chinese_training_gui_and_video_qa,reports/baseline_results;reports/non_mlp_baseline_results,needs-review,Chinese GUI for accelerated replay of completed training summaries and non-MLP diagnostics; no new training.
+StepZ-R,demo-fix,dynamic_per_epoch_replay_video,reports/baseline_results;reports/non_mlp_baseline_results,needs-review,"Replaces static screenshot slideshow with an automatic per-epoch replay video showing epoch 1 to 50, evolving loss curves, and scrolling logs; no new training."

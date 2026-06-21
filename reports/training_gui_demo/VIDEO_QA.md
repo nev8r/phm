@@ -3,16 +3,24 @@
 ## 1. 文件信息
 
 - 视频文件名：training_replay_demo.mp4
+- 视频类型：自动逐 epoch 动画
 - 本地路径：reports/training_gui_demo/video/training_replay_demo.mp4
 - 是否提交 Git：是
-- 时长：24.0 秒
+- 时长：14.8 秒
 - 分辨率：1280x720
-- 文件大小：284,866 bytes
+- 文件大小：361,527 bytes
 - 播放速度：10x 加速回放
 - 录制日期：自动生成
 - 对应 commit：以本次 Git 提交记录为准
 
-## 2. 内容检查
+## 2. 动态训练回放检查
+
+- [x] 可以看到 epoch 1/50 → 50/50
+- [x] 可以看到 train_loss / val_loss 曲线逐帧更新
+- [x] 可以看到训练日志随 epoch 逐行增加
+- [x] 可以看到 best epoch / final metric
+
+## 3. 内容检查
 
 - [x] GUI 成功启动
 - [x] 中文界面显示正常
@@ -28,7 +36,7 @@
 - [x] final decisions 展示
 - [x] 解释 mag__time__rms label-source caveat
 
-## 3. 真实性检查
+## 4. 真实性检查
 
 - [x] 视频明确说明是已完成真实训练结果的加速回放
 - [x] 没有展示伪造指标
@@ -36,7 +44,7 @@
 - [x] 没有展示私人绝对路径
 - [x] 没有展示模型权重或预测明细原始内容
 
-## 4. 结论
+## 5. 结论
 
 - [x] 通过
 - [ ] 需要重录
