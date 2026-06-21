@@ -12,7 +12,8 @@ This file records planning-stage deliverables for downstream baseline experiment
 | Step R | training | compact-with-reference ablation MLP baseline batch | done |
 | Step S | training | full manual_basic MLP baseline batch | done |
 | Step T | summary | baseline Q/R/S summary and final main-split decisions | done |
-| Step U | training | XJTU cross-condition recommended-subset robustness batch | needs-review |
+| Step U | training | XJTU cross-condition recommended-subset robustness batch | done |
+| Step V | summary | final baseline report and decisions | needs-review |
 
 ## Status Values
 
@@ -35,3 +36,5 @@ Step S runs twelve real `mode=train` experiments under `artifacts/baselines` for
 Step T summarizes the curated Step Q/R/S result tables into final main-split / official-split baseline decisions. It does not run training, evaluation, feature extraction, prediction export, or checkpoint creation.
 
 Step U runs three real `mode=train` XJTU-SY cross-condition experiments for the Step T independent recommended feature subsets. It keeps raw checkpoints, predictions, feature tables, labels, HI files, and index files under `artifacts/baselines` and copies only small review artifacts into `reports/baseline_results/`.
+
+Step V summarizes the completed 27-run MLP baseline cycle into final dataset/task decisions. It does not run training, evaluation, feature extraction, prediction export, or checkpoint creation.
