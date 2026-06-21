@@ -7,4 +7,5 @@ StepS,training,full_manual_basic_mlp_batch,reports/baseline_results/first_traini
 StepT,summary,baseline_qrs_summary,reports/baseline_results,none,done,"Summarize Step Q/R/S real training results across compact full reference and non-reference feature subsets."
 StepU,training,xjtu_cross_condition_recommended_subset_robustness,reports/baseline_results/04_baseline_summary.md,artifacts/baselines,done,"Three real mode=train runs for XJTU-SY cross-condition robustness using Step T independent recommended subsets."
 StepV,summary,final_baseline_report,reports/baseline_results/04_baseline_summary.md;reports/baseline_results/05_xjtu_cross_condition_robustness.md,none,done,"Final baseline report combining main split official split summary with XJTU cross-condition robustness."
-StepW,training,tuned_mlp_pilot,reports/baseline_results/FINAL_BASELINE_REPORT.md,artifacts/baselines,needs-review,"Six real mode=train tuned MLP runs on Step V recommended independent feature subsets."
+StepW,training,tuned_mlp_pilot,reports/baseline_results/FINAL_BASELINE_REPORT.md,artifacts/baselines,done,"Six real mode=train tuned MLP runs on Step V recommended independent feature subsets."
+StepX,summary,tuned_mlp_decision_update,reports/baseline_results/06_tuned_mlp_pilot.md,none,needs-review,"Merge tuned MLP pilot results into final baseline decisions; no new training."
