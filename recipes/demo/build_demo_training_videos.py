@@ -329,7 +329,7 @@ def render_main_result_frame(
     font_small: Any,
 ) -> None:
     image, draw = make_canvas()
-    draw.text((58, 112), "200ep 主线结果图", fill="#1d2939", font=font_title)
+    draw.text((58, 112), "结果图", fill="#1d2939", font=font_title)
     draw.text((58, 174), f"{plan.task_label}", fill="#344054", font=font_regular)
     boxes = [(58, 275, 755, 555), (805, 275, 1502, 555), (58, 590, 755, 858), (805, 590, 1502, 858)]
     for index, (label, figure_rel) in enumerate(plan.main_figures):

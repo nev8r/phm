@@ -20,7 +20,7 @@ Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。
 - 任务：RUL linear regression
 - 视频时长：11.30s
 - 分辨率：1280x720
-- 文件大小：162,842 bytes
+- 文件大小：160,342 bytes
 - 50ep demo 是否完成：是（epoch=50，history=50）
 - 是否加速：是，逐 epoch 动画以 10 fps 合成
 - 是否展示 epoch / train_loss / 日志滚动：是
@@ -38,7 +38,7 @@ Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。
 - 任务：EarlyFault binary classification
 - 视频时长：11.30s
 - 分辨率：1280x720
-- 文件大小：165,781 bytes
+- 文件大小：163,533 bytes
 - 50ep demo 是否完成：是（epoch=50，history=50）
 - 是否加速：是，逐 epoch 动画以 10 fps 合成
 - 是否展示 epoch / train_loss / 日志滚动：是
