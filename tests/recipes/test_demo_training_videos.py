@@ -71,6 +71,11 @@ def test_write_video_docs_records_demo_vs_main_policy(tmp_path):
     assert "demo_xjtu_early_gru_50ep_accelerated.mp4" in qa
     assert "逐 epoch 动画" in qa
     assert "50ep 是 demo training，200ep 是 main result" in qa
+    assert "视频主画面不展示 val_loss" in qa
+    assert "视频主画面不展示 validation primary metric" in qa
+    assert "lr=0.0003" in qa
+    assert "batch_size=256" in qa
+    assert "weight_decay=0.0001" in qa
     assert "StepAC" in manifest
     forbidden = ["/Users/", "artifacts/demo_training/runs/", "test_predictions.parquet", "checkpoint", "model.pkl"]
     combined = readme + qa + manifest

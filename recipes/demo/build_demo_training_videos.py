@@ -55,13 +55,14 @@ def build_demo_video_plans() -> List[DemoVideoPlan]:
                 "feature=manual_basic label=degradation_three_tasks task=rul_linear_sequence model=gru "
                 "trainer=base run.name=demo_video_xjtu_rul_linear_gru_sequence_50ep "
                 "project.artifact_root=artifacts/demo_training dataset.root=data/loader_roots/xjtu "
-                "'task.feature_columns.exclude_columns=[mag__time__rms]' trainer.batch_size=64 trainer.max_epochs=50"
+                "'task.feature_columns.exclude_columns=[mag__time__rms]' trainer.batch_size=256 "
+                "trainer.max_epochs=50 trainer.optimizer.lr=0.0003 trainer.optimizer.weight_decay=0.0001"
             ),
             main_figures=(
-                ("200ep training_curve", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/training_curve.png"),
-                ("200ep true/pred by bearing", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_true_pred_by_bearing.png"),
-                ("200ep pred vs true", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_pred_vs_true.png"),
-                ("200ep residuals", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_residuals.png"),
+                ("训练曲线", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/training_curve.png"),
+                ("RUL 真实值 / 预测值", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_true_pred_by_bearing.png"),
+                ("预测值 vs 真实值", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_pred_vs_true.png"),
+                ("残差分布", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_residuals.png"),
             ),
         ),
         DemoVideoPlan(
@@ -81,12 +82,12 @@ def build_demo_video_plans() -> List[DemoVideoPlan]:
                 "project.artifact_root=artifacts/demo_training dataset.root=data/loader_roots/xjtu "
                 "task.feature_columns.include=patterns "
                 "'task.feature_columns.include_patterns=[mag__time__mean,mag__time__mean_abs,mag__time__std,v__time__std,v__time__mean_abs]' "
-                "trainer.batch_size=64 trainer.max_epochs=50"
+                "trainer.batch_size=256 trainer.max_epochs=50 trainer.optimizer.lr=0.0003 trainer.optimizer.weight_decay=0.0001"
             ),
             main_figures=(
-                ("200ep training_curve", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/training_curve.png"),
-                ("200ep confusion matrix", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_confusion_matrix.png"),
-                ("200ep class distribution", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_class_distribution.png"),
+                ("训练曲线", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/training_curve.png"),
+                ("混淆矩阵", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_confusion_matrix.png"),
+                ("类别分布", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_class_distribution.png"),
             ),
         ),
     ]
@@ -274,19 +275,16 @@ def render_intro_frame(
 ) -> None:
     image, draw = make_canvas()
     draw.text((70, 135), plan.task_label, fill="#1d2939", font=font_title)
-    draw.text((70, 205), "50ep 只用于录制训练过程；200ep 才是主线实验结果。", fill="#b54708", font=font_heading)
     cards = [
-        ("Demo run", plan.demo_run_name),
-        ("Main result run", plan.main_run_name),
+        ("数据集", "XJTU-SY"),
+        ("模型", "GRU sequence"),
         ("任务", plan.task_type),
-        ("Demo 完成状态", f"{summary['completed']}，epoch={summary['last_epoch']}，history={summary['history_rows']}"),
+        ("训练轮数", f"{summary['last_epoch']} epochs"),
     ]
     for index, (title, body) in enumerate(cards):
         x = 70 + (index % 2) * 710
         y = 295 + (index // 2) * 175
         draw_card(draw, (x, y, x + 650, y + 125), title, body, font_heading, font_regular)
-    draw.text((70, 710), "视频结构：开场说明 → 50 个 epoch 逐帧回放 → 200ep 主线结果图。", fill="#344054", font=font_regular)
-    draw.text((70, 755), "所有指标来自真实训练产物；视频不把 50ep 当成最终结果。", fill="#344054", font=font_regular)
     image.save(path)
 
 
@@ -304,23 +302,21 @@ def render_training_frame(
     image, draw = make_canvas()
     visible_epoch = max(1, min(visible_epoch, len(history)))
     current = history[visible_epoch - 1]
-    draw.text((58, 112), f"{plan.task_label}：50ep demo training replay", fill="#1d2939", font=font_title)
-    draw.text((58, 174), "口径：50ep=视频演示；200ep=主线结果，视频结尾展示对应 200ep 图。", fill="#b54708", font=font_regular)
+    draw.text((58, 112), f"{plan.task_label}：训练过程回放", fill="#1d2939", font=font_title)
     draw.text(
-        (58, 224),
-        f"Epoch {visible_epoch:02d}/50    train_loss={format_number(current.get('train_loss'))}    val_loss={format_number(current.get('val_loss'))}",
+        (58, 195),
+        f"Epoch {visible_epoch:02d}/50    train_loss={format_number(current.get('train_loss'))}",
         fill="#1d2939",
         font=font_heading,
     )
-    metric_key = first_existing_key(current, [f"val_{plan.primary_metric}", "val_WeightedF1", "val_RMSE", "val_loss"])
     draw.text(
-        (58, 270),
-        f"当前验证指标 {metric_key}={format_number(current.get(metric_key))}    best_epoch={summary['best_epoch']}    demo test {plan.primary_metric}={format_number(summary['test_primary'])}",
+        (58, 240),
+        f"Best epoch {summary['best_epoch']}    Test {plan.primary_metric} {format_number(summary['test_primary'])}",
         fill="#344054",
         font=font_regular,
     )
     draw_loss_panel(draw, (58, 335, 1015, 815), plan, history, visible_epoch, font_small)
-    draw_log_panel(draw, (1045, 335, 1530, 815), history, visible_epoch, font_heading, font_small)
+    draw_log_panel(draw, (1045, 335, 1530, 815), plan, history, visible_epoch, font_heading, font_small)
     image.save(path)
 
 
@@ -333,9 +329,8 @@ def render_main_result_frame(
     font_small: Any,
 ) -> None:
     image, draw = make_canvas()
-    draw.text((58, 112), "结尾：对应 200ep 主线结果图", fill="#1d2939", font=font_title)
-    draw.text((58, 174), f"Main result run：{plan.main_run_name}", fill="#344054", font=font_regular)
-    draw.text((58, 214), "注意：下面这些图才用于主线结果解读；50ep 只用于视频训练过程演示。", fill="#b54708", font=font_regular)
+    draw.text((58, 112), "200ep 主线结果图", fill="#1d2939", font=font_title)
+    draw.text((58, 174), f"{plan.task_label}", fill="#344054", font=font_regular)
     boxes = [(58, 275, 755, 555), (805, 275, 1502, 555), (58, 590, 755, 858), (805, 590, 1502, 858)]
     for index, (label, figure_rel) in enumerate(plan.main_figures):
         box = boxes[index]
@@ -360,11 +355,11 @@ def draw_loss_panel(
 ) -> None:
     x1, y1, x2, y2 = box
     draw.rounded_rectangle(box, radius=12, fill="#ffffff", outline="#d0d5dd", width=2)
-    draw.text((x1 + 24, y1 + 18), "动态训练曲线", fill="#1d2939", font=font_small)
+    draw.text((x1 + 24, y1 + 18), "Training loss", fill="#1d2939", font=font_small)
     plot = (x1 + 72, y1 + 68, x2 - 42, y2 - 58)
     px1, py1, px2, py2 = plot
     draw.line((px1, py1, px1, py2, px2, py2), fill="#98a2b3", width=2)
-    loss_values = [float(row["train_loss"]) for row in history] + [float(row["val_loss"]) for row in history]
+    loss_values = [float(row["train_loss"]) for row in history]
     max_y = max(loss_values) * 1.08
 
     def point(epoch: int, value: float) -> tuple[float, float]:
@@ -373,33 +368,19 @@ def draw_loss_panel(
         return x, y
 
     visible = history[:visible_epoch]
-    for key, color in [("train_loss", "#1570ef"), ("val_loss", "#dc6803")]:
-        points = [point(int(row["epoch"]), float(row[key])) for row in visible]
-        if len(points) == 1:
-            x, y = points[0]
-            draw.ellipse((x - 4, y - 4, x + 4, y + 4), fill=color)
-        else:
-            draw.line(points, fill=color, width=4)
-    metric_key = first_existing_key(history[0], [f"val_{plan.primary_metric}", "val_WeightedF1", "val_RMSE"])
-    if metric_key:
-        metric_values = [safe_float(row.get(metric_key)) for row in history if row.get(metric_key) is not None]
-        if metric_values:
-            min_m, max_m = min(metric_values), max(metric_values)
-            spread = max(max_m - min_m, 1e-9)
-            points = []
-            for row in visible:
-                value = safe_float(row.get(metric_key))
-                x = px1 + (int(row["epoch"]) - 1) / 49 * (px2 - px1)
-                y = py2 - (value - min_m) / spread * (py2 - py1)
-                points.append((x, y))
-            if len(points) > 1:
-                draw.line(points, fill="#12b76a", width=3)
-    draw.text((x1 + 24, y2 - 38), "蓝=train_loss  橙=val_loss  绿=val metric（归一化显示）", fill="#667085", font=font_small)
+    train_points = [point(int(row["epoch"]), float(row["train_loss"])) for row in visible]
+    if len(train_points) == 1:
+        x, y = train_points[0]
+        draw.ellipse((x - 4, y - 4, x + 4, y + 4), fill="#1570ef")
+    else:
+        draw.line(train_points, fill="#1570ef", width=4)
+    draw.text((x1 + 24, y2 - 38), "train_loss", fill="#667085", font=font_small)
 
 
 def draw_log_panel(
     draw: ImageDraw.ImageDraw,
     box: tuple[int, int, int, int],
+    plan: DemoVideoPlan,
     history: Sequence[Dict[str, Any]],
     visible_epoch: int,
     font_heading: Any,
@@ -407,13 +388,13 @@ def draw_log_panel(
 ) -> None:
     x1, y1, x2, y2 = box
     draw.rounded_rectangle(box, radius=12, fill="#ffffff", outline="#d0d5dd", width=2)
-    draw.text((x1 + 20, y1 + 18), "滚动训练日志", fill="#1d2939", font=font_heading)
+    draw.text((x1 + 20, y1 + 18), "训练日志", fill="#1d2939", font=font_heading)
     rows = history[max(0, visible_epoch - 10):visible_epoch]
     for index, row in enumerate(rows):
-        line = f"[epoch {int(row['epoch']):02d}/50] train={format_number(row.get('train_loss'))}  val={format_number(row.get('val_loss'))}"
+        line = f"[epoch {int(row['epoch']):02d}/50] train_loss={format_number(row.get('train_loss'))}"
         draw.text((x1 + 20, y1 + 76 + index * 34), line, fill="#344054", font=font_small)
     if visible_epoch == len(history):
-        draw.text((x1 + 20, y2 - 50), "[完成] 50ep demo training finished", fill="#b54708", font=font_small)
+        draw.text((x1 + 20, y2 - 50), "训练完成", fill="#b54708", font=font_small)
 
 
 def draw_figure_box(
@@ -462,7 +443,9 @@ def write_readme(path: Path, plans: Sequence[DemoVideoPlan]) -> None:
         "- 200ep 结果才是主线实验结果。",
         "- RUL 视频对应 XJTU-SY RUL linear GRU sequence。",
         "- EarlyFault 视频对应 XJTU-SY EarlyFault GRU sequence。",
-        "- 视频是逐 epoch 动画：可以看到 epoch、loss、验证指标和日志随时间变化。",
+        "- 视频是逐 epoch 动画：可以看到 epoch、训练损失和日志随时间变化。",
+        "- 为避免误读，视频主画面不展示 val_loss 或 validation primary metric；这些值仍保存在真实训练 history 中。",
+        "- Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。",
         "",
         "## 文件",
         "",
@@ -488,9 +471,10 @@ def write_demo_script(path: Path, plans: Sequence[DemoVideoPlan]) -> None:
         "讲解口径：",
         "",
         "1. 先说明 50ep 是 demo training，用于录制加速训练过程。",
-        "2. 播放视频时观察 epoch 从 1/50 到 50/50、loss 曲线增长、验证指标变化和日志滚动。",
+        "2. 播放视频时观察 epoch 从 1/50 到 50/50、train_loss 曲线和日志滚动。",
         "3. 视频结尾切到对应 200ep 主线结果图。",
         "4. 总结时只引用 200ep 作为主线结果。",
+        "5. 视频主画面不展示 val_loss / validation primary metric，避免把 demo 训练过程误读成主线性能结论。",
         "",
         "## 视频顺序",
         "",
@@ -520,6 +504,14 @@ def write_video_qa(
         "",
         "视频类型：自动生成的逐 epoch 动画，加速展示真实 50ep demo training history。",
         "",
+        "Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。",
+        "",
+        "视频主画面不展示 val_loss。",
+        "",
+        "视频主画面不展示 validation primary metric。",
+        "",
+        "视频主画面只展示 train_loss 和滚动训练日志。",
+        "",
     ]
     for index, plan in enumerate(plans, start=1):
         summary = demo_summaries[plan.demo_run_name]
@@ -538,7 +530,9 @@ def write_video_qa(
             f"- 文件大小：{meta['file_size']}",
             f"- 50ep demo 是否完成：{summary['completed']}（epoch={summary['last_epoch']}，history={summary['history_rows']}）",
             "- 是否加速：是，逐 epoch 动画以 10 fps 合成",
-            "- 是否展示 epoch / loss / metric / 日志滚动：是",
+            "- 是否展示 epoch / train_loss / 日志滚动：是",
+            "- 视频主画面不展示 val_loss：是",
+            "- 视频主画面不展示 validation primary metric：是",
             f"- 结尾是否展示 {training_curve_label}：是",
             f"- 结尾是否展示 {final_key}：是",
             "- 结论：通过",
@@ -559,6 +553,7 @@ def write_runs(path: Path, plans: Sequence[DemoVideoPlan], demo_summaries: Dict[
         lines.append(f"| Step AC | demo-video | `{plan.demo_run_name}` | {summary['last_epoch']} | complete | `video/{plan.video_file}` |")
     lines.append("")
     lines.append("说明：50ep run 只服务训练过程视频，主线结果继续以 Step AB 200ep 为准。")
+    lines.append("Demo 参数：batch_size=256，lr=0.0003，weight_decay=0.0001。")
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -575,7 +570,7 @@ def write_manifest(path: Path, plans: Sequence[DemoVideoPlan]) -> None:
                 f"reports/demo_videos/video/{plan.video_file}",
                 f"reports/demo_videos/screenshots/{plan.training_screenshot};reports/demo_videos/screenshots/{plan.final_screenshot}",
                 "needs-review",
-                "50ep demo training video; 200ep remains the main result.",
+                "50ep demo training video; 200ep remains the main result; video foreground omits val_loss.",
             ])
 
 
@@ -636,6 +631,10 @@ def first_existing_key(row: Dict[str, Any], keys: Sequence[str]) -> str:
         if key in row:
             return key
     return ""
+
+
+def primary_history_metric_key(plan: DemoVideoPlan, row: Dict[str, Any]) -> str:
+    return first_existing_key(row, [f"val_{plan.primary_metric}", "val_WeightedF1", "val_RMSE", "val_loss"])
 
 
 def safe_float(value: Any) -> float:

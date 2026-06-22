@@ -6,3 +6,4 @@
 | Step AC | demo-video | `demo_video_xjtu_early_gru_sequence_50ep` | 50 | complete | `video/demo_xjtu_early_gru_50ep_accelerated.mp4` |
 
 说明：50ep run 只服务训练过程视频，主线结果继续以 Step AB 200ep 为准。
+Demo 参数：batch_size=256，lr=0.0003，weight_decay=0.0001。

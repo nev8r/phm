@@ -8,7 +8,9 @@
 - 200ep 结果才是主线实验结果。
 - RUL 视频对应 XJTU-SY RUL linear GRU sequence。
 - EarlyFault 视频对应 XJTU-SY EarlyFault GRU sequence。
-- 视频是逐 epoch 动画：可以看到 epoch、loss、验证指标和日志随时间变化。
+- 视频是逐 epoch 动画：可以看到 epoch、训练损失和日志随时间变化。
+- 为避免误读，视频主画面不展示 val_loss 或 validation primary metric；这些值仍保存在真实训练 history 中。
+- Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。
 
 ## 文件
 
