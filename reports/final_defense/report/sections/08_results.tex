@@ -1,0 +1,64 @@
+\section{实验结果}
+
+\subsection{主结果表}
+
+表 \ref{tab:gru-results} 展示了两个数据集、三个任务上的 GRU 200ep 主线结果。这些指标来自已归档的 GRU 序列基线结果 \cite{project_gru_results}。可以看到，EarlyFault 是当前表现最稳定的任务，尤其是 XJTU-SY；RUL 能形成一定寿命趋势，但仍需要结合分轴承曲线和残差图谨慎解释；HealthState 四阶段伪标签任务最难，结果明显低于 EarlyFault。
+
+\input{tables/gru_results}
+
+\subsection{XJTU-SY RUL 结果}
+
+图 \ref{fig:xjtu-rul-curve} 展示了 XJTU-SY RUL 的分轴承预测曲线。图 \ref{fig:xjtu-rul-scatter} 展示预测值与真实值的散点关系。两张图共同说明：GRU 序列基线能够学习到寿命下降趋势，但不同轴承之间仍存在明显误差差异，这也是本文在 RUL 结论中保持保守口径的原因。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth,height=0.54\textheight,keepaspectratio]{xjtu_gru_rul_true_pred_by_bearing.png}
+\caption{XJTU-SY GRU RUL 分轴承预测曲线}
+\label{fig:xjtu-rul-curve}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.68\textwidth,height=0.48\textheight,keepaspectratio]{xjtu_gru_rul_pred_vs_true.png}
+\caption{XJTU-SY GRU RUL 预测值与真实值散点图}
+\label{fig:xjtu-rul-scatter}
+\end{figure}
+
+\subsection{XJTU-SY EarlyFault 结果}
+
+图 \ref{fig:xjtu-early-cm} 展示了 XJTU-SY EarlyFault 的混淆矩阵。该任务 test WeightedF1 = 0.851679，是当前本文方法实验中最适合作为正向展示的分类结果。它说明，基于特征序列的 GRU 能够较好地区分正常阶段和早期异常阶段。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.68\textwidth]{xjtu_gru_early_confusion_matrix.png}
+\caption{XJTU-SY GRU EarlyFault 混淆矩阵}
+\label{fig:xjtu-early-cm}
+\end{figure}
+
+\subsection{PHM2012 结果}
+
+PHM2012 上，RUL 的 test RMSE = 0.280362，EarlyFault 的 test WeightedF1 = 0.682715。图 \ref{fig:phm-rul-curve} 给出 RUL 分轴承预测曲线，图 \ref{fig:phm-early-cm} 给出 EarlyFault 混淆矩阵。PHM2012 的任务难点在于官方语义划分下测试轴承差异较大，因此模型表现应解释为当前框架下的可复查基线，而不是最终工业部署精度。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth,height=0.54\textheight,keepaspectratio]{phm_gru_rul_true_pred_by_bearing.png}
+\caption{PHM2012 GRU RUL 分轴承预测曲线}
+\label{fig:phm-rul-curve}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.68\textwidth]{phm_gru_early_confusion_matrix.png}
+\caption{PHM2012 GRU EarlyFault 混淆矩阵}
+\label{fig:phm-early-cm}
+\end{figure}
+
+\subsection{结果小结}
+
+综合表格和图像，本文方法实验得到三个结论：
+
+\begin{enumerate}
+  \item EarlyFault 是当前最稳定的任务，说明人工特征和 GRU 序列对早期异常识别有效。
+  \item RUL 能形成趋势预测，但跨轴承差异仍然明显，需要未来加入物理频率特征和更强序列模型。
+  \item HealthState 由于阶段数更多且标签为退化伪标签，当前结果一般，应作为阶段识别探索而非强结论。
+\end{enumerate}

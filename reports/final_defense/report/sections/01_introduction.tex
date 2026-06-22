@@ -1,0 +1,50 @@
+\section{绪论}
+
+\subsection{研究背景}
+
+滚动轴承承担支撑旋转轴、降低摩擦和传递载荷的作用，广泛存在于电机、泵、风机、机床和车辆等装备中。轴承一旦发生局部剥落、磨损或润滑异常，振动信号会最先出现幅值、冲击和频率结构变化。PHM2012 预测挑战数据集正是围绕这类全寿命振动信号构建的典型寿命预测场景 \cite{ieeephm2012}。如果这些变化没有被及时识别，局部故障可能进一步扩展为停机、连锁损伤甚至安全事故。因此，轴承预测性维护的目标不是等到故障已经明显发生后再报警，而是在退化早期识别风险，并为维护计划提供剩余寿命估计。
+
+传统故障诊断通常把问题简化为“正常或故障”的分类任务，这对已发生故障的识别有效，但对维护决策还不够。工程人员还需要知道三个更细的问题：当前轴承还能运行多久、当前处于哪个退化阶段、是否已经进入早期异常状态。因此，本文采用 RUL、HealthState 和 EarlyFault 三任务框架，将寿命预测、状态识别和早期预警统一到同一套数据与模型流程中。
+
+\subsection{总体技术路线}
+
+图 \ref{fig:degradation-flow} 给出本文的总体问题链条。轴承退化首先改变原始振动信号，随后这些变化会反映到幅值统计、冲击强度、频谱分布和能量结构中。模型并不直接面对“故障”这个抽象概念，而是通过特征和标签把退化过程转化为可学习的监督任务。
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=1.4cm,
+  box/.style={rectangle, rounded corners, draw=blue!60, fill=blue!5, thick, align=center, minimum width=2.7cm, minimum height=0.85cm},
+  task/.style={rectangle, rounded corners, draw=orange!70, fill=orange!8, thick, align=center, minimum width=2.8cm, minimum height=0.85cm},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[box] (deg) {轴承退化};
+\node[box, right=of deg] (sig) {振动信号变化};
+\node[box, right=of sig] (feat) {特征提取\\与特征分析};
+\node[task, above right=0.8cm and 1.1cm of feat] (rul) {RUL\\剩余寿命预测};
+\node[task, right=1.1cm of feat] (health) {HealthState\\健康阶段识别};
+\node[task, below right=0.8cm and 1.1cm of feat] (early) {EarlyFault\\早期故障预警};
+\draw[arr] (deg) -- (sig);
+\draw[arr] (sig) -- (feat);
+\draw[arr] (feat) -- (rul);
+\draw[arr] (feat) -- (health);
+\draw[arr] (feat) -- (early);
+\end{tikzpicture}
+}
+\caption{轴承退化到三任务建模的关系}
+\label{fig:degradation-flow}
+\end{figure}
+
+\subsection{本文工作}
+
+本文的主要工作包括：
+
+\begin{enumerate}
+  \item 建立 XJTU-SY 与 PHM2012 两个数据集的统一加载、索引和划分流程，避免同一轴承时间片泄漏到不同数据子集。
+  \item 构造 RUL、HealthState 和 EarlyFault 三类任务标签，其中 RUL 统一采用 \code{linear_rul_norm}。
+  \item 对 manual\_basic 特征族进行任务级分析，解释不同特征对寿命预测和故障预警的作用。
+  \item 训练 MLP、XGBoost、RandomForest 和 GRU 序列基线，并以 GRU 200ep 结果作为本文方法实验主线。
+  \item 整理论文复现实验，包括 PHM2012 RUL 的 CAM-LSTM 复现模型和 XJTU-SY 故障诊断复现模型。
+  \item 制作两个 50ep 加速训练过程视频，展示训练过程和结果图，服务于最终答辩演示。
+\end{enumerate}

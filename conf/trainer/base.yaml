@@ -37,6 +37,9 @@ eval:
   evaluate_train: false
   evaluate_test_at_end: true
 
+console_log:
+  enabled: true
+
 checkpoint:
   enabled: true
   save_best: true

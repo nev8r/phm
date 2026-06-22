@@ -1,0 +1,66 @@
+\section{特征分析}
+
+\subsection{manual\_basic 特征族}
+
+本文使用 manual\_basic 作为最终主线特征集。该特征集不是简单堆叠统计量，而是围绕轴承振动退化的可解释信号变化构造。特征筛选、推荐矩阵和泄漏检查来自项目特征分析报告 \cite{project_feature_analysis}。表 \ref{tab:feature-families} 总结了主要特征族及其含义。
+
+\input{tables/feature_families}
+
+其中 RMS、mean\_abs、std 和 ptp 通常反映振动幅值和能量变化；kurtosis 与 skewness 对冲击和非对称分布敏感；spectral centroid、bandwidth 和 spectral entropy 则描述频谱重心、频带扩散和频谱复杂度。合成幅值通道 mag 用于同时利用水平和垂直方向信息，但当 \code{mag__time__rms} 参与 HI/FPT 构造时，需要在最终模型中谨慎处理其标签源争议。
+
+\subsection{任务级分析方法}
+
+不同任务需要不同证据：
+
+\begin{itemize}
+  \item RUL：关注特征与寿命比例的相关性、单调性和退化趋势。
+  \item HealthState：关注不同退化阶段之间的特征分布是否可分。
+  \item EarlyFault：关注正常阶段与早期异常阶段之间的效应差异。
+\end{itemize}
+
+因此，特征分析报告同时使用 RUL 相关性、退化行为分数、健康阶段箱线图、早期故障效应图和推荐矩阵，而不是只输出一个总分表。
+
+\subsection{推荐矩阵}
+
+图 \ref{fig:xjtu-feature-matrix} 和图 \ref{fig:phm-feature-matrix} 展示了两个数据集上的推荐特征矩阵。矩阵的作用是把“特征是否有用”落到具体任务上：某些特征对 RUL 的趋势预测更重要，另一些特征对 EarlyFault 的前后状态差异更敏感。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{xjtu_feature_recommendation_matrix.png}
+\caption{XJTU-SY 三任务推荐特征矩阵}
+\label{fig:xjtu-feature-matrix}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{phm_feature_recommendation_matrix.png}
+\caption{PHM2012 三任务推荐特征矩阵}
+\label{fig:phm-feature-matrix}
+\end{figure}
+
+\subsection{RUL 与早期故障的代表图}
+
+图 \ref{fig:xjtu-rul-top} 给出 XJTU-SY 上 RUL 相关特征排序，用于观察哪些特征随寿命推进呈现更稳定的变化。图 \ref{fig:phm-early-effects} 给出 PHM2012 上早期故障效应，用于观察故障前后哪些特征差异更明显。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{xjtu_rul_top_features.png}
+\caption{XJTU-SY RUL 相关特征排序}
+\label{fig:xjtu-rul-top}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{phm_early_fault_effects.png}
+\caption{PHM2012 EarlyFault 特征效应}
+\label{fig:phm-early-effects}
+\end{figure}
+
+图 \ref{fig:xjtu-health-box} 进一步展示了健康阶段之间的特征分布差异。箱线图能够帮助判断 HealthState 任务为什么比 EarlyFault 更难：四阶段划分要求模型区分更细的退化等级，而不同轴承之间的分布差异会削弱阶段边界。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{xjtu_health_state_boxplots.png}
+\caption{XJTU-SY 健康阶段特征箱线图}
+\label{fig:xjtu-health-box}
+\end{figure}

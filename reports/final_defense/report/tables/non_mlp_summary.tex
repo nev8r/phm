@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption{对照模型实验的代表性结果}
+\label{tab:non-mlp-summary}
+\small
+\begin{tabularx}{\textwidth}{p{2.5cm}p{2.8cm}p{2.8cm}p{2.4cm}p{2.2cm}Y}
+\toprule
+数据集 & 任务 & 模型 & 指标 & 测试集结果 & 结论口径 \\
+\midrule
+XJTU-SY & RUL & RandomForest & RMSE & 0.399658 & 优于默认 MLP，但 RUL 仍有明显分布偏移风险。 \\
+XJTU-SY & EarlyFault & XGBoost & WeightedF1 & 0.839369 & 接近 GRU 序列基线，可作为强表格对照。 \\
+PHM2012 & RUL & RandomForest & RMSE & 0.337575 & 优于默认 MLP，但弱于 GRU 序列基线。 \\
+PHM2012 & EarlyFault & RandomForest & WeightedF1 & 0.613220 & 可作为对照结果，但不是最终主线模型。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

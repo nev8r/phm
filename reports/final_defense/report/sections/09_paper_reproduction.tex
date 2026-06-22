@@ -1,0 +1,47 @@
+\section{论文复现实验}
+
+\subsection{定位}
+
+论文复现实验用于说明项目具备复现典型论文方法的能力。它与本文统一三任务框架互补，但不混为同一实验。具体来说，PHM2012 RUL 的 CAM-LSTM 复现模型对应 Sun 等人的 RUL 预测方法 \cite{sun2025cbam}；XJTU-SY 故障诊断复现模型对应 Qiao 等人的故障诊断对照思路 \cite{qiao2025comparative}。二者都不参与 HealthState 任务结论。
+
+\input{tables/paper_reproduction_results}
+
+\subsection{PHM2012 RUL 的 CAM-LSTM 复现模型}
+
+图 \ref{fig:repro-rul-arch} 展示了 RUL 复现模型结构，图 \ref{fig:repro-rul-curve} 展示了分轴承预测曲线。该复现实验 test RMSE = 0.146737，MAE = 0.105007，R2 = 0.733183。该结果说明，在相应论文设置下，CAM-LSTM 复现模型能够取得较强的寿命预测表现。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth,height=0.42\textheight,keepaspectratio]{repro_rul_model_architecture.png}
+\caption{PHM2012 RUL 的 CAM-LSTM 复现模型结构}
+\label{fig:repro-rul-arch}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth,height=0.54\textheight,keepaspectratio]{repro_phm_rul_prediction_by_bearing.png}
+\caption{PHM2012 CAM-LSTM 复现模型分轴承预测曲线}
+\label{fig:repro-rul-curve}
+\end{figure}
+
+\subsection{XJTU-SY 故障诊断复现模型}
+
+图 \ref{fig:repro-fault-arch} 展示了故障诊断复现模型结构，图 \ref{fig:repro-fault-cm} 展示混淆矩阵。该复现实验 test Accuracy = 0.997072，WeightedF1 = 0.997072，说明在相应二分类故障诊断设置下，复现模型表现很强。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth,height=0.42\textheight,keepaspectratio]{repro_fault_model_architecture.png}
+\caption{XJTU-SY 故障诊断复现模型结构}
+\label{fig:repro-fault-arch}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.68\textwidth]{repro_xjtu_fault_confusion_matrix.png}
+\caption{XJTU-SY 故障诊断复现模型混淆矩阵}
+\label{fig:repro-fault-cm}
+\end{figure}
+
+\subsection{与本文方法实验的关系}
+
+论文复现实验回答“典型论文模型是否能够在本项目中复现”的问题；本文方法实验回答“统一三任务框架下，特征分析和 GRU 序列模型能否形成可复查基线”的问题。二者数据处理、任务定义和目标并不完全相同，因此不能直接把复现实验指标当作本文三任务结果。最终答辩中应将其放在“复现实验对照”章节，而不是放入 GRU 主结果表。

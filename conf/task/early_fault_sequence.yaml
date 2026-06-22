@@ -1,6 +1,7 @@
 name: early_fault_sequence
 enabled: true
 version: v1
+cache_dir: null
 
 task_type: binary_classification
 input_mode: feature_sequence

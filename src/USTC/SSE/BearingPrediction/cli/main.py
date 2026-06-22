@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig, OmegaConf
+import pandas as pd
 
 from USTC.SSE.BearingPrediction.infra.experiment.RunContext import RunContext
 
@@ -227,6 +228,10 @@ def run_eval(cfg: DictConfig, context: RunContext) -> None:
 def build_task_datamodule_artifacts(cfg: DictConfig, context: RunContext):
     from USTC.SSE.BearingPrediction.infra.task.TaskBuilder import TaskBuilder
 
+    cache_dir = OmegaConf.select(cfg, "task.cache_dir", default=None)
+    if cache_dir not in (None, "null", ""):
+        return _load_task_datamodule_from_cache(Path(str(cache_dir)).expanduser())
+
     index, split = build_index_artifacts(cfg, context)
     if not bool(OmegaConf.select(cfg, "feature.enabled", default=False)):
         raise ValueError("task modes require an enabled feature config")
@@ -244,6 +249,66 @@ def build_task_datamodule_artifacts(cfg: DictConfig, context: RunContext):
         labels=labels,
         split_result=split,
     )
+
+
+def _load_task_datamodule_from_cache(cache_dir: Path):
+    from USTC.SSE.BearingPrediction.infra.task.DataModule import DataModule
+    from USTC.SSE.BearingPrediction.infra.task.TaskDataset import TaskDataset
+
+    if not cache_dir.exists():
+        raise FileNotFoundError(f"Task cache directory does not exist: {cache_dir}")
+    task_dir = cache_dir / "task"
+    feature_dir = cache_dir / "features"
+    label_dir = cache_dir / "labels"
+    required = [
+        task_dir / "task_manifest.parquet",
+        task_dir / "task_spec.json",
+        task_dir / "task_report.json",
+        task_dir / "feature_columns.txt",
+        task_dir / "target_columns.txt",
+        label_dir / "labels.parquet",
+    ]
+    for path in required:
+        if not path.exists():
+            raise FileNotFoundError(f"Task cache is missing required artifact: {path}")
+
+    task_spec = OmegaConf.to_container(OmegaConf.load(task_dir / "task_spec.json"), resolve=True)
+    task_report = OmegaConf.to_container(OmegaConf.load(task_dir / "task_report.json"), resolve=True)
+    feature_source = str(task_spec.get("feature_source", "cleaned"))
+    feature_file = feature_dir / ("cleaned_features.parquet" if feature_source == "cleaned" else "raw_features.parquet")
+    if not feature_file.exists():
+        raise FileNotFoundError(f"Task cache is missing feature artifact: {feature_file}")
+
+    features = pd.read_parquet(feature_file)
+    labels = pd.read_parquet(label_dir / "labels.parquet")
+    manifest = pd.read_parquet(task_dir / "task_manifest.parquet")
+    feature_columns = _read_lines(task_dir / "feature_columns.txt")
+    target_columns = _read_lines(task_dir / "target_columns.txt")
+    task_type = str(task_spec["task_type"])
+    input_mode = str(task_spec["input_mode"])
+
+    def dataset_for(split_name: str):
+        subset = manifest[manifest["split"] == split_name].reset_index(drop=True)
+        if subset.empty:
+            return None
+        return TaskDataset(features, labels, subset, feature_columns, target_columns, input_mode, task_type)
+
+    print(f"Loaded task cache: {cache_dir}", flush=True)
+    return DataModule(
+        train=dataset_for("train"),
+        val=dataset_for("val"),
+        test=dataset_for("test"),
+        all=dataset_for("all"),
+        task_manifest=manifest,
+        feature_columns=feature_columns,
+        target_columns=target_columns,
+        task_spec=task_spec,
+        task_report=task_report,
+    )
+
+
+def _read_lines(path: Path) -> List[str]:
+    return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def build_label_artifacts(cfg: DictConfig, context: RunContext, index, split, raw_features=None, cleaned_features=None):

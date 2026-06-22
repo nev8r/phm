@@ -1,0 +1,35 @@
+\section{标签构造}
+
+\subsection{RUL 标签}
+
+本文最终采用 \code{linear_rul_norm} 作为 RUL 目标。对于每条轴承寿命序列，寿命早期目标值接近 1，寿命终点目标值接近 0，中间按照样本时间顺序线性下降。这样做的好处是定义直观、跨数据集一致，并且不会在寿命早期人为制造长时间常数平台。
+
+此前探索过的非线性或分段式 RUL 构造不作为本文主线结果。最终报告、表格和图像均以 \code{linear_rul_norm} 为准。
+
+\subsection{HealthState 标签}
+
+HealthState 将退化过程划分为四个阶段：
+
+\begin{itemize}
+  \item 0：健康阶段。
+  \item 1：轻微退化阶段。
+  \item 2：中度退化阶段。
+  \item 3：严重退化阶段。
+\end{itemize}
+
+该标签来自退化过程和 FPT 之后的阶段划分，因此属于伪标签。它的价值在于提供比二分类更细的退化状态描述；风险在于阶段边界并非人工拆检确认，因此实验结论应称为健康阶段识别，而不是严格故障类型诊断。
+
+\subsection{EarlyFault 标签}
+
+EarlyFault 是二分类标签：
+
+\begin{itemize}
+  \item 0：未进入早期异常阶段。
+  \item 1：进入早期异常或早期故障预警阶段。
+\end{itemize}
+
+与 HealthState 相比，EarlyFault 只要求区分“是否进入预警阶段”，因此边界更粗、任务更稳定。这也是后续实验中 EarlyFault 表现通常优于 HealthState 的重要原因。
+
+\subsection{标签源特征说明}
+
+\code{mag__time__rms} 在 HI/FPT 构造中起到参考作用，因此当它同时作为模型输入时，可能引发标签源泄漏争议。本文方法实验尽量使用 non-label-source 特征子集；对于需要全量人工特征的 RUL 实验，也明确排除该参考特征或在结果中标注其风险。这样可以让特征分析、标签构造和模型评估保持清晰边界。

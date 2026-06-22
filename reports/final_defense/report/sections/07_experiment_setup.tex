@@ -1,0 +1,28 @@
+\section{实验设置}
+
+\subsection{主线设置}
+
+本文方法实验以 GRU 序列基线为主线。核心设置如下：
+
+\begin{itemize}
+  \item 输入模式：feature sequence。
+  \item 序列长度：8。
+  \item 特征集：manual\_basic，根据任务使用 full 或 compact 子集。
+  \item RUL 目标：\code{linear_rul_norm}。
+  \item 分类目标：\code{health_state_id} 和 \code{early_fault}。
+  \item 训练轮数：200ep。
+  \item batch size：64。
+  \item 评价指标：RUL 使用 RMSE；分类任务使用 Accuracy、MacroF1 和 WeightedF1，其中 WeightedF1 作为主要指标。
+\end{itemize}
+
+所有序列样本均在同一轴承和同一数据子集内部构造，不跨轴承、不跨数据子集。标准化和清洗参数只从训练集估计。
+
+\subsection{对照实验设置}
+
+对照模型包括 MLP、XGBoost 和 RandomForest。它们主要使用窗口级表格特征，不显式建模时间序列。对照实验的作用是判断 manual\_basic 特征本身的建模能力，以及传统表格模型相对于 GRU 序列基线的优势和不足。
+
+\input{tables/non_mlp_summary}
+
+\subsection{演示训练设置}
+
+两个演示视频使用 50ep 训练过程，只用于展示训练过程中的 epoch 变化、train\_loss 变化和日志滚动。它们不是最终指标来源。本文所有主线指标均来自 200ep GRU 序列实验。

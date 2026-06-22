@@ -1,0 +1,14 @@
+\begin{table}[H]
+\centering
+\caption{数据集与实验划分语义}
+\label{tab:dataset-summary}
+\small
+\begin{tabularx}{\textwidth}{p{2.6cm}p{4.0cm}p{3.8cm}Y}
+\toprule
+数据集 & 数据特点 & 划分方式 & 使用目的 \\
+\midrule
+XJTU-SY & 多工况、全寿命轴承振动数据，包含不同转速和载荷条件。 & 按轴承划分训练、验证和测试，避免同一轴承时间片泄漏。 & 检验跨轴承和多工况条件下的特征与模型泛化能力。 \\
+PHM2012 & 预测挑战数据集，包含学习集和测试集，常用于轴承寿命预测。 & 优先遵循官方学习集和测试集语义，并保持轴承内部时间顺序。 & 检验方法在经典 PHM 预测任务上的表现。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{三任务定义}
+\label{tab:task-definitions}
+\small
+\begin{tabularx}{\textwidth}{p{2.5cm}p{3.2cm}p{2.0cm}p{2.8cm}Y}
+\toprule
+任务 & 输出 & 类型 & 主要指标 & 工程作用 \\
+\midrule
+RUL & \code{linear_rul_norm} & 回归 & RMSE & 预测当前样本距离寿命终点的归一化剩余比例。 \\
+HealthState & \code{health_state_id} & 四分类 & WeightedF1 & 将退化过程划分为健康、轻微退化、中度退化和严重退化阶段。 \\
+EarlyFault & \code{early_fault} & 二分类 & WeightedF1 & 判断样本是否进入早期异常或早期故障预警阶段。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{GRU 序列基线 200ep 主线结果}
+\label{tab:gru-results}
+\small
+\begin{tabularx}{\textwidth}{p{2.5cm}p{3.0cm}p{2.8cm}p{2.2cm}p{2.0cm}Y}
+\toprule
+数据集 & 任务 & 目标 & 指标 & 测试集结果 & 解读 \\
+\midrule
+XJTU-SY & RUL & \code{linear_rul_norm} & RMSE & 0.275009 & 能形成连续寿命趋势，但跨轴承泛化仍需谨慎。 \\
+XJTU-SY & HealthState & \code{health_state_id} & WeightedF1 & 0.375525 & 四阶段伪标签较难，结果反映任务复杂性。 \\
+XJTU-SY & EarlyFault & \code{early_fault} & WeightedF1 & 0.851679 & 当前最稳定的正向分类结果。 \\
+PHM2012 & RUL & \code{linear_rul_norm} & RMSE & 0.280362 & 在官方语义划分下可展示寿命趋势。 \\
+PHM2012 & HealthState & \code{health_state_id} & WeightedF1 & 0.417599 & 伪标签阶段识别仍有明显提升空间。 \\
+PHM2012 & EarlyFault & \code{early_fault} & WeightedF1 & 0.682715 & 能提供早期异常识别能力，但弱于 XJTU-SY。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

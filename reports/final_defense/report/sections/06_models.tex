@@ -1,0 +1,55 @@
+\section{模型方法}
+
+\subsection{表格基线模型}
+
+表格基线模型用于回答一个基础问题：窗口级人工特征是否已经足以完成三任务建模。本文使用 MLP 作为基础表格神经网络基线，并使用 XGBoost 与 RandomForest 作为传统表格对照模型。MLP 能验证简单神经网络对特征表的建模能力；XGBoost 和 RandomForest 则用于检查树模型是否能从少量强特征中得到稳健表现。
+
+对照模型实验不作为最终主线模型，而是用于解释模型选择边界。例如，树模型在 EarlyFault 上表现接近 GRU，但在 RUL 上容易出现训练集极好、验证和测试退化明显的现象，这说明寿命预测不能只依赖单点表格特征。
+
+\subsection{GRU 序列基线}
+
+GRU 序列基线是本文方法实验的主线模型。它的输入不是单个振动快照，而是同一轴承内连续 8 个窗口级特征向量。GRU 编码器读取该特征序列，最后时刻隐状态进入任务 head：RUL 使用 1 维回归输出，HealthState 使用 4 类 logits，EarlyFault 使用 2 类 logits。结构如图 \ref{fig:gru-architecture} 所示。
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=0.9cm,
+  box/.style={rectangle, rounded corners, draw=blue!65, fill=blue!6, thick, align=center, minimum width=2.4cm, minimum height=0.75cm},
+  gru/.style={rectangle, rounded corners, draw=green!60!black, fill=green!8, thick, align=center, minimum width=2.2cm, minimum height=0.75cm},
+  head/.style={rectangle, rounded corners, draw=orange!70!black, fill=orange!8, thick, align=center, minimum width=2.8cm, minimum height=0.75cm},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[box] (x1) {$x_{t-7}$};
+\node[box, right=of x1] (x2) {$x_{t-6}$};
+\node[box, right=of x2] (x3) {$\cdots$};
+\node[box, right=of x3] (x4) {$x_t$};
+\node[gru, below=of x1] (g1) {GRU};
+\node[gru, below=of x2] (g2) {GRU};
+\node[gru, below=of x3] (g3) {$\cdots$};
+\node[gru, below=of x4] (g4) {GRU};
+\node[head, below=1.0cm of g4] (h) {最后隐状态\\任务 Head};
+\node[head, below left=0.8cm and 1.7cm of h] (rul) {RUL\\1 维回归};
+\node[head, below=0.8cm of h] (health) {HealthState\\4 类输出};
+\node[head, below right=0.8cm and 1.7cm of h] (early) {EarlyFault\\2 类输出};
+\draw[arr] (x1) -- (g1);
+\draw[arr] (x2) -- (g2);
+\draw[arr] (x4) -- (g4);
+\draw[arr] (g1) -- (g2);
+\draw[arr] (g2) -- (g3);
+\draw[arr] (g3) -- (g4);
+\draw[arr] (g4) -- (h);
+\draw[arr] (h) -- (rul);
+\draw[arr] (h) -- (health);
+\draw[arr] (h) -- (early);
+\end{tikzpicture}
+}
+\caption{GRU 序列基线结构}
+\label{fig:gru-architecture}
+\end{figure}
+
+GRU 的优势在于能够利用退化过程的局部时间顺序。对 RUL 来说，相邻样本之间的变化趋势比单个时刻的绝对值更重要；对 EarlyFault 来说，异常出现前后的短期变化也有助于提升识别能力。
+
+\subsection{论文复现实验模型}
+
+本文还整理了两类论文复现实验模型。第一类是用于 PHM2012 RUL 的 CAM-LSTM 复现模型，它属于寿命预测复现实验。第二类是用于 XJTU-SY 故障诊断的 ResCNN-LSTM 复现模型，它属于故障诊断复现实验。这两类模型只用于展示典型论文方法的复现实验能力，不替代本文统一三任务框架，也不参与 HealthState 任务结论。

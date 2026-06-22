@@ -1,0 +1,29 @@
+\section{演示视频}
+
+\subsection{视频内容}
+
+本文整理了两个中文加速训练过程视频，如表 \ref{tab:demo-videos} 所示。视频目标是展示训练过程可视化，而不是替代实验结果表。视频资产与筛选规则来自最终答辩资产清单 \cite{project_final_assets}。视频中可以看到 epoch 递增、train\_loss 变化和日志滚动；结尾展示对应任务的结果图。
+
+\input{tables/demo_videos}
+
+\subsection{视频截图}
+
+图 \ref{fig:demo-rul-process} 展示 RUL 训练过程截图，图 \ref{fig:demo-early-result} 展示 EarlyFault 视频结尾的结果图截图。结果页不展示训练曲线，避免把训练过程曲线误认为模型效果图。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{demo_rul_training_process.png}
+\caption{XJTU-SY RUL GRU 加速训练过程截图}
+\label{fig:demo-rul-process}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{demo_early_result_figures.png}
+\caption{XJTU-SY EarlyFault GRU 演示视频结果图截图}
+\label{fig:demo-early-result}
+\end{figure}
+
+\subsection{演示与主线结果的边界}
+
+两个视频均为 50ep 演示训练，用于说明系统能够动态展示训练过程。本文所有主线指标仍来自 200ep GRU 序列实验。这样处理可以同时满足答辩展示的可视化需求和实验结论的严谨性。

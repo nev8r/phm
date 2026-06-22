@@ -1,0 +1,14 @@
+\begin{table}[H]
+\centering
+\caption{论文复现实验结果}
+\label{tab:paper-reproduction-results}
+\small
+\begin{tabularx}{\textwidth}{p{3.0cm}p{3.2cm}p{2.8cm}p{3.2cm}Y}
+\toprule
+复现实验 & 模型 & 数据集 & 指标 & 说明 \\
+\midrule
+RUL 复现 & CAM-LSTM 复现模型 & PHM2012 & RMSE = 0.146737，MAE = 0.105007，R2 = 0.733183 & 用于验证典型寿命预测论文模型的复现实验流程。 \\
+故障诊断复现 & ResCNN-LSTM 复现模型 & XJTU-SY & Accuracy = 0.997072，WeightedF1 = 0.997072 & 用于验证典型故障诊断模型的复现实验流程。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

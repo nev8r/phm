@@ -1,0 +1,18 @@
+\begin{table}[H]
+\centering
+\caption{manual\_basic 特征族及解释}
+\label{tab:feature-families}
+\small
+\begin{tabularx}{\textwidth}{p{2.8cm}p{4.0cm}Y}
+\toprule
+特征族 & 代表特征 & 物理或统计含义 \\
+\midrule
+时域幅值特征 & RMS、mean\_abs、std、ptp & 反映振动能量、波动幅度和冲击强度，是退化过程中最直观的统计特征。 \\
+高阶统计特征 & kurtosis、skewness & 反映冲击尖锐程度和分布偏斜程度，对早期局部故障较敏感。 \\
+频域形状特征 & spectral centroid、bandwidth & 描述能量在频率轴上的中心位置和扩散程度。 \\
+频域复杂度特征 & spectral entropy & 描述频谱能量分布是否分散，用于观察退化后信号复杂度变化。 \\
+频带能量特征 & band energy & 汇总不同频段的能量变化，帮助捕捉频率结构变化。 \\
+合成幅值通道 & mag 通道特征 & 将水平和垂直通道合成为整体幅值，用于减少方向差异带来的不稳定。 \\
+\bottomrule
+\end{tabularx}
+\end{table}

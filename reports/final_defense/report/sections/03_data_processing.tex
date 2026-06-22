@@ -1,0 +1,49 @@
+\section{数据处理流程}
+
+\subsection{从原始信号到任务样本}
+
+原始振动信号不能直接作为最终表格模型输入。本文将每个振动快照视作一个样本，先从水平、垂直和合成幅值通道中提取 manual\_basic 特征，再根据训练集统计量完成缺失值填充、标准化和常量特征过滤。标签侧通过退化过程构造 RUL、HealthState 和 EarlyFault 三类目标。最终，表格模型使用单个样本特征，GRU 序列基线则使用连续 8 个样本组成的特征序列。
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=0.85cm,
+  box/.style={rectangle, draw=teal!70, fill=teal!6, thick, align=center, rounded corners, minimum width=3.2cm, minimum height=0.8cm},
+  small/.style={rectangle, draw=purple!65, fill=purple!6, thick, align=center, rounded corners, minimum width=2.8cm, minimum height=0.75cm},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[box] (raw) {原始振动信号};
+\node[box, right=of raw] (window) {振动快照\\窗口级样本};
+\node[box, right=of window] (feature) {manual\_basic\\特征提取};
+\node[box, right=of feature] (clean) {训练集拟合\\清洗与标准化};
+\node[small, below=of feature] (label) {HI/FPT 辅助\\三任务标签};
+\node[box, right=of clean] (dataset) {Tabular / Sequence\\任务数据集};
+\node[box, right=of dataset] (model) {模型训练\\与评估};
+\draw[arr] (raw) -- (window);
+\draw[arr] (window) -- (feature);
+\draw[arr] (feature) -- (clean);
+\draw[arr] (clean) -- (dataset);
+\draw[arr] (dataset) -- (model);
+\draw[arr] (feature) -- (label);
+\draw[arr] (label) -| (dataset);
+\end{tikzpicture}
+}
+\caption{数据处理与建模流程}
+\label{fig:data-pipeline}
+\end{figure}
+
+\subsection{训练集拟合原则}
+
+标准化参数、缺失值填充值和常量特征判断只从训练集估计，然后应用到验证集和测试集。这样做可以避免测试轴承的信息进入训练过程。该原则同样适用于序列样本：先在样本级完成特征清洗，再按时间顺序构造长度为 8 的序列。
+
+\subsection{任务数据形态}
+
+最终任务数据有两种形态：
+
+\begin{itemize}
+  \item 表格样本：每个样本对应一个振动快照的特征向量，供 MLP、XGBoost 和 RandomForest 使用。
+  \item 序列样本：每个样本由连续 8 个特征向量组成，供 GRU 序列基线使用。
+\end{itemize}
+
+这一区分很重要。表格样本只描述某一时刻的振动状态，而序列样本能够显式包含退化过程中的短期变化趋势，更接近 RUL 和早期预警任务的时间属性。

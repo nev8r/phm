@@ -64,6 +64,9 @@ class ConfigurableTrainer:
                 del val_predictions
                 row.update({f"val_{key}": value for key, value in val_metrics.items()})
 
+            if bool(OmegaConf.select(self.trainer_cfg, "console_log.enabled", default=True)):
+                print(_epoch_log(row, max_epochs), flush=True)
+
             if scheduler is not None:
                 scheduler.step()
             self.history.append(row)
@@ -271,6 +274,20 @@ def _select_device(name: str) -> torch.device:
 
 def _learning_rate(optimizer) -> float:
     return float(optimizer.param_groups[0]["lr"])
+
+
+def _epoch_log(row: Dict, max_epochs: int) -> str:
+    parts = [
+        f"[train] epoch {int(row['epoch'])}/{max_epochs}",
+        f"train_loss={float(row['train_loss']):.6f}",
+        f"lr={float(row['lr']):.2e}",
+    ]
+    for key in sorted(row):
+        if key.startswith("val_"):
+            value = row[key]
+            if isinstance(value, (int, float, np.floating)):
+                parts.append(f"{key}={float(value):.6f}")
+    return " | ".join(parts)
 
 
 def _metadata(batch) -> List[Dict]:
