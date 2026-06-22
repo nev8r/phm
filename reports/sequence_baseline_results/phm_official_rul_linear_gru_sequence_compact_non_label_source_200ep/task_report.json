@@ -1,0 +1,52 @@
+{
+  "ok": true,
+  "task_name": "rul_linear_sequence",
+  "task_type": "regression",
+  "input_mode": "feature_sequence",
+  "feature_source": "cleaned",
+  "num_features": 7,
+  "target_columns": [
+    "linear_rul_norm"
+  ],
+  "num_examples": 24770,
+  "num_train_examples": 7492,
+  "num_val_examples": 4316,
+  "num_test_examples": 12962,
+  "num_all_examples": 0,
+  "sequence": {
+    "enabled": true,
+    "length": 8,
+    "stride": 1,
+    "target_position": "last"
+  },
+  "class_distribution": {},
+  "target_summary": {
+    "linear_rul_norm": {
+      "min": 0.0,
+      "max": 0.997501784439686,
+      "mean": 0.4976141621919572
+    }
+  },
+  "checks": [
+    {
+      "name": "sample_uid_alignment",
+      "ok": true
+    },
+    {
+      "name": "non_empty_examples",
+      "ok": true
+    },
+    {
+      "name": "unique_example_uid",
+      "ok": true
+    },
+    {
+      "name": "no_cross_bearing_windows",
+      "ok": true
+    },
+    {
+      "name": "no_cross_split_windows",
+      "ok": true
+    }
+  ]
+}

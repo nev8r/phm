@@ -1,0 +1,65 @@
+{
+  "ok": true,
+  "task_name": "health_state_sequence",
+  "task_type": "multiclass_classification",
+  "input_mode": "feature_sequence",
+  "feature_source": "cleaned",
+  "num_features": 5,
+  "target_columns": [
+    "health_state_id"
+  ],
+  "num_examples": 24770,
+  "num_train_examples": 7492,
+  "num_val_examples": 4316,
+  "num_test_examples": 12962,
+  "num_all_examples": 0,
+  "sequence": {
+    "enabled": true,
+    "length": 8,
+    "stride": 1,
+    "target_position": "last"
+  },
+  "class_distribution": {
+    "test": {
+      "0": 6392,
+      "1": 2628,
+      "2": 2625,
+      "3": 1317
+    },
+    "train": {
+      "0": 2675,
+      "1": 1927,
+      "2": 1924,
+      "3": 966
+    },
+    "val": {
+      "0": 1602,
+      "1": 1086,
+      "2": 1085,
+      "3": 543
+    }
+  },
+  "target_summary": {},
+  "checks": [
+    {
+      "name": "sample_uid_alignment",
+      "ok": true
+    },
+    {
+      "name": "non_empty_examples",
+      "ok": true
+    },
+    {
+      "name": "unique_example_uid",
+      "ok": true
+    },
+    {
+      "name": "no_cross_bearing_windows",
+      "ok": true
+    },
+    {
+      "name": "no_cross_split_windows",
+      "ok": true
+    }
+  ]
+}

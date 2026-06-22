@@ -1,0 +1,29 @@
+{
+  "name": "early_fault_sequence",
+  "version": "v1",
+  "task_type": "binary_classification",
+  "input_mode": "feature_sequence",
+  "feature_source": "cleaned",
+  "feature_columns": [
+    "h__time__std",
+    "h__time__rms",
+    "h__time__mean_abs",
+    "v__time__std",
+    "v__time__mean_abs",
+    "mag__time__mean",
+    "mag__time__mean_abs"
+  ],
+  "target_columns": [
+    "early_fault"
+  ],
+  "sequence": {
+    "length": 8,
+    "stride": 1,
+    "target_position": "last",
+    "drop_incomplete": true,
+    "allow_cross_bearing": false,
+    "allow_cross_split": false
+  },
+  "created_by": "Stage4 TaskBuilder",
+  "hash": "32970dbd36c7"
+}
