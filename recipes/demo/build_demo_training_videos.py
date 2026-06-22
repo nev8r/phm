@@ -59,7 +59,6 @@ def build_demo_video_plans() -> List[DemoVideoPlan]:
                 "trainer.max_epochs=50 trainer.optimizer.lr=0.0003 trainer.optimizer.weight_decay=0.0001"
             ),
             main_figures=(
-                ("训练曲线", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/training_curve.png"),
                 ("RUL 真实值 / 预测值", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_true_pred_by_bearing.png"),
                 ("预测值 vs 真实值", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_pred_vs_true.png"),
                 ("残差分布", "reports/sequence_baseline_results/xjtu_main_rul_linear_gru_sequence_full_manual_basic_no_reference_200ep/figures/test_residuals.png"),
@@ -85,7 +84,6 @@ def build_demo_video_plans() -> List[DemoVideoPlan]:
                 "trainer.batch_size=256 trainer.max_epochs=50 trainer.optimizer.lr=0.0003 trainer.optimizer.weight_decay=0.0001"
             ),
             main_figures=(
-                ("训练曲线", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/training_curve.png"),
                 ("混淆矩阵", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_confusion_matrix.png"),
                 ("类别分布", "reports/sequence_baseline_results/xjtu_main_early_gru_sequence_compact_non_label_source_200ep/figures/test_class_distribution.png"),
             ),
@@ -516,7 +514,6 @@ def write_video_qa(
     for index, plan in enumerate(plans, start=1):
         summary = demo_summaries[plan.demo_run_name]
         meta = video_meta[plan.video_file]
-        training_curve_label = "200ep training_curve"
         final_key = "200ep true/pred by bearing" if plan.key == "rul" else "200ep confusion matrix"
         lines.extend([
             f"## {index}. {'RUL' if plan.key == 'rul' else 'EarlyFault'} 视频",
@@ -533,7 +530,7 @@ def write_video_qa(
             "- 是否展示 epoch / train_loss / 日志滚动：是",
             "- 视频主画面不展示 val_loss：是",
             "- 视频主画面不展示 validation primary metric：是",
-            f"- 结尾是否展示 {training_curve_label}：是",
+            "- 结尾是否展示 training_curve：否",
             f"- 结尾是否展示 {final_key}：是",
             "- 结论：通过",
             "",

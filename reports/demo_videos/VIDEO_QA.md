@@ -20,13 +20,13 @@ Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。
 - 任务：RUL linear regression
 - 视频时长：11.30s
 - 分辨率：1280x720
-- 文件大小：160,342 bytes
+- 文件大小：152,740 bytes
 - 50ep demo 是否完成：是（epoch=50，history=50）
 - 是否加速：是，逐 epoch 动画以 10 fps 合成
 - 是否展示 epoch / train_loss / 日志滚动：是
 - 视频主画面不展示 val_loss：是
 - 视频主画面不展示 validation primary metric：是
-- 结尾是否展示 200ep training_curve：是
+- 结尾是否展示 training_curve：否
 - 结尾是否展示 200ep true/pred by bearing：是
 - 结论：通过
 
@@ -38,12 +38,12 @@ Demo 训练参数：batch_size=256，lr=0.0003，weight_decay=0.0001。
 - 任务：EarlyFault binary classification
 - 视频时长：11.30s
 - 分辨率：1280x720
-- 文件大小：163,533 bytes
+- 文件大小：166,429 bytes
 - 50ep demo 是否完成：是（epoch=50，history=50）
 - 是否加速：是，逐 epoch 动画以 10 fps 合成
 - 是否展示 epoch / train_loss / 日志滚动：是
 - 视频主画面不展示 val_loss：是
 - 视频主画面不展示 validation primary metric：是
-- 结尾是否展示 200ep training_curve：是
+- 结尾是否展示 training_curve：否
 - 结尾是否展示 200ep confusion matrix：是
 - 结论：通过
