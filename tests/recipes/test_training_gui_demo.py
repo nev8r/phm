@@ -1,3 +1,14 @@
+"""
+test training gui demo module.
+
+Purpose: verify test training gui demo module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 from recipes.demo.training_gui import (
     build_demo_export,
     build_training_replay_frame_specs,

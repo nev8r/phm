@@ -1,5 +1,12 @@
 """
 Test Stage 5 model factory.
+
+Purpose: verify test stage 5 model factory behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pytest

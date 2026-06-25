@@ -1,11 +1,10 @@
 """
 Weighted f1 score metric module
 
-this file is for computing weighted f1 score evaluation metrics
-
-created by zdh
-
-copyright USTC
+Purpose: run training, testing, callbacks, metrics, or losses
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

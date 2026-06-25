@@ -1,5 +1,12 @@
 """
 Test Stage 2 feature cleaning.
+
+Purpose: verify test stage 2 feature cleaning behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import numpy as np

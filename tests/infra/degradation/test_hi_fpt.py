@@ -1,5 +1,12 @@
 """
 Test Stage 3 health indicator and FPT behavior.
+
+Purpose: verify test stage 3 health indicator and fpt behavior behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

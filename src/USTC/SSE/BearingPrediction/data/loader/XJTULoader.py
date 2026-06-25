@@ -1,11 +1,10 @@
 """
 XJTU-SY loader module
 
-this file is for loading XJTU-SY bearing vibration data
-
-created by cyj
-
-copyright USTC
+Purpose: load, label, or process bearing vibration data
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

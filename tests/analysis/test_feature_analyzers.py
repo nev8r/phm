@@ -1,5 +1,12 @@
 """
 Test Stage 6 feature analyzers.
+
+Purpose: verify test stage 6 feature analyzers behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

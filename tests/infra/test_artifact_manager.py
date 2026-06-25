@@ -1,5 +1,12 @@
 """
 Test artifact file management behavior.
+
+Purpose: verify test artifact file management behavior behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

@@ -1,3 +1,14 @@
+"""
+test build training dashboard module.
+
+Purpose: verify test build training dashboard module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 import json
 from pathlib import Path
 

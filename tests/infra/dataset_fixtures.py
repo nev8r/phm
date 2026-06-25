@@ -1,5 +1,12 @@
 """
 Small fake dataset builders for Stage 1 tests.
+
+Purpose: verify small fake dataset builders for stage 1 tests behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from pathlib import Path

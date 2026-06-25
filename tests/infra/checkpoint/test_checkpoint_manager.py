@@ -1,5 +1,12 @@
 """
 Test Stage 5 checkpoint manager.
+
+Purpose: verify test stage 5 checkpoint manager behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import torch

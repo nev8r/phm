@@ -1,3 +1,14 @@
+"""
+test run sklearn baseline module.
+
+Purpose: verify test run sklearn baseline module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 import math
 
 import pandas as pd

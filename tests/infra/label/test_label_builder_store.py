@@ -1,5 +1,12 @@
 """
 Test Stage 3 label builder and store.
+
+Purpose: verify test stage 3 label builder and store behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

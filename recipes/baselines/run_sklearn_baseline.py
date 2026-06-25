@@ -1,9 +1,12 @@
 """
 Standalone sklearn/XGBoost tabular baseline recipe.
 
-This recipe intentionally stays outside the torch ModelFactory and trainer. It
-reuses the existing PHM data, feature, label, split, and task builders, then
-fits a scikit-learn-compatible tabular model on the constructed TaskDataset.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

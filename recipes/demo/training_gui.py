@@ -1,7 +1,12 @@
-"""Chinese training replay GUI for completed PHM experiment reports.
+"""
+Chinese training replay GUI for completed PHM experiment reports.
 
-The GUI reads curated summaries under reports/ only. It replays completed MLP
-history files at adjustable speed and displays non-MLP diagnostic figures.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

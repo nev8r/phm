@@ -1,5 +1,12 @@
 """
 Test the Stage 3 build_labels CLI.
+
+Purpose: verify test the stage 3 build_labels cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

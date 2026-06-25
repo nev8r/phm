@@ -1,5 +1,12 @@
 """
 Smoke tests for the three-task feature analysis configuration.
+
+Purpose: verify smoke tests for the three-task feature analysis configuration behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

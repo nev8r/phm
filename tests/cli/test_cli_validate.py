@@ -1,5 +1,12 @@
 """
 Test the Stage 0 validate CLI.
+
+Purpose: verify test the stage 0 validate cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

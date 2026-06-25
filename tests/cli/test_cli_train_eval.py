@@ -1,5 +1,12 @@
 """
 Test Stage 5 train and eval CLI.
+
+Purpose: verify test stage 5 train and eval cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

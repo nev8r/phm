@@ -1,3 +1,14 @@
+"""
+test demo training videos module.
+
+Purpose: verify test demo training videos module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 import json
 
 from recipes.demo.build_demo_training_videos import (

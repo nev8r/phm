@@ -1,7 +1,12 @@
-"""Build Step AC accelerated training-process demo videos.
+"""
+Build Step AC accelerated training-process demo videos.
 
-The 50ep runs are used only to demonstrate the training process. The videos end
-with the corresponding 200ep main-result figures from curated reports.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

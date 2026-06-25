@@ -1,3 +1,14 @@
+"""
+test plot sequence results module.
+
+Purpose: verify test plot sequence results module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 import json
 from recipes.diagnostics.plot_sequence_results import (
     choose_primary_metric,

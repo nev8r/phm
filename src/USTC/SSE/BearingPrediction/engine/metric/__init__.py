@@ -1,11 +1,10 @@
 """
 metric package initialization module
 
-this file is for exposing metric package interfaces
-
-created by zdh
-
-copyright USTC
+Purpose: run training, testing, callbacks, metrics, or losses
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

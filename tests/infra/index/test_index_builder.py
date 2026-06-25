@@ -1,5 +1,12 @@
 """
 Test Stage 1 sample index building.
+
+Purpose: verify test stage 1 sample index building behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from omegaconf import OmegaConf

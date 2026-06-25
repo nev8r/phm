@@ -1,11 +1,10 @@
 """
 MSE metric module
 
-this file is for computing mse evaluation metrics
-
-created by zdh
-
-copyright USTC
+Purpose: run training, testing, callbacks, metrics, or losses
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

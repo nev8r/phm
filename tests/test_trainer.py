@@ -1,11 +1,10 @@
 """
 Test trainer test module
 
-this file is for verifying test trainer behavior
-
-created by zy
-
-copyright USTC
+Purpose: verify test trainer test module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

@@ -1,7 +1,12 @@
 """
 Sample index builder.
 
-This module scans dataset roots and creates one row per sampling CSV file.
+Purpose: provide infrastructure services for indexed, configurable experiments
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import re

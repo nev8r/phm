@@ -1,5 +1,12 @@
 """
 Test Stage 4 dataset, data module, and store behavior.
+
+Purpose: verify test stage 4 dataset, data module, and store behavior behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

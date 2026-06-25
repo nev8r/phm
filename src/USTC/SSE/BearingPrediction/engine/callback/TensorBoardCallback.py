@@ -1,11 +1,10 @@
 """
 Tensor board callback module
 
-this file is for handling training callback behavior
-
-created by zdh
-
-copyright USTC
+Purpose: run training, testing, callbacks, metrics, or losses
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

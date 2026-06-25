@@ -1,5 +1,12 @@
 """
 Test Stage 5 task metrics.
+
+Purpose: verify test stage 5 task metrics behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import numpy as np

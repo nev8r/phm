@@ -1,5 +1,12 @@
 """
 Test Stage 1 bearing-level splitters.
+
+Purpose: verify test stage 1 bearing-level splitters behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from omegaconf import OmegaConf

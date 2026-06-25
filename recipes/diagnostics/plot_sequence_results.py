@@ -1,9 +1,12 @@
 """
 Curate Step AB GRU sequence training outputs.
 
-The script reads raw training artifacts, writes small review files and figures
-under reports/sequence_baseline_results, and intentionally does not copy
-checkpoints, prediction parquet, task manifests, feature tables, labels, or HI.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

@@ -1,8 +1,12 @@
 """
 Experiment command line entrypoint.
 
-This module provides the Hydra-based CLI used to validate experiment config,
-create run artifacts, and dispatch early infrastructure stages.
+Purpose: provide command line orchestration for experiment stages
+Author: zyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import sys
@@ -41,6 +45,7 @@ STAGE_FOR_MODE = {
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
+    """Load the Hydra config selected by CLI arguments and run one workflow mode."""
     config_name, overrides = parse_cli_args(sys.argv[1:] if argv is None else argv)
     conf_dir = find_conf_dir()
 
@@ -51,6 +56,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
 
 def run_validate_cli(cfg: DictConfig) -> None:
+    """Persist run metadata, validate config, then dispatch to the requested mode."""
     context = RunContext.create(cfg)
     context.save_resolved_config(cfg)
     context.save_metadata()
@@ -181,6 +187,7 @@ def run_inspect_task(cfg: DictConfig, context: RunContext) -> None:
 
 
 def run_train(cfg: DictConfig, context: RunContext) -> None:
+    """Build task data and model artifacts, then execute a configured training run."""
     from USTC.SSE.BearingPrediction.engine.trainer.ConfigurableTrainer import ConfigurableTrainer
     from USTC.SSE.BearingPrediction.infra.model.ModelFactory import ModelFactory
     from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
@@ -202,6 +209,7 @@ def run_train(cfg: DictConfig, context: RunContext) -> None:
 
 
 def run_eval(cfg: DictConfig, context: RunContext) -> None:
+    """Evaluate a saved checkpoint through the same task/model assembly path as training."""
     from USTC.SSE.BearingPrediction.engine.trainer.ConfigurableTrainer import ConfigurableTrainer
     from USTC.SSE.BearingPrediction.infra.model.ModelFactory import ModelFactory
     from USTC.SSE.BearingPrediction.infra.task.TaskStore import TaskStore
@@ -226,6 +234,7 @@ def run_eval(cfg: DictConfig, context: RunContext) -> None:
 
 
 def build_task_datamodule_artifacts(cfg: DictConfig, context: RunContext):
+    """Create or load task datasets and keep feature, label, and split evidence together."""
     from USTC.SSE.BearingPrediction.infra.task.TaskBuilder import TaskBuilder
 
     cache_dir = OmegaConf.select(cfg, "task.cache_dir", default=None)
@@ -252,6 +261,7 @@ def build_task_datamodule_artifacts(cfg: DictConfig, context: RunContext):
 
 
 def _load_task_datamodule_from_cache(cache_dir: Path):
+    """Rehydrate task artifacts produced by a previous run without changing their schema."""
     from USTC.SSE.BearingPrediction.infra.task.DataModule import DataModule
     from USTC.SSE.BearingPrediction.infra.task.TaskDataset import TaskDataset
 
@@ -312,6 +322,7 @@ def _read_lines(path: Path) -> List[str]:
 
 
 def build_label_artifacts(cfg: DictConfig, context: RunContext, index, split, raw_features=None, cleaned_features=None):
+    """Build labels, optional HI/FPT outputs, and their reviewable report files."""
     from USTC.SSE.BearingPrediction.infra.label.LabelBuilder import LabelBuilder
     from USTC.SSE.BearingPrediction.infra.label.LabelStore import LabelStore
 
@@ -330,6 +341,7 @@ def build_label_artifacts(cfg: DictConfig, context: RunContext, index, split, ra
 
 
 def build_feature_artifacts(cfg: DictConfig, context: RunContext, index, split):
+    """Extract raw features, fit cleaning on the proper split scope, and save evidence."""
     from USTC.SSE.BearingPrediction.infra.feature.FeatureCleaner import FeatureCleaner
     from USTC.SSE.BearingPrediction.infra.feature.FeatureExtractor import FeatureExtractor
     from USTC.SSE.BearingPrediction.infra.feature.FeatureReport import build_feature_report
@@ -357,6 +369,7 @@ def build_feature_artifacts(cfg: DictConfig, context: RunContext, index, split):
 
 
 def build_index_artifacts(cfg: DictConfig, context: RunContext):
+    """Create the sample index and optional split before downstream pipeline stages."""
     from USTC.SSE.BearingPrediction.infra.index.IndexBuilder import IndexBuilder
     from USTC.SSE.BearingPrediction.infra.index.IndexValidator import IndexValidator
     from USTC.SSE.BearingPrediction.infra.split.SplitRegistry import build_splitter

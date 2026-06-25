@@ -1,11 +1,10 @@
 """
 Frequency band energy processor module
 
-this file is for processing bearing vibration signals and features
-
-created by cyj
-
-copyright USTC
+Purpose: load, label, or process bearing vibration data
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

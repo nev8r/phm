@@ -1,5 +1,12 @@
 """
 Task-based configurable trainer.
+
+Purpose: run training, testing, callbacks, metrics, or losses
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from pathlib import Path
@@ -25,7 +32,10 @@ from USTC.SSE.BearingPrediction.util.Device import select_torch_device
 
 
 class ConfigurableTrainer:
+    """Train, evaluate, checkpoint, and export metrics for one configured task."""
+
     def __init__(self, cfg: DictConfig, context, datamodule, model: torch.nn.Module, model_spec: Dict):
+        """Bind resolved config, run context, task data, and model into one training unit."""
         self.cfg = cfg
         self.trainer_cfg = OmegaConf.select(cfg, "trainer", default=cfg)
         self.context = context
@@ -43,6 +53,7 @@ class ConfigurableTrainer:
         )
 
     def train(self) -> List[Dict]:
+        """Run the epoch loop, save checkpoints/history, and evaluate configured splits."""
         if self.datamodule.train is None:
             raise ValueError("Training requires a non-empty train split")
         seed = int(OmegaConf.select(self.trainer_cfg, "seed", default=OmegaConf.select(self.cfg, "project.seed", default=42)))
@@ -81,6 +92,7 @@ class ConfigurableTrainer:
         return self.history.to_list()
 
     def evaluate_checkpoint(self, checkpoint_path: str) -> Dict[str, Dict]:
+        """Load one checkpoint and save evaluation outputs for every available split."""
         loss_fn = LossRegistry.build(OmegaConf.select(self.trainer_cfg, "loss", default={}), self.task_type)
         checkpoint = self.checkpoints.load(checkpoint_path)
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -115,6 +127,7 @@ class ConfigurableTrainer:
         return total_loss / max(batches, 1)
 
     def evaluate_split(self, split: str, loss_fn=None, save: bool = False):
+        """Evaluate one split and optionally persist prediction and metric artifacts."""
         dataset = self.datamodule.splits().get(split)
         if dataset is None:
             return None, {}

@@ -1,5 +1,12 @@
 """
 Test Stage 2 feature store.
+
+Purpose: verify test stage 2 feature store behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

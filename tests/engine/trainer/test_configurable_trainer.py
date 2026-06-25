@@ -1,5 +1,12 @@
 """
 Test Stage 5 configurable trainer.
+
+Purpose: verify test stage 5 configurable trainer behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from types import SimpleNamespace

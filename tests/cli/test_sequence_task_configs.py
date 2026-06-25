@@ -1,3 +1,14 @@
+"""
+test sequence task configs module.
+
+Purpose: verify test sequence task configs module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
+"""
+
 from hydra import compose, initialize_config_dir
 
 from USTC.SSE.BearingPrediction.cli.main import find_conf_dir

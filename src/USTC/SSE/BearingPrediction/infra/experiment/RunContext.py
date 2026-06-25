@@ -1,7 +1,12 @@
 """
 Run context module.
 
-This file creates and records the filesystem context for one experiment run.
+Purpose: provide infrastructure services for indexed, configurable experiments
+Author: zdh
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import re

@@ -1,9 +1,12 @@
 """
 Build a static demo dashboard from curated report artifacts.
 
-The script reads only files under reports/ and writes a portable dashboard under
-reports/demo_dashboard by default. It uses curated report summaries only and
-does not inspect private run outputs or source data locations.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

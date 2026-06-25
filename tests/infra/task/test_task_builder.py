@@ -1,5 +1,12 @@
 """
 Test Stage 4 task builder.
+
+Purpose: verify test stage 4 task builder behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

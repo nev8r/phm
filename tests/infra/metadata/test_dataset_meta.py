@@ -1,5 +1,12 @@
 """
 Test Stage 1 dataset metadata.
+
+Purpose: verify test stage 1 dataset metadata behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from USTC.SSE.BearingPrediction.infra.metadata.PHM2012Meta import PHM2012Meta

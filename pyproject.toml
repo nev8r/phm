@@ -47,3 +47,13 @@ packages = ["src/USTC"]
 
 [tool.uv]
 package = true
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".venv",
+    ".uv-cache",
+    "delivery",
+    "outputs",
+    "reports",
+]

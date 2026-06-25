@@ -2,6 +2,7 @@
 .agents/
 .idea/
 .venv/
+.uv-cache/
 *.pyc
 *.pkl
 .ipynb_checkpoints

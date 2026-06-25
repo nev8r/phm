@@ -1,8 +1,12 @@
 """
 Test loader split-root registration behavior.
 
-This file verifies that dataset loaders can register sparse train/val/test
-split roots made of bearing directory symlinks.
+Purpose: verify test loader split-root registration behavior behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import tempfile

@@ -1,5 +1,12 @@
 """
 Test Stage 4 task manifest window construction.
+
+Purpose: verify test stage 4 task manifest window construction behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

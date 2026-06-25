@@ -1,11 +1,10 @@
 """
 Logger utility module
 
-this file is for formatting project logs consistently
-
-created by zy
-
-copyright USTC
+Purpose: provide utility helpers used by the bearing PHM framework
+Author: zy
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

@@ -1,5 +1,12 @@
 """
 Task data module builder.
+
+Purpose: provide infrastructure services for indexed, configurable experiments
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from fnmatch import fnmatch
@@ -20,11 +27,15 @@ from USTC.SSE.BearingPrediction.infra.task.types import FEATURE_SEQUENCE
 
 
 class TaskBuilder:
+    """Assemble features, labels, splits, and window rules into trainable data modules."""
+
     def __init__(self, cfg: DictConfig):
+        """Store task config and create the validator used before dataset construction."""
         self.cfg = cfg
         self.validator = TaskValidator()
 
     def build(self, features: pd.DataFrame, labels: pd.DataFrame, split_result=None) -> DataModule:
+        """Validate aligned inputs, build the task manifest, and return split datasets."""
         self.validator.validate_sample_alignment(features, labels)
         target_columns = list(OmegaConf.select(self.cfg, "target.columns", default=[]))
         self.validator.validate_target_columns(labels, target_columns)
@@ -71,6 +82,7 @@ class TaskBuilder:
         )
 
     def _select_feature_columns(self, features: pd.DataFrame) -> List[str]:
+        """Apply include/exclude column rules after removing sample index columns."""
         cfg = OmegaConf.select(self.cfg, "feature_columns", default={})
         candidates = [column for column in features.columns if column not in FEATURE_INDEX_COLUMNS]
         include = str(OmegaConf.select(cfg, "include", default="all"))

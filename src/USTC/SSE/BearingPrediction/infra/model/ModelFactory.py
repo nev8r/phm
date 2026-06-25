@@ -1,5 +1,12 @@
 """
 Build models from task-aware configuration.
+
+Purpose: define model components for bearing PHM tasks
+Author: zyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from omegaconf import DictConfig, OmegaConf
@@ -18,6 +25,8 @@ from USTC.SSE.BearingPrediction.model.sequence.LSTMRegressor import LSTMRegresso
 
 
 class FlattenIfSequence(nn.Module):
+    """Adapt sequence feature tensors for tabular models when configs request MLP."""
+
     def __init__(self, model: nn.Module):
         super().__init__()
         self.model = model
@@ -29,10 +38,14 @@ class FlattenIfSequence(nn.Module):
 
 
 class ModelFactory:
+    """Create task-aware model instances and the matching serializable model spec."""
+
     def __init__(self, cfg: DictConfig):
+        """Store the model config chosen by Hydra."""
         self.cfg = cfg
 
     def build(self, datamodule, task_cfg: DictConfig):
+        """Build a model whose input/output dimensions match the constructed task."""
         name = str(OmegaConf.select(self.cfg, "name", default="mlp"))
         class_name = str(OmegaConf.select(self.cfg, "class_name", default=_default_class(name)))
         params = OmegaConf.to_container(OmegaConf.select(self.cfg, "params", default={}), resolve=True)

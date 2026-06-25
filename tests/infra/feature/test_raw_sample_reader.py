@@ -1,5 +1,12 @@
 """
 Test Stage 2 raw sample reading.
+
+Purpose: verify test stage 2 raw sample reading behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from pathlib import Path

@@ -1,5 +1,12 @@
 """
 Test the Stage 1 build_index CLI.
+
+Purpose: verify test the stage 1 build_index cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

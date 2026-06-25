@@ -1,5 +1,12 @@
 """
 Test Stage 5 prediction storage.
+
+Purpose: verify test stage 5 prediction storage behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

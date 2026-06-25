@@ -1,5 +1,12 @@
 """
 Test experiment run context behavior.
+
+Purpose: verify test experiment run context behavior behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from omegaconf import OmegaConf

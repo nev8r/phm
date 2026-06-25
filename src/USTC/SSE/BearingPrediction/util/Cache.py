@@ -1,11 +1,10 @@
 """
 Cache utility module
 
-this file is for saving and loading local experiment caches
-
-created by zy
-
-copyright USTC
+Purpose: provide utility helpers used by the bearing PHM framework
+Author: zy
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

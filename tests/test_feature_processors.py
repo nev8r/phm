@@ -1,11 +1,10 @@
 """
 Test feature processors test module
 
-this file is for verifying test feature processors behavior
-
-created by zy
-
-copyright USTC
+Purpose: verify test feature processors test module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

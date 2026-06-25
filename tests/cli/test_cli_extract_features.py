@@ -1,5 +1,12 @@
 """
 Test the Stage 2 extract_features CLI.
+
+Purpose: verify test the stage 2 extract_features cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

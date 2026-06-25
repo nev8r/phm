@@ -1,11 +1,10 @@
 """
 basic package initialization module
 
-this file is for exposing basic package interfaces
-
-created by zyj
-
-copyright USTC
+Purpose: define model components for bearing PHM tasks
+Author: zyj
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """

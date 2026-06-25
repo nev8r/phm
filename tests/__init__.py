@@ -1,13 +1,11 @@
 """
 tests package initialization module
 
-this file is for exposing tests package interfaces
-
-created by zy
-
-copyright USTC
+Purpose: verify tests package initialization module behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
 
 2026
 """
-
 

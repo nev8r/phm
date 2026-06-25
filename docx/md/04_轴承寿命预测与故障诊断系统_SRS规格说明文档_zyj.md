@@ -5,43 +5,90 @@
 | 项目名称 | 轴承寿命预测与故障诊断系统 |
 | 小组成员 | zyj、zdh、cyj、zy |
 | 组长 | zyj |
-| 文档版本 | v1.0 |
+| 文档版本 | v2.0 |
 | 日期 | 2026年6月 |
 
+## 课程要求梳理
 
-## 项目概述
+本文件对应《工程实践各阶段要求》和《工程实践管理规范2025》中的 **开题阶段** 工作产品：**SRS 规格说明文档**。用可追踪条目描述功能、非功能、接口和约束。
 
-本项目面向轴承预测性维护课程场景，建设一个可运行、可测试、可复查的轴承寿命预测与故障诊断系统。系统围绕两个公开数据集展开：PHM2012 用于剩余寿命 RUL 回归建模，XJTU-SY 用于健康/故障诊断建模。项目重点不是搭建在线工业平台，而是在本地工程环境中形成从数据接入、特征工程、模型训练到评估输出的闭环证据链。
+| 要求来源 | 关键要求 | 本文响应 |
+|---|---|---|
+| 工程实践各阶段要求 | 完成阶段任务并提交对应工作产品 | 本文按阶段产物补充内容和证据 |
+| 工程实践管理规范2025 | 文档、代码、演示和过程管理需要可审查 | 本文引用仓库路径、测试和演示材料 |
+| 课程结题归档 | 电子文档统一压缩提交 | 交付索引和 zip 包在 `delivery` |
 
-当前代码采用 Python 3.11、uv 包管理和 PyTorch 2.10 依赖范围。源码物理路径为 `src/USTC/SSE/BearingPrediction`，示例和 Notebook 中推荐通过 `from phm...` 导入。数据路径通过 `data/loader_roots/phm2012` 与 `data/loader_roots/xjtu` 映射到本地外部数据集，避免硬编码个人磁盘路径。
+## 项目事实基线
 
-## 功能需求
+- 代码路径：`src/USTC/SSE/BearingPrediction`。
+- 对外推荐导入方式：通过安装后的 `phm` 包或 CLI 入口使用，历史物理命名空间保留为 `USTC.SSE.BearingPrediction`。
+- 包管理方式：Python 3.11、`uv`、`pyproject.toml`、`uv.lock`。
+- 数据入口：`data/loader_roots/phm2012` 和 `data/loader_roots/xjtu`，原始数据不进入 Git。
+- 主线数据集：PHM2012/PRONOSTIA 与 XJTU-SY Bearing Datasets。
+- 主线任务：RUL 回归、健康状态识别、早期故障识别、故障类型/阶段识别。
+- 主要模块：数据加载、样本索引、划分、特征提取、标签构造、任务构造、模型训练、评估、分析和可视化。
+- 演示材料：`reports/demo_videos`、`reports/demo_dashboard`、`reports/cli_demo`。
+- 结题报告材料：`reports/final_defense/report` 与 `outputs`。
+- 课程正式文档：`docx/md`、`docx/word`、`docx/pdf`。
 
-| 编号 | 需求 | 优先级 | 验收方式 |
+## SRS 总体描述
+
+本 SRS 将系统定义为面向轴承 PHM 实验的离线研究框架。系统输入为本地轴承数据集和 YAML 配置，输出为索引、划分、特征、标签、训练指标、预测结果、分析报告、图表和演示材料。
+
+## 功能规格
+
+| 编号 | 功能 | 输入 | 输出 | 约束 |
+|---|---|---|---|---|
+| SRS-F01 | 数据加载 | 数据根目录 | Entity/sample index | 路径不硬编码个人目录 |
+| SRS-F02 | 数据划分 | sample index、split 配置 | train/val/test uid | 结果可保存和复查 |
+| SRS-F03 | 特征提取 | 原始样本、feature 配置 | FeatureFrame | 允许缓存和清洗 |
+| SRS-F04 | 标签构造 | index、label 配置 | LabelFrame | 明确 label-source 风险 |
+| SRS-F05 | 任务构造 | feature、label、split | TaskDataset | 支持表格和序列 |
+| SRS-F06 | 模型训练 | task、model、trainer 配置 | checkpoint、history、metrics | 记录 resolved config |
+| SRS-F07 | 模型评估 | checkpoint、test task | predictions、metrics | 指标写入固定目录 |
+| SRS-F08 | 分析报告 | 实验结果和图表 | markdown/json/png | 用于答辩和论文 |
+
+## 外部接口
+
+主要外部接口是 CLI：`uv run python -m USTC.SSE.BearingPrediction.cli.main --config-name smoke mode=<mode>`。安装 console script 后可使用 `uv run bp --config-name smoke mode=<mode>`。配置接口由 `conf` 下 YAML 文件提供。
+
+## 需求追踪矩阵
+
+| 需求 | 设计位置 | 测试位置 | 文档位置 |
 |---|---|---|---|
-| FR-01 | 读取 PHM2012 与 XJTU-SY 数据集 | 高 | Loader 测试与 Notebook 运行 |
-| FR-02 | 生成 FFT、时域、频域和频带能量特征 | 高 | 特征处理单元测试 |
-| FR-03 | 构造 RUL 标签与健康/故障标签 | 高 | 数据集样本 shape 与标签检查 |
-| FR-04 | 训练基础深度学习模型完成 RUL 回归 | 高 | 输出 MSE、RMSE、MAE、R2 |
-| FR-05 | 训练基础深度学习模型完成故障诊断 | 高 | 输出 accuracy、F1、混淆矩阵 |
-| FR-06 | 支持 Notebook 可视化展示 | 中 | 生成特征图、曲线图、热力图 |
-| FR-07 | 支持缓存、日志和设备选择 | 中 | 训练日志和缓存路径检查 |
+| 数据加载 | loader、metadata、index | `tests/infra/index`、`tests/test_loader_split_roots.py` | 用户手册、安装手册 |
+| 特征和标签 | infra/feature、infra/label | `tests/infra/feature`、`tests/infra/label` | 技术预研、设计文档 |
+| 训练评估 | engine、infra/train、cli | `tests/cli/test_cli_train_eval.py` | 设计文档、测试报告 |
+| 演示归档 | reports/demo_*、reports/cli_demo | manifest 和 QA | 用户手册、结题报告 |
+| 文档交付 | docx/md、word、pdf | audit 脚本 | README 交付索引 |
 
-## 非功能需求
+## 交付证据位置
 
-| 编号 | 需求 | 约束 |
+| 证据 | 路径 | 说明 |
 |---|---|---|
-| NFR-01 | 可复现性 | Python 3.11、uv、`uv.lock` 固化依赖 |
-| NFR-02 | 可维护性 | 源码按 data、model、engine、util 分层 |
-| NFR-03 | 可测试性 | 单元、集成、确认测试均有文档与命令 |
-| NFR-04 | 可移植性 | 数据路径不写个人磁盘，统一使用 `data/loader_roots` |
-| NFR-05 | 可解释性 | 输出指标图、特征图和混淆矩阵 |
+| 源码 | `src/USTC/SSE/BearingPrediction` | 项目核心实现 |
+| 配置 | `conf` | Hydra 配置、任务、模型、训练参数 |
+| 测试 | `tests` | 单元、集成、CLI、recipes 测试 |
+| 示例 | `examples` | Notebook 指南与 Demo |
+| 用户文档 | `user-guide` | 数据集 card、加载与划分说明 |
+| 正式文档 | `docx/md`、`docx/word`、`docx/pdf` | 课程交付文档 |
+| CLI 演示 | `reports/cli_demo` | 命令、输出、QA、manifest |
+| Dashboard 演示 | `reports/demo_dashboard` | 静态网页、截图、视频 |
+| 训练视频 | `reports/demo_videos` | 训练过程加速视频 |
+| 结题材料 | `outputs`、`reports/final_defense/report` | PPT、PDF、论文式报告 |
 
-## 需求追踪
+## 外部平台与配置管理说明
 
-| 需求 | 设计/实现位置 | 测试证据 |
-|---|---|---|
-| FR-01/FR-02 | `phm.data`、`phm.data.process` | `tests/test_feature_processors.py`、Notebook |
-| FR-04 | `phm.model.basic`、训练器 | RUL Demo Notebook |
-| FR-05 | `phm.model.basic`、训练器 | 故障诊断 Demo Notebook |
-| FR-06 | `examples/1-guide`、`examples/2-demo` | Notebook 输出图表 |
+《工程实践管理规范2025》建议使用太乙、禅道和 Gitee。当前仓库可见且可审计的证据为 Git/GitHub、`uv.lock`、Hydra 配置、测试记录和本地演示材料。未在仓库中出现太乙、禅道或 Gitee 的真实截图、链接、导出记录时，本文档只写等效配置管理事实，不写虚假的平台完成结论。
+
+## 质量检查口径
+
+| 检查项 | 通过标准 |
+|---|---|
+| 文档数量 | Markdown、Word、PDF 各 20 份 |
+| 文档内容 | 无待完善标记、空白表格或无证据结论 |
+| 代码头 | `src`、`tests`、`recipes` Python 文件均有 Author、Program date、Copyright |
+| 语法 | `python -m compileall src tests recipes scripts` 通过 |
+| 测试 | `uv run pytest` 或目标 smoke 测试通过 |
+| 演示 | CLI、Dashboard、训练视频 manifest 为 pass |
+

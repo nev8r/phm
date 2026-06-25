@@ -1,5 +1,12 @@
 """
 Test Stage 1 sample index validation.
+
+Purpose: verify test stage 1 sample index validation behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import pandas as pd

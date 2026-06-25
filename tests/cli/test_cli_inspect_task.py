@@ -1,5 +1,12 @@
 """
 Test the Stage 4 inspect_task CLI.
+
+Purpose: verify test the stage 4 inspect_task cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

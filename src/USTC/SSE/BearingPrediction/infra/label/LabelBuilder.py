@@ -1,5 +1,12 @@
 """
 Label builder orchestration.
+
+Purpose: provide infrastructure services for indexed, configurable experiments
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from typing import Dict, Optional, Tuple
@@ -16,7 +23,10 @@ from USTC.SSE.BearingPrediction.infra.label.LabelSpec import LabelSpec
 
 
 class LabelBuilder:
+    """Construct task labels and optional degradation evidence from indexed samples."""
+
     def __init__(self, cfg: DictConfig):
+        """Store the label config used for output labels and HI/FPT settings."""
         self.cfg = cfg
 
     def build(
@@ -26,6 +36,7 @@ class LabelBuilder:
             cleaned_features: Optional[pd.DataFrame] = None,
             split=None,
     ):
+        """Build configured label columns and return labels, spec, report, HI, and FPT."""
         del split
         requires_features = bool(OmegaConf.select(self.cfg, "requires_features", default=False))
         features = raw_features if raw_features is not None else cleaned_features
@@ -78,6 +89,7 @@ class LabelBuilder:
         return labels, spec, report, hi_df, fpt_payload
 
     def _build_hi_fpt(self, features: pd.DataFrame):
+        """Calculate a health indicator and first predicting time payload for labelers."""
         hi_cfg = OmegaConf.select(self.cfg, "hi", default={})
         hi_method = str(OmegaConf.select(hi_cfg, "method", default="feature_column"))
         if hi_method != "feature_column":

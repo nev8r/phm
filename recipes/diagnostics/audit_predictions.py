@@ -1,9 +1,12 @@
 """
 Prediction sanity audit for completed PHM baseline runs.
 
-This recipe reads existing prediction artifacts and curated reports. It does
-not train models, rewrite baseline outputs, or copy raw prediction parquet into
-the report directory.
+Purpose: provide reproducible demo or diagnostic workflow for 轴承寿命预测与故障诊断系统
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from __future__ import annotations

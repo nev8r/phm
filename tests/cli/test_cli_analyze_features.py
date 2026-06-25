@@ -1,5 +1,12 @@
 """
 Test Stage 6 analyze_features CLI.
+
+Purpose: verify test stage 6 analyze_features cli behavior
+Author: zy
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 import json

@@ -1,5 +1,12 @@
 """
 Feature extractor orchestration.
+
+Purpose: provide infrastructure services for indexed, configurable experiments
+Author: cyj
+Program date: 2026-06
+Copyright: USTC
+
+2026
 """
 
 from typing import Dict, List, Tuple
@@ -13,10 +20,14 @@ from USTC.SSE.BearingPrediction.infra.feature.FeatureSpec import FeatureSpec
 
 
 class FeatureExtractor:
+    """Merge one or more configured feature backends into a single feature table."""
+
     def __init__(self, cfg: DictConfig):
+        """Store the feature extraction config used by CLI and tests."""
         self.cfg = cfg
 
     def extract(self, index: pd.DataFrame) -> Tuple[pd.DataFrame, Dict, List[Dict]]:
+        """Extract backend features, reject duplicate columns, and return spec metadata."""
         backends = list(OmegaConf.select(self.cfg, "backends", default=[]))
         if not backends:
             raise ValueError("feature.backends must contain at least one backend")
